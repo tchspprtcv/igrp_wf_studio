@@ -1,4 +1,4 @@
-import debug from 'debug';
+import * as debug from 'debug';
 
 const BASE_NAMESPACE = 'igrp-wf';
 

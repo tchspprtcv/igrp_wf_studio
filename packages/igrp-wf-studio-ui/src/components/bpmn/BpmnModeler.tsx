@@ -5,7 +5,7 @@ import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
 import '@bpmn-io/properties-panel/dist/assets/properties-panel.css'; // Changed this line
 import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js-properties-panel';
 import camundaModdleDescriptor from 'camunda-bpmn-moddle/resources/camunda.json';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { ChevronRight, ChevronLeft } from 'lucide-react'; // Removed Download icon
 import { cn } from '@/lib/utils';
 import CustomPropertiesProvider from './CustomPropertiesProvider';
 import ActivitiPropertiesProvider from './ActivitiPropertiesProvider';
@@ -15,9 +15,10 @@ import activitiModdleDescriptor from '../../bpmn/activiti.json';
 interface BpmnModelerProps {
   xml?: string;
   onChange?: (xml: string) => void;
+  onLoad?: (modeler: BpmnJS) => void; // Add onLoad prop
 }
 
-const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange }) => {
+const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange, onLoad }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const propertiesPanelRef = useRef<HTMLDivElement>(null);
   const modelerRef = useRef<BpmnJS | null>(null);
@@ -71,6 +72,7 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange }) => {
     });
 
     modelerRef.current = modeler;
+    onLoad?.(modeler); // Call onLoad with the modeler instance
 
     // Load initial diagram
     if (xml) {
@@ -144,6 +146,8 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange }) => {
         isPanelCollapsed ? "mr-0" : "mr-96"
       )} />
       
+      {/* Export Button Removed */}
+
       <div className={cn(
         "absolute right-0 h-full flex transition-all duration-300 ease-in-out",
         isPanelCollapsed ? "translate-x-full" : "translate-x-0"
