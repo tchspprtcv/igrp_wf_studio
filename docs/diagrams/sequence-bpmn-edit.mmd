@@ -1,0 +1,44 @@
+sequenceDiagram
+    participant User
+    participant UI as BpmnEditor.tsx
+    participant Props as BpmnPropertiesPanel.tsx
+    participant State as State Management
+    participant API as API Client
+    participant Engine as BPMN Parser (Engine)
+    participant DB as Database
+    
+    User->>UI: Open BPMN Editor
+    UI->>API: Request existing BPMN diagram
+    API->>Engine: Fetch BPMN XML
+    Engine->>DB: Query diagram data
+    DB-->>Engine: Return BPMN XML
+    Engine-->>API: Process and return BPMN model
+    API-->>UI: Return BPMN diagram data
+    UI->>UI: Render BPMN diagram
+    
+    Note over User,UI: User interacts with diagram
+    
+    User->>UI: Add/modify BPMN element
+    UI->>State: Update diagram state
+    State-->>UI: State updated
+    UI->>UI: Re-render diagram
+    
+    User->>UI: Select BPMN element
+    UI->>Props: Send selected element data
+    Props->>Props: Populate properties panel
+    
+    User->>Props: Modify element properties
+    Props->>State: Update element properties
+    State-->>UI: Notify state change
+    UI->>UI: Update diagram visualization
+    
+    User->>UI: Save diagram
+    UI->>State: Get current diagram state
+    State-->>UI: Return complete diagram
+    UI->>API: Send updated BPMN XML
+    API->>Engine: Process and validate BPMN
+    Engine->>DB: Store updated diagram
+    DB-->>Engine: Confirm storage
+    Engine-->>API: Return success status
+    API-->>UI: Display save confirmation
+    UI-->>User: Show success message

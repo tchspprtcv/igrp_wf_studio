@@ -1,0 +1,16 @@
+{
+  "name": "igrp-wf",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "yarn workspace igrp-wf-studio-ui dev",
+    "build": "yarn workspaces run build"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  }
+}

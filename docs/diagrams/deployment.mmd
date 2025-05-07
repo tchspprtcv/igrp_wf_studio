@@ -1,0 +1,74 @@
+graph TB
+    subgraph "Client Environment"
+        Browser[Web Browser]
+    end
+    
+    subgraph "Application Server"
+        subgraph "Frontend Container"
+            ReactApp[React Application]
+            StaticFiles[Static Files]
+            WebServer[Nginx Web Server]
+        end
+        
+        subgraph "Backend Container"
+            APIServer[API Server]
+            WorkflowEngine[IGRP Workflow Engine]
+            Cache[Redis Cache]
+        end
+    end
+    
+    subgraph "Database Server"
+        PrimaryDB[(Primary Database)]
+        ReplicaDB[(Replica Database)]
+    end
+    
+    subgraph "External Services"
+        Auth[Authentication Service]
+        Notification[Notification Service]
+        Integration[Integration APIs]
+    end
+    
+    %% Connections
+    Browser -->|HTTPS| WebServer
+    WebServer --> ReactApp
+    WebServer --> StaticFiles
+    
+    ReactApp -->|REST API| APIServer
+    APIServer --> WorkflowEngine
+    WorkflowEngine --> Cache
+    
+    WorkflowEngine -->|Read/Write| PrimaryDB
+    WorkflowEngine -->|Read Only| ReplicaDB
+    PrimaryDB -->|Replication| ReplicaDB
+    
+    APIServer -->|Authentication| Auth
+    WorkflowEngine -->|Send Notifications| Notification
+    WorkflowEngine -->|External Process Steps| Integration
+    
+    %% Load Balancer
+    LoadBalancer[Load Balancer]
+    LoadBalancer -->|Route Traffic| WebServer
+    LoadBalancer -->|Route API Calls| APIServer
+    
+    %% Monitoring
+    Monitoring[Monitoring System]
+    Monitoring -.->|Monitor| WebServer
+    Monitoring -.->|Monitor| APIServer
+    Monitoring -.->|Monitor| WorkflowEngine
+    Monitoring -.->|Monitor| PrimaryDB
+    Monitoring -.->|Monitor| ReplicaDB
+    
+    %% Styling
+    classDef client fill:#e4f0f8,stroke:#333,stroke-width:1px
+    classDef frontend fill:#bbdefb,stroke:#333,stroke-width:1px
+    classDef backend fill:#c8e6c9,stroke:#333,stroke-width:1px
+    classDef database fill:#ffecb3,stroke:#333,stroke-width:1px
+    classDef external fill:#e1bee7,stroke:#333,stroke-width:1px
+    classDef infrastructure fill:#cfd8dc,stroke:#333,stroke-width:1px
+    
+    class Browser client
+    class ReactApp,StaticFiles,WebServer frontend
+    class APIServer,WorkflowEngine,Cache backend
+    class PrimaryDB,ReplicaDB database
+    class Auth,Notification,Integration external
+    class LoadBalancer,Monitoring infrastructure

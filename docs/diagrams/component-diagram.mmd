@@ -1,0 +1,72 @@
+graph TB
+    %% Main Components
+    subgraph "igrp-wf-studio-ui"
+        UI[UI Layer]
+        subgraph "Core UI Components"
+            BpmnEditor["BpmnEditor.tsx\n(BPMN Diagram Editing)"]
+            BpmnProps["BpmnPropertiesPanel.tsx\n(BPMN Properties)"]
+            Sidebar["CollapsibleSidebar.tsx\n(Navigation)"]
+            Dashboard["Dashboard\n(Process Overview)"]
+        end
+        
+        subgraph "UI Services"
+            UIState["State Management\n(Redux/Context)"]
+            ApiClient["API Client\n(Axios/Fetch)"]
+            Validation["Form Validation"]
+        end
+        
+        %% UI Layer connections
+        UI --> BpmnEditor
+        UI --> BpmnProps
+        UI --> Sidebar
+        UI --> Dashboard
+        
+        %% UI Components connections
+        BpmnEditor --> UIState
+        BpmnProps --> UIState
+        Dashboard --> ApiClient
+        BpmnEditor --> ApiClient
+    end
+    
+    subgraph "igrp-wf-engine"
+        Engine[Engine Core]
+        subgraph "Engine Components"
+            Parser["BPMN Parser\n(XML Processing)"]
+            Executor["Process Executor\n(Workflow Runtime)"]
+            StateManager["State Manager\n(Process State)"]
+        end
+        
+        subgraph "Engine Services"
+            ApiLayer["API Layer\n(REST Endpoints)"]
+            DataAccess["Data Access Layer"]
+            Auth["Authentication/Authorization"]
+        end
+        
+        %% Engine Layer connections
+        Engine --> Parser
+        Engine --> Executor
+        Engine --> StateManager
+        
+        %% Engine Components connections
+        Executor --> DataAccess
+        ApiLayer --> Executor
+        ApiLayer --> Parser
+        ApiLayer --> Auth
+    end
+    
+    %% Cross-package connections
+    ApiClient --> ApiLayer
+    
+    %% External Systems
+    DB[(Database)]
+    ExternalAPI[External APIs]
+    
+    %% External connections
+    DataAccess --> DB
+    ApiLayer --> ExternalAPI
+    
+    style igrp-wf-studio-ui fill:#bbf,stroke:#333,stroke-width:2px
+    style igrp-wf-engine fill:#f9f,stroke:#333,stroke-width:2px
+    style BpmnEditor fill:#afa,stroke:#333,stroke-width:2px
+    style BpmnProps fill:#afa,stroke:#333,stroke-width:2px
+    style Sidebar fill:#afa,stroke:#333,stroke-width:2px

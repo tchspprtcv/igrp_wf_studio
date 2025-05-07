@@ -1,0 +1,36 @@
+{
+  "name": "Custom",
+  "uri": "http://custom.io/schema/bpmn/custom",
+  "prefix": "custom",
+  "types": [
+    {
+      "name": "DataObjectProperties",
+      "superClass": [ "bpmn:ExtensionElements" ],
+      "properties": [
+        {
+          "name": "dataType",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "isCollection",
+          "isAttr": true,
+          "type": "Boolean"
+        }
+      ]
+    },
+    {
+      "name": "ArtifactProperties",
+      "superClass": [ "bpmn:ExtensionElements" ],
+      "properties": [
+        {
+          "name": "artifactType",
+          "isAttr": true,
+          "type": "String"
+        }
+      ]
+    }
+  ],
+  "emumerations": [],
+  "associations": []
+}

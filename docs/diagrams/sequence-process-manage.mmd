@@ -1,0 +1,52 @@
+sequenceDiagram
+    participant User
+    participant Dashboard as Workflow Dashboard
+    participant Sidebar as CollapsibleSidebar
+    participant API as API Client
+    participant Engine as Process Executor
+    participant State as State Manager
+    participant DB as Database
+    
+    User->>Dashboard: Access workflow dashboard
+    Dashboard->>API: Request active processes
+    API->>Engine: Get process instances
+    Engine->>State: Retrieve process states
+    State->>DB: Query process data
+    DB-->>State: Return process instances
+    State-->>Engine: Process state data
+    Engine-->>API: Return process list
+    API-->>Dashboard: Display process instances
+    
+    User->>Sidebar: Navigate to "Create Process"
+    Sidebar->>Dashboard: Switch to process creation view
+    
+    User->>Dashboard: Fill process details & select BPMN
+    Dashboard->>API: Create new process instance
+    API->>Engine: Initialize process
+    Engine->>State: Create process state
+    State->>DB: Store new process
+    DB-->>State: Confirm creation
+    State-->>Engine: Process initialized
+    Engine-->>API: Return process ID
+    API-->>Dashboard: Show process created
+    
+    User->>Dashboard: Select existing process
+    Dashboard->>API: Request process details
+    API->>Engine: Get process instance
+    Engine->>State: Get detailed state
+    State->>DB: Query process details
+    DB-->>State: Return complete data
+    State-->>Engine: Process details
+    Engine-->>API: Return process data
+    API-->>Dashboard: Display process details
+    
+    User->>Dashboard: Execute process action (start/pause/stop)
+    Dashboard->>API: Send action request
+    API->>Engine: Execute process action
+    Engine->>State: Update process state
+    State->>DB: Store state change
+    DB-->>State: Confirm update
+    State-->>Engine: State updated
+    Engine-->>API: Return action result
+    API-->>Dashboard: Update process status
+    Dashboard-->>User: Show status change
