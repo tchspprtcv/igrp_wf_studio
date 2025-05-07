@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import BpmnJS from 'bpmn-js/lib/Modeler';
-// import type Canvas from 'diagram-js/lib/core/Canvas'; // Removed Canvas import
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
+import '@bpmn-io/properties-panel/dist/assets/properties-panel.css'; // Changed this line
 import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js-properties-panel';
 import camundaModdleDescriptor from 'camunda-bpmn-moddle/resources/camunda.json';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import CustomPropertiesProvider from './custompropertiesprovider';
-import ActivitiPropertiesProvider from './activitipropertiesprovider';
+import CustomPropertiesProvider from './CustomPropertiesProvider';
+import ActivitiPropertiesProvider from './ActivitiPropertiesProvider';
 import customModdleDescriptor from './custom.json';
 import activitiModdleDescriptor from '../../bpmn/activiti.json';
 
@@ -24,6 +24,21 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange }) => {
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const [selectedElement, setSelectedElement] = useState<any>(null);
 
+  // Define the default diagram XML as a string constant
+  const DEFAULT_DIAGRAM_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd" id="sample-diagram" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn2:process id="Process_1" isExecutable="false">
+    <bpmn2:startEvent id="StartEvent_1"/>
+  </bpmn2:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
+        <dc:Bounds height="36.0" width="36.0" x="412.0" y="240.0"/>
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn2:definitions>`;
+
   useEffect(() => {
     if (!containerRef.current || !propertiesPanelRef.current) return;
 
@@ -35,19 +50,20 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange }) => {
       additionalModules: [
         BpmnPropertiesPanelModule,
         BpmnPropertiesProviderModule,
-         {
+        {
           __init__: ['customPropertiesProvider'],
-           customPropertiesProvider: ['type', CustomPropertiesProvider]
-         },
-         {
-           __init__: ['activitiPropertiesProvider'],
-           activitiPropertiesProvider: ['type', ActivitiPropertiesProvider]
-         }
+          customPropertiesProvider: ['type', CustomPropertiesProvider]
+        },
+        {
+          __init__: ['activitiPropertiesProvider'],
+          activitiPropertiesProvider: ['type', ActivitiPropertiesProvider]
+        }
       ],
       moddleExtensions: {
-        //camunda: camundaModdleDescriptor,
-         custom: customModdleDescriptor,
-         //activiti: activitiModdleDescriptor
+        // Support for both Camunda and Activiti
+        camunda: camundaModdleDescriptor,
+        custom: customModdleDescriptor
+        //activiti: activitiModdleDescriptor
       },
       keyboard: {
         bindTo: document
@@ -90,77 +106,12 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange }) => {
     // Apply custom styling to properties panel
     const propertiesPanel = propertiesPanelRef.current;
     if (propertiesPanel) {
-      propertiesPanel.classList.add('bpp-properties-panel');
+      // The class 'bpp-properties-panel' might still be useful if you have global overrides
+      // or if other parts of your application expect it.
+      // propertiesPanel.classList.add('bpp-properties-panel');
 
-      // Add custom styles for collapsible groups
-      const style = document.createElement('style');
-      style.textContent = `
-        .bpp-properties-panel [data-group-id] {
-          margin-bottom: 0;
-          border-bottom: 1px solid #e5e7eb;
-        }
-
-        .bpp-properties-panel [data-group-id] .group-header {
-          cursor: pointer;
-          user-select: none;
-          padding: 0.75rem 1rem;
-          background-color: #f9fafb;
-          transition: background-color 0.2s;
-        }
-
-        .bpp-properties-panel [data-group-id] .group-header:hover {
-          background-color: #f3f4f6;
-        }
-
-        .bpp-properties-panel [data-group-id] .group-header .group-label {
-          font-weight: 500;
-          color: #374151;
-        }
-
-        .bpp-properties-panel [data-group-id] .entries {
-          padding: 1rem;
-          border-top: 1px solid #e5e7eb;
-        }
-
-        .bpp-properties-panel [data-group-id].collapsed .entries {
-          display: none;
-        }
-
-        .bpp-properties-panel [data-group-id] .group-header::after {
-          content: '';
-          display: inline-block;
-          width: 1rem;
-          height: 1rem;
-          background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>');
-          background-size: contain;
-          transition: transform 0.2s;
-          float: right;
-        }
-
-        .bpp-properties-panel [data-group-id].collapsed .group-header::after {
-          transform: rotate(180deg);
-        }
-      `;
-      document.head.appendChild(style);
-
-      // Add click handlers for group headers
-      const observer = new MutationObserver(() => {
-        const groups = propertiesPanel.querySelectorAll('[data-group-id]');
-        groups.forEach(group => {
-          const header = group.querySelector('.group-header');
-          if (header && !header.hasAttribute('data-click-handler')) {
-            header.setAttribute('data-click-handler', 'true');
-            header.addEventListener('click', () => {
-              group.classList.toggle('collapsed');
-            });
-          }
-        });
-      });
-
-      observer.observe(propertiesPanel, {
-        childList: true,
-        subtree: true
-      });
+      // Removed custom style injection and MutationObserver logic,
+      // as the imported 'bpmn-js-properties-panel.css' should handle this.
     }
 
     return () => {
@@ -170,26 +121,9 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange }) => {
 
   const createNewDiagram = async (modeler: BpmnJS) => {
     try {
-      const newDiagramXML = `<?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
-                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
-                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
-                   xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
-                   id="Definitions_1"
-                   targetNamespace="http://bpmn.io/schema/bpmn">
-  <bpmn:process id="Process_1" isExecutable="true">
-    <bpmn:startEvent id="StartEvent_1"/>
-  </bpmn:process>
-  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
-      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
-        <dc:Bounds x="173" y="102" width="36" height="36"/>
-      </bpmndi:BPMNShape>
-    </bpmndi:BPMNPlane>
-  </bpmndi:BPMNDiagram>
-</bpmn:definitions>`;
+      //const newDiagramXML = newDiagramXML;
 
-      await modeler.importXML(newDiagramXML);
+      await modeler.importXML(DEFAULT_DIAGRAM_XML);
       
       // Get the canvas and zoom to fit the viewport
       const canvas = (modeler as any).get('canvas'); // Cast modeler to any to access get method
