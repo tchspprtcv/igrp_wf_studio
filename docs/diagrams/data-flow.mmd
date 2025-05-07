@@ -1,0 +1,94 @@
+graph TD
+    %% External entities
+    User[User]
+    DB[(Database)]
+    ExtAPI[External APIs]
+    
+    %% Processes
+    subgraph "UI Layer"
+        BpmnEditor[BPMN Editor]
+        PropPanel[Properties Panel]
+        Dashboard[Workflow Dashboard]
+        Sidebar[Collapsible Sidebar]
+    end
+    
+    subgraph "API Layer"
+        ApiClient[API Client]
+        Authentication[Authentication]
+    end
+    
+    subgraph "Engine Layer"
+        BpmnParser[BPMN Parser]
+        ProcessExec[Process Executor]
+        StateManager[State Manager]
+        DataAccess[Data Access Layer]
+    end
+    
+    %% Data flows
+    
+    %% User interactions
+    User -->|Diagram edits| BpmnEditor
+    User -->|Property updates| PropPanel
+    User -->|Process actions| Dashboard
+    User -->|Navigation| Sidebar
+    
+    %% UI to API flows
+    BpmnEditor -->|BPMN XML| ApiClient
+    PropPanel -->|Element properties| ApiClient
+    Dashboard -->|Process commands| ApiClient
+    
+    %% API to Engine flows
+    ApiClient -->|Authentication token| Authentication
+    Authentication -->|Validated requests| BpmnParser
+    Authentication -->|Validated requests| ProcessExec
+    Authentication -->|Validated requests| StateManager
+    
+    %% Engine internal flows
+    BpmnParser -->|Parsed BPMN models| ProcessExec
+    ProcessExec -->|State updates| StateManager
+    StateManager -->|Persistence requests| DataAccess
+    
+    %% Data storage flows
+    DataAccess -->|CRUD operations| DB
+    
+    %% Return flows
+    DB -->|Stored data| DataAccess
+    DataAccess -->|Retrieved data| StateManager
+    StateManager -->|Process state| ProcessExec
+    ProcessExec -->|Execution results| ApiClient
+    BpmnParser -->|Validation results| ApiClient
+    
+    %% External API flows
+    ProcessExec -->|Integration calls| ExtAPI
+    ExtAPI -->|External data| ProcessExec
+    
+    %% UI return flows
+    ApiClient -->|BPMN data| BpmnEditor
+    ApiClient -->|Element data| PropPanel
+    ApiClient -->|Process list/details| Dashboard
+    
+    %% Data stores
+    ProcessStore[(Process Store)]
+    BpmnStore[(BPMN Store)]
+    UserStore[(User Store)]
+    
+    %% Connections to data stores
+    DataAccess -->|Process data| ProcessStore
+    DataAccess -->|BPMN definitions| BpmnStore
+    DataAccess -->|User information| UserStore
+    ProcessStore -->|Process retrieval| DataAccess
+    BpmnStore -->|BPMN retrieval| DataAccess
+    UserStore -->|User retrieval| DataAccess
+    
+    %% Styling
+    classDef uiLayer fill:#bbf,stroke:#333,stroke-width:1px
+    classDef apiLayer fill:#fbb,stroke:#333,stroke-width:1px
+    classDef engineLayer fill:#bfb,stroke:#333,stroke-width:1px
+    classDef dataStore fill:#ffd,stroke:#333,stroke-width:1px
+    classDef external fill:#ddd,stroke:#333,stroke-width:1px
+    
+    class BpmnEditor,PropPanel,Dashboard,Sidebar uiLayer
+    class ApiClient,Authentication apiLayer
+    class BpmnParser,ProcessExec,StateManager,DataAccess engineLayer
+    class ProcessStore,BpmnStore,UserStore dataStore
+    class User,DB,ExtAPI external

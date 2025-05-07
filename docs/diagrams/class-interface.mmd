@@ -1,0 +1,120 @@
+classDiagram
+    %% Engine Core Classes
+    class WorkflowEngine {
+        -processRegistry: Map
+        -eventBus: EventBus
+        +initialize(): void
+        +registerProcess(process: Process): void
+        +executeProcess(processId: string): ProcessInstance
+        +getProcessById(id: string): Process
+        +getAllProcesses(): Process[]
+    }
+    
+    class Process {
+        -id: string
+        -name: string
+        -version: string
+        -bpmnDefinition: BpmnDefinition
+        -status: ProcessStatus
+        +getId(): string
+        +getName(): string
+        +getVersion(): string
+        +getStatus(): ProcessStatus
+        +getBpmnDefinition(): BpmnDefinition
+        +setStatus(status: ProcessStatus): void
+    }
+    
+    class ProcessInstance {
+        -id: string
+        -processId: string
+        -variables: Map
+        -currentState: string
+        -history: ActivityHistory[]
+        +getId(): string
+        +getProcessId(): string
+        +getVariable(name: string): any
+        +setVariable(name: string, value: any): void
+        +getCurrentState(): string
+        +getHistory(): ActivityHistory[]
+        +proceed(): void
+        +pause(): void
+        +terminate(): void
+    }
+    
+    class BpmnDefinition {
+        -id: string
+        -xml: string
+        -elements: BpmnElement[]
+        +getId(): string
+        +getXml(): string
+        +getElements(): BpmnElement[]
+        +getElementById(id: string): BpmnElement
+        +validate(): ValidationResult
+    }
+    
+    class BpmnElement {
+        -id: string
+        -type: string
+        -properties: Map
+        -incoming: string[]
+        -outgoing: string[]
+        +getId(): string
+        +getType(): string
+        +getProperty(name: string): any
+        +setProperty(name: string, value: any): void
+        +getIncoming(): string[]
+        +getOutgoing(): string[]
+    }
+    
+    class EventBus {
+        -subscribers: Map
+        +subscribe(event: string, callback: Function): void
+        +unsubscribe(event: string, callback: Function): void
+        +publish(event: string, data: any): void
+    }
+    
+    %% UI Core Classes
+    class BpmnEditorComponent {
+        -canvas: HTMLElement
+        -modeler: BpmnModeler
+        -currentDiagram: string
+        +initialize(): void
+        +loadDiagram(xml: string): void
+        +saveDiagram(): string
+        +addElement(type: string, position: Position): void
+        +removeElement(elementId: string): void
+        +getSelectedElements(): BpmnElement[]
+    }
+    
+    class BpmnPropertiesPanelComponent {
+        -selectedElement: BpmnElement
+        -propertyForms: Map
+        +setSelectedElement(element: BpmnElement): void
+        +updateProperty(name: string, value: any): void
+        +getPropertyValue(name: string): any
+        +registerPropertyForm(type: string, form: ReactComponent): void
+    }
+    
+    class WorkflowApiClient {
+        -baseUrl: string
+        -authToken: string
+        +getProcesses(): Promise
+        +getProcessById(id: string): Promise
+        +createProcess(process: Process): Promise
+        +updateProcess(id: string, process: Process): Promise
+        +deleteProcess(id: string): Promise
+        +executeProcessAction(id: string, action: string): Promise
+        +getBpmnDefinition(id: string): Promise
+        +saveBpmnDefinition(id: string, xml: string): Promise
+    }
+    
+    %% Relationships
+    WorkflowEngine "1" -- "n" Process: manages
+    Process "1" -- "n" ProcessInstance: creates
+    Process "1" -- "1" BpmnDefinition: contains
+    BpmnDefinition "1" -- "n" BpmnElement: composed of
+    WorkflowEngine "1" -- "1" EventBus: uses
+    BpmnEditorComponent "1" -- "n" BpmnElement: manipulates
+    BpmnPropertiesPanelComponent "1" -- "1" BpmnElement: edits
+    BpmnEditorComponent "1" -- "1" WorkflowApiClient: uses
+    BpmnPropertiesPanelComponent "1" -- "1" WorkflowApiClient: uses

@@ -1,0 +1,48 @@
+graph TB
+    subgraph "IGRP Workflow Application"
+        subgraph "igrp-wf-engine"
+            E1[Core Engine]
+            E2[Process Execution]
+            E3[BPMN Parser]
+            E4[State Management]
+            E5[API Layer]
+        end
+        
+        subgraph "igrp-wf-studio-ui"
+            UI1[React UI Components]
+            UI2[BPMN Editor]
+            UI3[Properties Panel]
+            UI4[Workflow Dashboard]
+            UI5[Process Management]
+            UI6[Collapsible Sidebar]
+        end
+        
+        %% Connections between engine components
+        E1 --> E2
+        E1 --> E3
+        E1 --> E4
+        E1 --> E5
+        
+        %% Connections between UI components
+        UI1 --> UI2
+        UI1 --> UI3
+        UI1 --> UI4
+        UI1 --> UI5
+        UI1 --> UI6
+        
+        %% Connections between packages
+        E5 --> UI1
+        UI2 --> E3
+        UI5 --> E2
+    end
+    
+    %% External systems
+    DB[(Database)]
+    API[External APIs]
+    
+    %% Connections to external systems
+    E1 --> DB
+    E5 --> API
+    
+    style igrp-wf-engine fill:#f9f,stroke:#333,stroke-width:2px
+    style igrp-wf-studio-ui fill:#bbf,stroke:#333,stroke-width:2px
