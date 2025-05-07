@@ -26,5 +26,5 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['igrp-wf-engine'],
     include: ['debug']
-  }
+  },
 });

@@ -6,7 +6,7 @@ import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-codes.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css';
 
 // Optional modules that can be passed to enhance functionality
-import minimapModule from 'diagram-js-minimap';
+//import minimapModule from 'diagram-js-minimap';
 import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js-properties-panel';
 
 // Default BPMN template for new diagrams
@@ -96,9 +96,9 @@ const BpmnEditor: React.FC<BpmnEditorProps> = ({
     const modules = [...additionalModules];
     
     // Add minimap module if available
-    if (minimapModule) {
+    /*if (minimapModule) {
       modules.push(minimapModule);
-    }
+    }*/
     
     // Add properties panel modules if needed
     if (showPropertiesPanel && BpmnPropertiesPanelModule && BpmnPropertiesProviderModule) {
