@@ -112,8 +112,8 @@ const MainLayout: React.FC = () => {
         {/* Header needs to be outside the potential PanelGroup of main content if we want it full width */}
         <Header onMobileMenuClick={toggleMobileMenu} />
         <main className="flex-1 overflow-y-auto">
-          <div className="py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div>
+            <div className=" mx-auto px-4 py-6">
               <Outlet />
             </div>
           </div>
