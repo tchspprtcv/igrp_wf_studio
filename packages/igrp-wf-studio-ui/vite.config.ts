@@ -24,7 +24,7 @@ export default defineConfig({
     host: true,
   },
   optimizeDeps: {
-    exclude: ['igrp-wf-engine'],
-    include: ['debug']
+    exclude: [],
+    // include: ['debug'] // Removing this line as well
   },
 });
