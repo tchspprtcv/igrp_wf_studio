@@ -9,6 +9,18 @@ interface BpmnElementProperties {
   id: string;
   name?: string;
   documentation?: string;
+  versionTag?: string;
+  isExecutable?: boolean;
+  jobPriority?: string;
+  historyTimeToLive?: string;
+  taskPriority?: string;
+  isInterrupting?: boolean;
+  isAsync?: boolean;
+  isForCompensation?: boolean;
+  gatewayDirection?: string;
+  conditionExpression?: string;
+  isImmediate?: boolean;
+  isCollection?: boolean;
   [key: string]: any; // For additional custom properties
 }
 
@@ -24,6 +36,16 @@ interface PropertyField {
   placeholder?: string;
   description?: string;
   readOnly?: boolean;
+  onChange?: (value: any) => void;
+  onBlur?: (value: any) => void;
+  onFocus?: (value: any) => void;
+  onKeyDown?: (value: any) => void;
+  onKeyUp?: (value: any) => void;
+  onKeyPress?: (value: any) => void;
+  onMouseDown?: (value: any) => void;
+  onMouseUp?: (value: any) => void;
+  onMouseOver?: (value: any) => void;
+  onMouseOut?: (value: any) => void;
 }
 
 /**
@@ -83,7 +105,7 @@ const BpmnPropertiesPanel: React.FC<BpmnPropertiesPanelProps> = ({
    * Extract properties from the selected BPMN element
    */
   const extractElementProperties = useCallback((element: any): BpmnElementProperties | null => {
-    if (!element || element.type === 'bpmn:Process' || element.type === 'bpmn:Collaboration') {
+    if (!element) {
       return null;
     }
 
@@ -104,7 +126,26 @@ const BpmnPropertiesPanel: React.FC<BpmnPropertiesPanelProps> = ({
     }
 
     // Extract additional properties based on element type
-    if (element.type === 'bpmn:Task' || element.type.includes('Task')) {
+    // Handle bpmn:Process and bpmn:Collaboration first to ensure their specific properties are captured
+    if (element.type === 'bpmn:Process') {
+      properties.versionTag = businessObject.versionTag || '';
+      properties.isExecutable = businessObject.isExecutable || false;
+      properties.jobPriority = businessObject.jobPriority || '';
+      properties.historyTimeToLive = businessObject.historyTimeToLive || '';
+      // For taskPriority (Activiti extension)
+      if (businessObject.extensionElements && businessObject.extensionElements.values) {
+        const activitiProps = businessObject.extensionElements.values.find((ext: any) => ext.$type === 'activiti:Properties');
+        if (activitiProps && activitiProps.values) {
+          const taskPriorityProp = activitiProps.values.find((p: any) => p.name === 'taskPriority');
+          if (taskPriorityProp) {
+            properties.taskPriority = taskPriorityProp.value;
+          }
+        }
+      }
+    } else if (element.type === 'bpmn:Collaboration') {
+      // Add any specific collaboration properties here if needed in the future
+      // For now, it will fall through to common properties like ID, name, documentation
+    } else if (element.type === 'bpmn:Task' || element.type.includes('Task')) {
       properties.isAsync = businessObject.isAsync || false;
       properties.isForCompensation = businessObject.isForCompensation || false;
     } else if (element.type === 'bpmn:Gateway') {
@@ -116,6 +157,21 @@ const BpmnPropertiesPanel: React.FC<BpmnPropertiesPanelProps> = ({
       properties.isCollection = businessObject.isCollection || false;
     } else if (element.type === 'bpmn:Event' || element.type.includes('Event')) {
       properties.isInterrupting = businessObject.isInterrupting !== false; // Default to true
+    } else if (element.type === 'bpmn:Process') {
+      properties.versionTag = businessObject.versionTag || '';
+      properties.isExecutable = businessObject.isExecutable || false;
+      properties.jobPriority = businessObject.jobPriority || '';
+      properties.historyTimeToLive = businessObject.historyTimeToLive || '';
+      // For taskPriority (Activiti extension)
+      if (businessObject.extensionElements && businessObject.extensionElements.values) {
+        const activitiProps = businessObject.extensionElements.values.find((ext: any) => ext.$type === 'activiti:Properties');
+        if (activitiProps && activitiProps.values) {
+          const taskPriorityProp = activitiProps.values.find((p: any) => p.name === 'taskPriority');
+          if (taskPriorityProp) {
+            properties.taskPriority = taskPriorityProp.value;
+          }
+        }
+      }
     }
 
     // Extract custom extension elements if available
@@ -126,8 +182,35 @@ const BpmnPropertiesPanel: React.FC<BpmnPropertiesPanelProps> = ({
       businessObject.extensionElements.values.forEach((extension: any) => {
         if (extension.$type === 'camunda:Properties' && extension.values) {
           extension.values.forEach((prop: any) => {
-            properties[`extension_${prop.name}`] = prop.value;
+            properties[`extension_camunda_${prop.name}`] = prop.value;
           });
+        } else if (extension.$type === 'custom:DataObjectProperties') {
+          // Properties from CustomPropertiesProvider for DataObjects
+          if (extension.dataType !== undefined) properties.dataType = extension.dataType;
+          if (extension.isCollection !== undefined) properties.isCollection = extension.isCollection;
+        } else if (extension.$type === 'custom:ArtifactProperties') {
+          // Properties from CustomPropertiesProvider for Artifacts
+          if (element.type === 'bpmn:TextAnnotation') {
+            if (extension.textFormat !== undefined) properties.textFormat = extension.textFormat;
+            if (extension.includeInHistory !== undefined) properties.includeInHistory = extension.includeInHistory;
+            // Visual properties for TextAnnotation (assuming they are stored similarly or need specific handling)
+            if (extension.fontSize !== undefined) properties.fontSizeAnnotation = extension.fontSize;
+            if (extension.fontWeight !== undefined) properties.fontWeightAnnotation = extension.fontWeight;
+            if (extension.fontStyle !== undefined) properties.fontStyleAnnotation = extension.fontStyle;
+            if (extension.fontColor !== undefined) properties.fontColorAnnotation = extension.fontColor;
+            if (extension.backgroundColor !== undefined) properties.backgroundColorAnnotation = extension.backgroundColor;
+            if (extension.borderColor !== undefined) properties.borderColorAnnotation = extension.borderColor;
+          } else if (element.type === 'bpmn:Group') {
+            if (extension.categoryValueRef !== undefined) properties.categoryValueRef = extension.categoryValueRef;
+            // Visual properties for Group
+            if (extension.borderColor !== undefined) properties.borderColorGroup = extension.borderColor;
+            if (extension.backgroundColor !== undefined) properties.backgroundColorGroup = extension.backgroundColor;
+            if (extension.fontColor !== undefined) properties.fontColorGroup = extension.fontColor;
+            if (extension.fontSize !== undefined) properties.fontSizeGroup = extension.fontSize;
+          }
+        } else if (extension.$type === 'custom:WorkspaceProperties') {
+          // Properties from CustomPropertiesProvider for Workspace
+          if (extension.workspaceName !== undefined) properties.workspaceName = extension.workspaceName;
         }
       });
     }
@@ -143,6 +226,7 @@ const BpmnPropertiesPanel: React.FC<BpmnPropertiesPanelProps> = ({
 
     const modeling = modeler.get('modeling');
     const elementRegistry = modeler.get('elementRegistry');
+    const moddle = modeler.get('moddle'); // Moved moddle declaration here
     
     // Find the element in the registry (to ensure we're working with the latest version)
     const element = elementRegistry.get(selectedElement.id);
@@ -150,6 +234,7 @@ const BpmnPropertiesPanel: React.FC<BpmnPropertiesPanelProps> = ({
 
     // Prepare the properties to update
     const propertiesToUpdate: any = {};
+    let needsExtensionElementsUpdate = false; // Initialize here as it's used in the Process block
     
     // Handle name property
     if (updatedProperties.name !== undefined) {
@@ -158,7 +243,7 @@ const BpmnPropertiesPanel: React.FC<BpmnPropertiesPanelProps> = ({
     
     // Handle documentation
     if (updatedProperties.documentation !== undefined) {
-      const documentationElement = modeler.get('moddle').create('bpmn:Documentation', {
+      const documentationElement = moddle.create('bpmn:Documentation', {
         text: updatedProperties.documentation
       });
       
@@ -184,7 +269,7 @@ const BpmnPropertiesPanel: React.FC<BpmnPropertiesPanelProps> = ({
       }
     } else if (element.type === 'bpmn:SequenceFlow') {
       if (updatedProperties.conditionExpression !== undefined) {
-        const expressionElement = modeler.get('moddle').create('bpmn:FormalExpression', {
+        const expressionElement = moddle.create('bpmn:FormalExpression', {
           body: updatedProperties.conditionExpression
         });
         propertiesToUpdate.conditionExpression = expressionElement;
@@ -200,46 +285,123 @@ const BpmnPropertiesPanel: React.FC<BpmnPropertiesPanelProps> = ({
       if (updatedProperties.isInterrupting !== undefined) {
         propertiesToUpdate.isInterrupting = updatedProperties.isInterrupting;
       }
+    } else if (element.type === 'bpmn:Process') {
+      if (updatedProperties.versionTag !== undefined) {
+        propertiesToUpdate.versionTag = updatedProperties.versionTag;
+      }
+      if (updatedProperties.isExecutable !== undefined) {
+        propertiesToUpdate.isExecutable = !!updatedProperties.isExecutable;
+      }
+      if (updatedProperties.jobPriority !== undefined) {
+        propertiesToUpdate.jobPriority = updatedProperties.jobPriority;
+      }
+      if (updatedProperties.historyTimeToLive !== undefined) {
+        propertiesToUpdate.historyTimeToLive = updatedProperties.historyTimeToLive;
+      }
+      // For taskPriority (Activiti extension)
+      if (updatedProperties.taskPriority !== undefined) {
+        let extensionElements = element.businessObject.extensionElements || moddle.create('bpmn:ExtensionElements');
+        let activitiProperties = extensionElements.values?.find((ext: any) => ext.$type === 'activiti:Properties');
+        if (!activitiProperties) {
+          activitiProperties = moddle.create('activiti:Properties');
+          extensionElements.values = extensionElements.values || [];
+          extensionElements.values.push(activitiProperties);
+        }
+        activitiProperties.values = activitiProperties.values || [];
+        let taskPriorityProp = activitiProperties.values.find((p: any) => p.name === 'taskPriority');
+        if (taskPriorityProp) {
+          taskPriorityProp.value = updatedProperties.taskPriority;
+        } else {
+          taskPriorityProp = moddle.create('activiti:Property', { name: 'taskPriority', value: updatedProperties.taskPriority });
+          activitiProperties.values.push(taskPriorityProp);
+        }
+        propertiesToUpdate.extensionElements = extensionElements;
+        needsExtensionElementsUpdate = true; // Ensure this flag is set if not already handled by other custom props
+      }
     }
     
-    // Update extension elements if needed
-    const extensionProps = Object.keys(updatedProperties).filter(key => key.startsWith('extension_'));
-    if (extensionProps.length > 0) {
-      // This is a simplified approach - in a real implementation, you would need to
-      // properly handle the creation and updating of extension elements
-      const moddle = modeler.get('moddle');
-      const extensionElements = element.businessObject.extensionElements || 
-                               moddle.create('bpmn:ExtensionElements');
-      
-      let camundaProperties = extensionElements.values?.find(
-        (ext: any) => ext.$type === 'camunda:Properties'
-      );
-      
-      if (!camundaProperties) {
-        camundaProperties = moddle.create('camunda:Properties');
+    let extensionElements = element.businessObject.extensionElements || 
+                            moddle.create('bpmn:ExtensionElements');
+    // needsExtensionElementsUpdate is already declared and potentially set above
+
+    // Helper function to get or create specific extension property group
+    const getOrCreateExtension = (extensionType: string) => {
+      let specificExtension = extensionElements.values?.find((ext: any) => ext.$type === extensionType);
+      if (!specificExtension) {
+        specificExtension = moddle.create(extensionType);
         extensionElements.values = extensionElements.values || [];
-        extensionElements.values.push(camundaProperties);
+        extensionElements.values.push(specificExtension);
+        needsExtensionElementsUpdate = true;
       }
-      
+      return specificExtension;
+    };
+
+    // Handle Camunda extension properties
+    const camundaExtensionProps = Object.keys(updatedProperties).filter(key => key.startsWith('extension_camunda_'));
+    if (camundaExtensionProps.length > 0) {
+      let camundaProperties = getOrCreateExtension('camunda:Properties');
       camundaProperties.values = camundaProperties.values || [];
-      
-      extensionProps.forEach(key => {
-        const propName = key.replace('extension_', '');
-        const existingProp = camundaProperties.values.find(
-          (p: any) => p.name === propName
-        );
-        
+      camundaExtensionProps.forEach(key => {
+        const propName = key.replace('extension_camunda_', '');
+        const existingProp = camundaProperties.values.find((p: any) => p.name === propName);
         if (existingProp) {
           existingProp.value = updatedProperties[key];
         } else {
-          const newProp = moddle.create('camunda:Property', {
-            name: propName,
-            value: updatedProperties[key]
-          });
+          const newProp = moddle.create('camunda:Property', { name: propName, value: updatedProperties[key] });
           camundaProperties.values.push(newProp);
         }
       });
-      
+      needsExtensionElementsUpdate = true;
+    }
+
+    // Handle custom:DataObjectProperties
+    if (element.type === 'bpmn:DataObjectReference' || element.type === 'bpmn:DataObject') {
+      const dataObjectPropsToUpdate: any = {};
+      if (updatedProperties.dataType !== undefined) dataObjectPropsToUpdate.dataType = updatedProperties.dataType;
+      if (updatedProperties.isCollection !== undefined) dataObjectPropsToUpdate.isCollection = updatedProperties.isCollection;
+      if (Object.keys(dataObjectPropsToUpdate).length > 0) {
+        const customDataObjectProps = getOrCreateExtension('custom:DataObjectProperties');
+        Object.assign(customDataObjectProps, dataObjectPropsToUpdate);
+        needsExtensionElementsUpdate = true;
+      }
+    }
+
+    // Handle custom:ArtifactProperties
+    if (element.type === 'bpmn:TextAnnotation' || element.type === 'bpmn:Group') {
+      const artifactPropsToUpdate: any = {};
+      if (element.type === 'bpmn:TextAnnotation') {
+        if (updatedProperties.textFormat !== undefined) artifactPropsToUpdate.textFormat = updatedProperties.textFormat;
+        if (updatedProperties.includeInHistory !== undefined) artifactPropsToUpdate.includeInHistory = updatedProperties.includeInHistory;
+        if (updatedProperties.fontSizeAnnotation !== undefined) artifactPropsToUpdate.fontSize = updatedProperties.fontSizeAnnotation;
+        if (updatedProperties.fontWeightAnnotation !== undefined) artifactPropsToUpdate.fontWeight = updatedProperties.fontWeightAnnotation;
+        if (updatedProperties.fontStyleAnnotation !== undefined) artifactPropsToUpdate.fontStyle = updatedProperties.fontStyleAnnotation;
+        if (updatedProperties.fontColorAnnotation !== undefined) artifactPropsToUpdate.fontColor = updatedProperties.fontColorAnnotation;
+        if (updatedProperties.backgroundColorAnnotation !== undefined) artifactPropsToUpdate.backgroundColor = updatedProperties.backgroundColorAnnotation;
+        if (updatedProperties.borderColorAnnotation !== undefined) artifactPropsToUpdate.borderColor = updatedProperties.borderColorAnnotation;
+      } else if (element.type === 'bpmn:Group') {
+        if (updatedProperties.categoryValueRef !== undefined) artifactPropsToUpdate.categoryValueRef = updatedProperties.categoryValueRef;
+        if (updatedProperties.borderColorGroup !== undefined) artifactPropsToUpdate.borderColor = updatedProperties.borderColorGroup;
+        if (updatedProperties.backgroundColorGroup !== undefined) artifactPropsToUpdate.backgroundColor = updatedProperties.backgroundColorGroup;
+        if (updatedProperties.fontColorGroup !== undefined) artifactPropsToUpdate.fontColor = updatedProperties.fontColorGroup;
+        if (updatedProperties.fontSizeGroup !== undefined) artifactPropsToUpdate.fontSize = updatedProperties.fontSizeGroup;
+      }
+      if (Object.keys(artifactPropsToUpdate).length > 0) {
+        const customArtifactProps = getOrCreateExtension('custom:ArtifactProperties');
+        Object.assign(customArtifactProps, artifactPropsToUpdate);
+        needsExtensionElementsUpdate = true;
+      }
+    }
+    
+    // Handle custom:WorkspaceProperties
+    if (element.type === 'bpmn:Process' || element.type === 'bpmn:Collaboration') {
+        if (updatedProperties.workspaceName !== undefined) {
+            const customWorkspaceProps = getOrCreateExtension('custom:WorkspaceProperties');
+            customWorkspaceProps.workspaceName = updatedProperties.workspaceName;
+            needsExtensionElementsUpdate = true;
+        }
+    }
+
+    if (needsExtensionElementsUpdate) {
       propertiesToUpdate.extensionElements = extensionElements;
     }
     
@@ -277,28 +439,25 @@ const BpmnPropertiesPanel: React.FC<BpmnPropertiesPanelProps> = ({
    * Get the appropriate property fields based on the element type
    */
   const getPropertyFields = useCallback((): PropertyField[] => {
-    // Default fields for all element types
     const defaultFields: PropertyField[] = [
       { key: 'id', label: 'ID', type: 'text', readOnly: true },
       { key: 'name', label: 'Name', type: 'text', placeholder: 'Enter element name' },
+      { key: 'teste', label: 'teste', type: 'text', placeholder: 'Enter teste name' },
       { key: 'documentation', label: 'Documentation', type: 'textarea', placeholder: 'Enter documentation' }
     ];
-    
-    // If no element is selected or it's a process/collaboration, return empty array
-    if (!selectedElement || !elementType || 
-        elementType === 'bpmn:Process' || 
-        elementType === 'bpmn:Collaboration') {
-      return [];
+
+    if (!selectedElement || !elementType) {
+      return []; // No element, no properties
     }
-    
-    // Check if there are custom fields defined for this element type
-    if (customPropertyFields[elementType]) {
+
+    // Handle custom properties first: if they exist and are non-empty, they take precedence.
+    if (customPropertyFields[elementType] && customPropertyFields[elementType].length > 0) {
       return [...defaultFields, ...customPropertyFields[elementType]];
     }
-    
-    // Add specific fields based on element type
+
+    // If no overriding custom properties, define type-specific fields.
     let typeSpecificFields: PropertyField[] = [];
-    
+
     if (elementType === 'bpmn:Task' || elementType.includes('Task')) {
       typeSpecificFields = [
         { key: 'isAsync', label: 'Asynchronous', type: 'checkbox' },
@@ -323,16 +482,50 @@ const BpmnPropertiesPanel: React.FC<BpmnPropertiesPanelProps> = ({
         { key: 'conditionExpression', label: 'Condition Expression', type: 'textarea' },
         { key: 'isImmediate', label: 'Is Immediate', type: 'checkbox' }
       ];
-    } else if (elementType === 'bpmn:DataObject') {
+    } else if (elementType === 'bpmn:DataObject' || elementType === 'bpmn:DataObjectReference') {
       typeSpecificFields = [
-        { key: 'isCollection', label: 'Is Collection', type: 'checkbox' }
+        { key: 'dataType', label: 'Data Type (Custom)', type: 'text', placeholder: 'Enter data type' },
+        { key: 'isCollection', label: 'Is Collection (Custom)', type: 'checkbox' } 
       ];
     } else if (elementType === 'bpmn:Event' || elementType.includes('Event')) {
       typeSpecificFields = [
         { key: 'isInterrupting', label: 'Is Interrupting', type: 'checkbox' }
       ];
+    } else if (elementType === 'bpmn:TextAnnotation') {
+      typeSpecificFields = [
+        { key: 'textFormat', label: 'Text Format', type: 'text', placeholder: 'e.g., text/plain', description: 'MIME type of the text' },
+        { key: 'includeInHistory', label: 'Include in History', type: 'checkbox', description: 'Include in historical data' },
+        { key: 'fontSizeAnnotation', label: 'Font Size', type: 'text', placeholder: 'e.g., 12px' },
+        { key: 'fontWeightAnnotation', label: 'Font Weight', type: 'text', placeholder: 'e.g., bold' },
+        { key: 'fontStyleAnnotation', label: 'Font Style', type: 'text', placeholder: 'e.g., italic' },
+        { key: 'fontColorAnnotation', label: 'Font Color', type: 'text', placeholder: 'e.g., #FF0000' },
+        { key: 'backgroundColorAnnotation', label: 'Background Color', type: 'text', placeholder: 'e.g., #FFFF00' },
+        { key: 'borderColorAnnotation', label: 'Border Color', type: 'text', placeholder: 'e.g., #0000FF' },
+      ];
+    } else if (elementType === 'bpmn:Group') {
+      typeSpecificFields = [
+        { key: 'categoryValueRef', label: 'Category Value Ref', type: 'text', placeholder: 'Enter category reference', description: 'Reference to a category value' },
+        { key: 'borderColorGroup', label: 'Border Color', type: 'text', placeholder: 'e.g., #00FF00' },
+        { key: 'backgroundColorGroup', label: 'Background Color', type: 'text', placeholder: 'e.g., #E0E0E0' },
+        { key: 'fontColorGroup', label: 'Font Color', type: 'text', placeholder: 'e.g., #333333' },
+        { key: 'fontSizeGroup', label: 'Font Size', type: 'text', placeholder: 'e.g., 14px' },
+      ];
+    } else if (elementType === 'bpmn:Process') {
+        typeSpecificFields = [
+            { key: 'versionTag', label: 'Version Tag', type: 'text', placeholder: 'Enter version tag' },
+            { key: 'isExecutable', label: 'Executable', type: 'checkbox' },
+            { key: 'taskPriority', label: 'Task Priority', type: 'text', placeholder: 'Enter task priority' }, // Label simplificado
+            { key: 'jobPriority', label: 'Job Priority', type: 'text', placeholder: 'Enter job priority' }, // Label simplificado
+            { key: 'historyTimeToLive', label: 'History Time To Live', type: 'text', placeholder: 'Enter history time to live' },
+            // { key: 'workspaceName', label: 'Workspace Name', type: 'text', placeholder: 'Enter workspace name' } // Removido ou comentado se não for uma propriedade direta do processo Activiti
+        ];
+    } else if (elementType === 'bpmn:Collaboration') {
+        typeSpecificFields = [
+            { key: 'workspaceName', label: 'Workspace Name', type: 'text', placeholder: 'Enter workspace name' }
+        ];
     }
-    
+    // For all types (including Process/Collaboration if custom fields were empty/not present),
+    // combine default fields with the determined type-specific fields.
     return [...defaultFields, ...typeSpecificFields];
   }, [selectedElement, elementType, customPropertyFields]);
 

@@ -3,14 +3,15 @@ import BpmnJS from 'bpmn-js/lib/Modeler';
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
 import '@bpmn-io/properties-panel/dist/assets/properties-panel.css'; // Changed this line
-import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js-properties-panel';
-import camundaModdleDescriptor from 'camunda-bpmn-moddle/resources/camunda.json';
+import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule,  } from 'bpmn-js-properties-panel';
+//import camundaModdleDescriptor from 'camunda-bpmn-moddle/resources/camunda.json';
 import { ChevronRight, ChevronLeft } from 'lucide-react'; // Removed Download icon
 import { cn } from '@/lib/utils';
-import CustomPropertiesProvider from './CustomPropertiesProvider';
+//import CustomPropertiesProvider from './CustomPropertiesProvider';
 import ActivitiPropertiesProvider from './ActivitiPropertiesProvider';
-import customModdleDescriptor from './custom.json';
+//import customModdleDescriptor from './custom.json';
 import activitiModdleDescriptor from '../../bpmn/activiti.json';
+//import customModdleDescriptor from '../../bpmn/activiti.json';
 
 interface BpmnModelerProps {
   xml?: string;
@@ -27,7 +28,7 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange, onLoad }) => {
 
   // Define the default diagram XML as a string constant
   const DEFAULT_DIAGRAM_XML = `<?xml version="1.0" encoding="UTF-8"?>
-<bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd" id="sample-diagram" targetNamespace="http://bpmn.io/schema/bpmn">
+<bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:activiti="http://activiti.org/bpmn" id="sample-diagram" targetNamespace="http://activiti.org/bpmn" xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd">
   <bpmn2:process id="Process_1" isExecutable="false">
     <bpmn2:startEvent id="StartEvent_1"/>
   </bpmn2:process>
@@ -51,10 +52,10 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange, onLoad }) => {
       additionalModules: [
         BpmnPropertiesPanelModule,
         BpmnPropertiesProviderModule,
-        {
+        /*{
           __init__: ['customPropertiesProvider'],
           customPropertiesProvider: ['type', CustomPropertiesProvider]
-        },
+        },*/
         {
           __init__: ['activitiPropertiesProvider'],
           activitiPropertiesProvider: ['type', ActivitiPropertiesProvider]
@@ -62,9 +63,9 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange, onLoad }) => {
       ],
       moddleExtensions: {
         // Support for both Camunda and Activiti
-        camunda: camundaModdleDescriptor,
-        custom: customModdleDescriptor
-        //activiti: activitiModdleDescriptor
+        //camunda: camundaModdleDescriptor,
+        //custom: customModdleDescriptor,
+        activiti: activitiModdleDescriptor
       },
       keyboard: {
         bindTo: document

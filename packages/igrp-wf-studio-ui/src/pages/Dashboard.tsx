@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { WorkflowEngineSDK } from 'igrp-wf-engine';
+import { WorkflowEngineSDK, ProjectConfig } from 'igrp-wf-engine'; // Added ProjectConfig
 import PageHeader from "@/components/layout/PageHeader";
 import { Workflow, Layers, Folder, Clock, Search, Download, Trash2 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import Button from "@/components/ui/Button";
 import CreateWorkspace from "./workspaces/CreateWorkspace";
+import JSZip from 'jszip'; // Added JSZip
+import { toast } from 'react-hot-toast'; // Added toast
 
 interface DashboardStats {
   workspaces: number;
@@ -28,6 +30,7 @@ const Dashboard: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exportingWorkspaceCode, setExportingWorkspaceCode] = useState<string | null>(null); // Added state for export loading
 
   useEffect(() => {
     loadWorkspaces();
@@ -84,9 +87,89 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleExport = (appCode: string) => {
-    // TODO: Implement export functionality
-    console.log('Exporting workspace:', appCode);
+  const handleExport = async (appCode: string) => {
+    if (!appCode) {
+      toast.error("Workspace code is missing.");
+      return;
+    }
+
+    setExportingWorkspaceCode(appCode);
+    console.log('handleExport called with appCode:', appCode); 
+
+    try {
+      const projectConfig = await sdk.workspaces.loadProjectConfig(appCode);
+
+      if (!projectConfig) {
+        toast.error(`Could not load configuration for workspace ${appCode}.`);
+        setExportingWorkspaceCode(null);
+        return;
+      }
+
+      const zip = new JSZip();
+
+      // 1. Add project-config.json to ZIP
+      const projectConfigString = JSON.stringify(projectConfig, null, 2);
+      zip.file(`${appCode}/project-config.json`, projectConfigString);
+
+      // 2. Iterate through areas, subareas, and processes to get BPMN XML
+      for (const area of projectConfig.areas || []) {
+        const areaPath = `${appCode}/${area.code}`;
+
+        for (const process of area.processes || []) {
+          try {
+            const processDefinition = await sdk.processes.readProcessDefinition(
+              appCode,
+              area.code,
+              process.code
+            );
+            if (processDefinition?.bpmnXml) {
+              zip.file(`${areaPath}/${process.code}.bpmn`, processDefinition.bpmnXml);
+            }
+          } catch (e) {
+            console.warn(`Could not read process ${process.code} in area ${area.code} for workspace ${appCode}: ${(e as Error).message}`);
+            toast.error(`Error reading process ${process.code} in ${area.code}`);
+          }
+        }
+
+        for (const subArea of area.subareas || []) {
+          const subAreaPath = `${areaPath}/${subArea.code}`;
+          for (const process of subArea.processes || []) {
+            try {
+              const processDefinition = await sdk.processes.readProcessDefinition(
+                appCode,
+                area.code,
+                process.code,
+                subArea.code
+              );
+              if (processDefinition?.bpmnXml) {
+                zip.file(`${subAreaPath}/${process.code}.bpmn`, processDefinition.bpmnXml);
+              }
+            } catch (e) {
+              console.warn(`Could not read process ${process.code} in subarea ${subArea.code} (area ${area.code}) for workspace ${appCode}: ${(e as Error).message}`);
+              toast.error(`Error reading process ${process.code} in ${subArea.code}`);
+            }
+          }
+        }
+      }
+
+      // 3. Generate and download the ZIP file
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const downloadUrl = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `${appCode}-workspace.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(downloadUrl);
+      toast.success(`Workspace '${appCode}' exported successfully as ZIP.`);
+
+    } catch (err) {
+      toast.error(`Failed to export workspace ${appCode}: ${(err as Error).message}`);
+      console.error(`ZIP Export error for workspace ${appCode}:`, err);
+    } finally {
+      setExportingWorkspaceCode(null);
+    }
   };
 
   const getStatusBadgeClass = (status: string) => {
@@ -240,8 +323,9 @@ const Dashboard: React.FC = () => {
                           onClick={() => handleExport(app.code)}
                           icon={<Download className="h-4 w-4" />}
                           className="mr-2"
+                          disabled={exportingWorkspaceCode === app.code} // Added disabled state
                         >
-                          Export
+                          {exportingWorkspaceCode === app.code ? 'Exporting...' : 'Export'} {/* Added conditional text */}
                         </Button>
                         <Button
                           variant="ghost"

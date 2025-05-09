@@ -4,181 +4,300 @@ import { TextFieldEntry, CheckboxEntry, SelectEntry, TextAreaEntry } from '@bpmn
 
 const LOW_PRIORITY = 500;
 
-class ActivitiPropertiesProvider {
-  translate: any;
-  moddle: any;
-  bpmnFactory: any;
-  commandStack: any;
-  elementRegistry: any;
-  static $inject: string[];
-  
-  constructor(propertiesPanel: any, translate: any, moddle: any, bpmnFactory: any, commandStack: any, elementRegistry: any) {
-    this.translate = translate;
-    this.moddle = moddle;
-    this.bpmnFactory = bpmnFactory;
-    this.commandStack = commandStack;
-    this.elementRegistry = elementRegistry;
+// Helper function to create a property (generic for different types)
+function Property(props: { element: any, id: string, label: string, component: any, getValue: () => any, setValue: (value: any) => void, translate: any, isVisible?: () => boolean }) {
+  const { element, id, label, component, getValue, setValue, translate, isVisible } = props;
+  return component({ element, id, label, getValue, setValue, translate, isVisible });
+}
 
-    propertiesPanel.registerProvider(LOW_PRIORITY, this);
+// Component Stubs (replace with actual components or remove if not needed for this provider)
+const VersionTagProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Version Tag') });
+const IsExecutableProperty = (props: any) => CheckboxEntry({ ...props, label: props.translate('Is Executable') });
+const TaskPriorityProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Task Priority (Activiti)') });
+const JobPriorityProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Job Priority') });
+const HistoryTimeToLiveProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('History Time To Live') });
+
+const ActivitiAsyncProperty = (props: any) => CheckboxEntry({ ...props, label: props.translate('Async') });
+const ActivitiExclusiveProperty = (props: any) => CheckboxEntry({ ...props, label: props.translate('Exclusive') });
+const ActivitiJobPriorityProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Job Priority (Activiti Task)') });
+
+const ActivitiClassProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Class') });
+const ActivitiExpressionProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Expression') });
+const ActivitiDelegateExpressionProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Delegate Expression') });
+const ActivitiResultVariableProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Result Variable') });
+
+const ActivitiAssigneeProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Assignee') });
+const ActivitiCandidateUsersProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Candidate Users') });
+const ActivitiCandidateGroupsProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Candidate Groups') });
+const ActivitiDueDateProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Due Date') });
+const ActivitiPriorityProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Priority (User Task)') });
+const ActivitiFormKeyProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Form Key') });
+
+const ActivitiCalledElementBindingProperty = (props: any) => SelectEntry({ ...props, label: props.translate('Called Element Binding'), getOptions: () => [{value: 'latest', label: 'Latest'}, {value: 'deployment', label: 'Deployment'}, {value: 'version', label: 'Version'}, {value: 'versionTag', label: 'Version Tag'}] });
+const ActivitiCalledElementVersionProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Called Element Version') });
+const ActivitiCalledElementVersionTagProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Called Element Version Tag') });
+const ActivitiCalledElementTenantIdProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Called Element Tenant ID') });
+
+const ActivitiCandidateStarterGroupsProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Candidate Starter Groups') });
+const ActivitiCandidateStarterUsersProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Candidate Starter Users') });
+const ActivitiIsStartableInTasklistProperty = (props: any) => CheckboxEntry({ ...props, label: props.translate('Is Startable in Tasklist') });
+
+const ActivitiCollectionProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Collection') });
+const ActivitiElementVariableProperty = (props: any) => TextFieldEntry({ ...props, label: props.translate('Element Variable') });
+const ActivitiCompletionConditionProperty = (props: any) => TextAreaEntry({ ...props, label: props.translate('Completion Condition') });
+
+class ActivitiPropertiesProvider {
+  private _translate: any;
+  private _moddle: any;
+  private _bpmnFactory: any;
+  private _commandStack: any;
+  // private _elementRegistry: any; // Not used in this simplified version, can be added if needed
+
+  static $inject = ['eventBus', 'translate', 'moddle', 'bpmnFactory', 'commandStack'/*, 'elementRegistry'*/];
+
+  constructor(eventBus: any, translate: any, moddle: any, bpmnFactory: any, commandStack: any/*, elementRegistry: any*/) {
+    console.log('ActivitiPropertiesProvider: Constructor called');
+    this._translate = translate;
+    this._moddle = moddle;
+    this._bpmnFactory = bpmnFactory;
+    this._commandStack = commandStack;
+    // this._elementRegistry = elementRegistry;
+
+    // The actual registration is done by bpmn-js when listed in additionalModules
+    // propertiesPanel.registerProvider(LOW_PRIORITY, this); // This line is usually not needed here
+    // eventBus.on('propertiesPanel.getProviders', LOW_PRIORITY, (event: any) => {
+    //   event.providers.push(this);
+    // }); // <--- REMOVING THIS MANUAL REGISTRATION
   }
 
   getGroups(element: any) {
-    return (groups: any[]) => {
-      // Add Activiti specific properties for tasks
-      if (is(element, 'bpmn:Task') || is(element, 'bpmn:Activity')) {
-        const activitiGeneralGroup = {
-          id: 'activitiGeneral',
-          label: this.translate('Activiti General'),
-          component: (props: any) => ActivitiGeneralGroup({ ...props, translate: this.translate, moddle: this.moddle, commandStack: this.commandStack }),
-          element: element
-        };
-        groups.push(activitiGeneralGroup);
-      }
+    console.log('ActivitiPropertiesProvider: getGroups called for element', element, element.type);
+    const groups: any[] = [];
 
-      // Add Activiti specific properties for service tasks
-      if (is(element, 'bpmn:ServiceTask')) {
-        const activitiServiceTaskGroup = {
-          id: 'activitiServiceTask',
-          label: this.translate('Activiti Service Task'),
-          component: (props: any) => ActivitiServiceTaskGroup({ ...props, translate: this.translate, moddle: this.moddle, commandStack: this.commandStack }),
-          element: element
-        };
-        groups.push(activitiServiceTaskGroup);
-      }
+    if (is(element, 'bpmn:Process')) {
+      console.log('ActivitiPropertiesProvider: Element is bpmn:Process');
+      const processGroup = {
+        id: 'activitiProcessProperties', // Changed ID to be more specific
+        label: this._translate('Activiti Process Properties'),
+        component: ProcessPropertiesGroupComponent, // Use a wrapper component
+        element: element, // Pass element to the group for context
+        translate: this._translate, // Pass translate
+        moddle: this._moddle, // Pass moddle
+        commandStack: this._commandStack, // Pass commandStack
+        bpmnFactory: this._bpmnFactory // Pass bpmnFactory
+      };
+      console.log('ActivitiPropertiesProvider: Returning processGroup for bpmn:Process', processGroup);
+      groups.push(processGroup);
+    }
 
-      // Add Activiti specific properties for user tasks
-      if (is(element, 'bpmn:UserTask')) {
-        const activitiUserTaskGroup = {
-          id: 'activitiUserTask',
-          label: this.translate('Activiti User Task'),
-          component: (props: any) => ActivitiUserTaskGroup({ ...props, translate: this.translate, moddle: this.moddle, commandStack: this.commandStack }),
-          element: element
-        };
-        groups.push(activitiUserTaskGroup);
-      }
-
-      // Add Activiti specific properties for call activities
-      if (is(element, 'bpmn:CallActivity')) {
-        const activitiCallActivityGroup = {
-          id: 'activitiCallActivity',
-          label: this.translate('Activiti Call Activity'),
-          component: (props: any) => ActivitiCallActivityGroup({ ...props, translate: this.translate, moddle: this.moddle, commandStack: this.commandStack }),
-          element: element
-        };
-        groups.push(activitiCallActivityGroup);
-      }
-
-      // Add Activiti specific properties for processes
-      if (is(element, 'bpmn:Process')) {
-        const activitiProcessGroup = {
-          id: 'activitiProcess',
-          label: this.translate('Activiti Process'),
-          component: (props: any) => ActivitiProcessGroup({ ...props, translate: this.translate, moddle: this.moddle, commandStack: this.commandStack }),
-          element: element
-        };
-        groups.push(activitiProcessGroup);
-      }
-
-      // Add Activiti specific properties for multi-instance activities
-      if (element.businessObject.loopCharacteristics && 
-          is(element.businessObject.loopCharacteristics, 'bpmn:MultiInstanceLoopCharacteristics')) {
-        const activitiMultiInstanceGroup = {
-          id: 'activitiMultiInstance',
-          label: this.translate('Activiti Multi Instance'),
-          component: (props: any) => ActivitiMultiInstanceGroup({ ...props, translate: this.translate, moddle: this.moddle, commandStack: this.commandStack }),
-          element: element
-        };
-        groups.push(activitiMultiInstanceGroup);
-      }
-
-      // Add Activiti specific properties for execution listeners
-      if (is(element, 'bpmn:FlowElement') || is(element, 'bpmn:Process') || is(element, 'bpmn:Collaboration')) {
-        const activitiListenersGroup = {
-          id: 'activitiListeners',
-          label: this.translate('Activiti Listeners'),
-          component: (props: any) => ActivitiListenersGroup({ ...props, translate: this.translate, moddle: this.moddle, commandStack: this.commandStack }),
-          element: element
-        };
-        groups.push(activitiListenersGroup);
-      }
-
-      return groups;
-    };
+    if (is(element, 'bpmn:Task') || is(element, 'bpmn:Activity')) {
+      console.log('ActivitiPropertiesProvider: Element is bpmn:Task or bpmn:Activity', element.type);
+      const taskGroup = {
+        id: 'activitiTaskProperties',
+        label: this._translate('Activiti Task Properties'),
+        component: ActivitiTaskPropertiesGroupComponent, // Use a wrapper component
+        element: element,
+        translate: this._translate,
+        moddle: this._moddle,
+        commandStack: this._commandStack
+      };
+      console.log('ActivitiPropertiesProvider: Returning taskGroup', taskGroup);
+      groups.push(taskGroup);
+    }
+    // Add other groups for different element types if needed
+    console.log('ActivitiPropertiesProvider: Final groups being returned for element', element.type, groups);
+    return groups;
   }
 }
 
-// Activiti General Group for all tasks
-function ActivitiGeneralGroup(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
-  const { element, translate, moddle, commandStack } = props;
+// Wrapper component for Process Properties Group
+function ProcessPropertiesGroupComponent(props: { element: any; translate: any; moddle: any; commandStack: any; bpmnFactory: any; }) {
+  const { element, translate, moddle, commandStack, bpmnFactory } = props;
+  const entries = ProcessPropertiesGroupEntries({ element, translate, moddle, commandStack, bpmnFactory });
+  return (
+    <>
+      {entries.map((entry: any) => Property({ ...entry, element, translate }))}
+    </>
+  );
+}
 
+// Wrapper component for Activiti Task Properties Group
+function ActivitiTaskPropertiesGroupComponent(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
+  const { element, translate, moddle, commandStack } = props;
+  const entries = ActivitiTaskPropertiesEntries({ element, translate, moddle, commandStack });
+  return (
+    <>
+      {entries.map((entry: any) => Property({ ...entry, element, translate }))}
+    </>
+  );
+}
+
+// Entries for Process Properties Group (for bpmn:Process)
+function ProcessPropertiesGroupEntries(props: { element: any; translate: any; moddle: any; commandStack: any; bpmnFactory: any; }) {
+  const { element, translate, moddle, commandStack, bpmnFactory } = props;
   const businessObject = getBusinessObject(element);
 
-  // Get Activiti extension elements
-  const getExtensionElements = () => {
-    let extensionElements = businessObject.extensionElements;
-    
-    if (!extensionElements) {
-      extensionElements = moddle.create('bpmn:ExtensionElements', { values: [] });
-      commandStack.execute('element.updateModdleProperties', {
-        element,
-        moddleElement: businessObject,
-        properties: { extensionElements }
-      });
-    }
-    
-    return extensionElements;
+  const getValue = (name: string) => {
+    return businessObject.get(name);
   };
 
-  // Get or create Activiti properties
-  const getActivitiProperties = () => {
-    const extensionElements = getExtensionElements();
-    let properties = extensionElements.values.find((e: any) => e.$type === 'activiti:Properties');
-    
-    if (!properties) {
-      properties = moddle.create('activiti:Properties', { values: [] });
-      extensionElements.values.push(properties);
-      commandStack.execute('element.updateModdleProperties', {
-        element,
-        moddleElement: extensionElements,
-        properties: { values: extensionElements.values }
-      });
-    }
-    
-    return properties;
-  };
-
-  // Get Activiti property value
-  const getPropertyValue = (propertyName: string) => {
-    const properties = getActivitiProperties();
-    const property = properties.values.find((p: any) => p.name === propertyName);
-    return property ? property.value : '';
-  };
-
-  // Set Activiti property value
-  const setPropertyValue = (propertyName: string, value: string) => {
-    const properties = getActivitiProperties();
-    let property = properties.values.find((p: any) => p.name === propertyName);
-    
-    if (!property) {
-      property = moddle.create('activiti:Property', { name: propertyName, value });
-      properties.values.push(property);
-    } else {
-      property.value = value;
-    }
-    
+  const setValue = (name: string, value: any) => {
     commandStack.execute('element.updateModdleProperties', {
       element,
-      moddleElement: properties,
-      properties: { values: properties.values }
+      moddleElement: businessObject,
+      properties: { [name]: value }
     });
   };
 
-  // Get direct Activiti attribute
+  const getActivitiProperty = (propertyName: string) => {
+    const extensionElements = businessObject.extensionElements;
+    if (extensionElements && extensionElements.values) {
+      const activitiProperties = extensionElements.values.find((ext: any) => ext.$type === 'activiti:Properties');
+      if (activitiProperties && activitiProperties.values) {
+        const prop = activitiProperties.values.find((p: any) => p.name === propertyName);
+        return prop ? prop.value : '';
+      }
+    }
+    return '';
+  };
+
+  const setActivitiProperty = (propertyName: string, value: string) => {
+    let extensionElements = businessObject.extensionElements;
+    if (!extensionElements) {
+      // Ensure bpmnFactory is available and create ExtensionElements if it doesn't exist
+      extensionElements = bpmnFactory.create('bpmn:ExtensionElements', { values: [] });
+    }
+
+    let activitiProperties = extensionElements.values.find((ext: any) => ext.$type === 'activiti:Properties');
+    if (!activitiProperties) {
+      // Ensure bpmnFactory is available and create activiti:Properties if it doesn't exist
+      activitiProperties = bpmnFactory.create('activiti:Properties', { values: [] });
+      extensionElements.values.push(activitiProperties);
+    }
+
+    let prop = activitiProperties.values.find((p: any) => p.name === propertyName);
+    if (prop) {
+      prop.value = value;
+    } else {
+      // Ensure bpmnFactory is available and create activiti:Property if it doesn't exist
+      prop = bpmnFactory.create('activiti:Property', { name: propertyName, value });
+      activitiProperties.values.push(prop);
+    }
+
+    // Update the business object with the modified extensionElements
+    commandStack.execute('element.updateModdleProperties', {
+      element,
+      moddleElement: businessObject,
+      properties: { extensionElements }
+    });
+  };
+
+  return [
+    {
+      id: 'versionTag',
+      label: translate('Version Tag'),
+      component: VersionTagProperty,
+      getValue: () => getValue('versionTag') || '',
+      setValue: (value: string) => setValue('versionTag', value),
+    },
+    {
+      id: 'isExecutable',
+      label: translate('Is Executable'),
+      component: IsExecutableProperty,
+      getValue: () => getValue('isExecutable') || false,
+      setValue: (value: boolean) => setValue('isExecutable', value),
+    },
+    {
+      id: 'taskPriority', // This is an Activiti extension property for Process
+      label: translate('Task Priority (Activiti)'),
+      component: TaskPriorityProperty,
+      getValue: () => getActivitiProperty('taskPriority'),
+      setValue: (value: string) => setActivitiProperty('taskPriority', value),
+    },
+    {
+      id: 'jobPriority', // This is a standard BPMN property for Process
+      label: translate('Job Priority'),
+      component: JobPriorityProperty,
+      getValue: () => getValue('jobPriority') || '',
+      setValue: (value: string) => setValue('jobPriority', value),
+    },
+    {
+      id: 'historyTimeToLive',
+      label: translate('History Time To Live'),
+      component: HistoryTimeToLiveProperty,
+      getValue: () => getValue('historyTimeToLive') || '',
+      setValue: (value: string) => setValue('historyTimeToLive', value),
+    },
+    // Activiti specific Process properties (candidate starter, etc.)
+    {
+      id: 'activitiCandidateStarterGroups',
+      label: translate('Candidate Starter Groups (Activiti)'),
+      component: ActivitiCandidateStarterGroupsProperty,
+      getValue: () => businessObject.get('activiti:candidateStarterGroups') || '',
+      setValue: (value: string) => setValue('activiti:candidateStarterGroups', value),
+    },
+    {
+      id: 'activitiCandidateStarterUsers',
+      label: translate('Candidate Starter Users (Activiti)'),
+      component: ActivitiCandidateStarterUsersProperty,
+      getValue: () => businessObject.get('activiti:candidateStarterUsers') || '',
+      setValue: (value: string) => setValue('activiti:candidateStarterUsers', value),
+    },
+    {
+      id: 'activitiIsStartableInTasklist',
+      label: translate('Is Startable in Tasklist (Activiti)'),
+      component: ActivitiIsStartableInTasklistProperty,
+      getValue: () => {
+        const isStartable = businessObject.get('activiti:isStartableInTasklist');
+        return isStartable === undefined ? true : isStartable; // Default to true if not set
+      },
+      setValue: (value: boolean) => setValue('activiti:isStartableInTasklist', value),
+    }
+  ];
+}
+
+// Main function for Activiti Task Properties Entries
+function ActivitiTaskPropertiesEntries(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
+  const { element, translate, moddle, commandStack } = props;
+  const businessObject = getBusinessObject(element);
+
+  let entries: any[] = [];
+
+  // Add General Activiti Properties
+  entries = entries.concat(ActivitiGeneralEntries({ element, translate, moddle, commandStack }));
+
+  // Add Service Task specific properties
+  if (is(element, 'bpmn:ServiceTask')) {
+    entries = entries.concat(ActivitiServiceTaskEntries({ element, translate, moddle, commandStack }));
+  }
+
+  // Add User Task specific properties
+  if (is(element, 'bpmn:UserTask')) {
+    entries = entries.concat(ActivitiUserTaskEntries({ element, translate, moddle, commandStack }));
+  }
+
+  // Add Call Activity specific properties
+  if (is(element, 'bpmn:CallActivity')) {
+    entries = entries.concat(ActivitiCallActivityEntries({ element, translate, moddle, commandStack }));
+  }
+
+  // Add Multi-Instance specific properties if applicable
+  if (businessObject.loopCharacteristics && is(businessObject.loopCharacteristics, 'bpmn:MultiInstanceLoopCharacteristics')) {
+    entries = entries.concat(ActivitiMultiInstanceEntries({ element, translate, moddle, commandStack }));
+  }
+
+  return entries;
+}
+
+// Activiti General Entries for all tasks
+function ActivitiGeneralEntries(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
+  const { element, translate, moddle, commandStack } = props;
+  const businessObject = getBusinessObject(element);
+
   const getActivitiAttribute = (attr: string) => {
     return businessObject.get('activiti:' + attr);
   };
 
-  // Set direct Activiti attribute
   const setActivitiAttribute = (attr: string, value: any) => {
     commandStack.execute('element.updateModdleProperties', {
       element,
@@ -190,43 +309,40 @@ function ActivitiGeneralGroup(props: { element: any; translate: any; moddle: any
   return [
     {
       id: 'activitiAsync',
+      label: translate('Async'),
       component: ActivitiAsyncProperty,
       getValue: () => getActivitiAttribute('async') || false,
       setValue: (value: boolean) => setActivitiAttribute('async', value),
-      translate
     },
     {
       id: 'activitiExclusive',
+      label: translate('Exclusive'),
       component: ActivitiExclusiveProperty,
       getValue: () => {
         const exclusive = getActivitiAttribute('exclusive');
-        return exclusive === undefined ? true : exclusive;
+        return exclusive === undefined ? true : exclusive; // Default to true
       },
       setValue: (value: boolean) => setActivitiAttribute('exclusive', value),
-      translate
     },
     {
-      id: 'activitiJobPriority',
+      id: 'activitiJobPriorityTask',
+      label: translate('Job Priority (Activiti Task)'),
       component: ActivitiJobPriorityProperty,
       getValue: () => getActivitiAttribute('jobPriority') || '',
       setValue: (value: string) => setActivitiAttribute('jobPriority', value),
-      translate
     }
   ];
 }
 
-// Activiti Service Task Group
-function ActivitiServiceTaskGroup(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
+// Activiti Service Task Entries
+function ActivitiServiceTaskEntries(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
   const { element, translate, moddle, commandStack } = props;
-
   const businessObject = getBusinessObject(element);
 
-  // Get direct Activiti attribute
   const getActivitiAttribute = (attr: string) => {
     return businessObject.get('activiti:' + attr);
   };
 
-  // Set direct Activiti attribute
   const setActivitiAttribute = (attr: string, value: any) => {
     commandStack.execute('element.updateModdleProperties', {
       element,
@@ -238,68 +354,62 @@ function ActivitiServiceTaskGroup(props: { element: any; translate: any; moddle:
   return [
     {
       id: 'activitiClass',
+      label: translate('Class'),
       component: ActivitiClassProperty,
       getValue: () => getActivitiAttribute('class') || '',
       setValue: (value: string) => {
-        // Clear other implementation types when setting class
         if (value) {
           setActivitiAttribute('expression', undefined);
           setActivitiAttribute('delegateExpression', undefined);
         }
         setActivitiAttribute('class', value);
       },
-      translate
     },
     {
       id: 'activitiExpression',
+      label: translate('Expression'),
       component: ActivitiExpressionProperty,
       getValue: () => getActivitiAttribute('expression') || '',
       setValue: (value: string) => {
-        // Clear other implementation types when setting expression
         if (value) {
           setActivitiAttribute('class', undefined);
           setActivitiAttribute('delegateExpression', undefined);
         }
         setActivitiAttribute('expression', value);
       },
-      translate
     },
     {
       id: 'activitiDelegateExpression',
+      label: translate('Delegate Expression'),
       component: ActivitiDelegateExpressionProperty,
       getValue: () => getActivitiAttribute('delegateExpression') || '',
       setValue: (value: string) => {
-        // Clear other implementation types when setting delegateExpression
         if (value) {
           setActivitiAttribute('class', undefined);
           setActivitiAttribute('expression', undefined);
         }
         setActivitiAttribute('delegateExpression', value);
       },
-      translate
     },
     {
       id: 'activitiResultVariable',
+      label: translate('Result Variable'),
       component: ActivitiResultVariableProperty,
       getValue: () => getActivitiAttribute('resultVariable') || '',
       setValue: (value: string) => setActivitiAttribute('resultVariable', value),
-      translate
     }
   ];
 }
 
-// Activiti User Task Group
-function ActivitiUserTaskGroup(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
+// Activiti User Task Entries
+function ActivitiUserTaskEntries(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
   const { element, translate, moddle, commandStack } = props;
-
   const businessObject = getBusinessObject(element);
 
-  // Get direct Activiti attribute
   const getActivitiAttribute = (attr: string) => {
     return businessObject.get('activiti:' + attr);
   };
 
-  // Set direct Activiti attribute
   const setActivitiAttribute = (attr: string, value: any) => {
     commandStack.execute('element.updateModdleProperties', {
       element,
@@ -311,648 +421,159 @@ function ActivitiUserTaskGroup(props: { element: any; translate: any; moddle: an
   return [
     {
       id: 'activitiAssignee',
+      label: translate('Assignee'),
       component: ActivitiAssigneeProperty,
       getValue: () => getActivitiAttribute('assignee') || '',
       setValue: (value: string) => setActivitiAttribute('assignee', value),
-      translate
     },
     {
       id: 'activitiCandidateUsers',
+      label: translate('Candidate Users'),
       component: ActivitiCandidateUsersProperty,
       getValue: () => getActivitiAttribute('candidateUsers') || '',
       setValue: (value: string) => setActivitiAttribute('candidateUsers', value),
-      translate
     },
     {
       id: 'activitiCandidateGroups',
+      label: translate('Candidate Groups'),
       component: ActivitiCandidateGroupsProperty,
       getValue: () => getActivitiAttribute('candidateGroups') || '',
       setValue: (value: string) => setActivitiAttribute('candidateGroups', value),
-      translate
     },
     {
       id: 'activitiDueDate',
+      label: translate('Due Date'),
       component: ActivitiDueDateProperty,
       getValue: () => getActivitiAttribute('dueDate') || '',
       setValue: (value: string) => setActivitiAttribute('dueDate', value),
-      translate
     },
     {
-      id: 'activitiPriority',
+      id: 'activitiPriorityUserTask',
+      label: translate('Priority (User Task)'),
       component: ActivitiPriorityProperty,
       getValue: () => getActivitiAttribute('priority') || '',
       setValue: (value: string) => setActivitiAttribute('priority', value),
-      translate
     },
     {
       id: 'activitiFormKey',
+      label: translate('Form Key'),
       component: ActivitiFormKeyProperty,
       getValue: () => getActivitiAttribute('formKey') || '',
       setValue: (value: string) => setActivitiAttribute('formKey', value),
-      translate
     }
   ];
 }
 
-// Activiti Call Activity Group
-function ActivitiCallActivityGroup(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
+// Activiti Call Activity Entries
+function ActivitiCallActivityEntries(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
   const { element, translate, moddle, commandStack } = props;
-
   const businessObject = getBusinessObject(element);
 
-  // Get direct Activiti attribute
   const getActivitiAttribute = (attr: string) => {
     return businessObject.get('activiti:' + attr);
   };
 
-  // Set direct Activiti attribute
   const setActivitiAttribute = (attr: string, value: any) => {
     commandStack.execute('element.updateModdleProperties', {
       element,
       moddleElement: businessObject,
       properties: { ['activiti:' + attr]: value }
     });
-  };
-
-  // Get Activiti extension elements
-  const getExtensionElements = () => {
-    let extensionElements = businessObject.extensionElements;
-    
-    if (!extensionElements) {
-      extensionElements = moddle.create('bpmn:ExtensionElements', { values: [] });
-      commandStack.execute('element.updateModdleProperties', {
-        element,
-        moddleElement: businessObject,
-        properties: { extensionElements }
-      });
-    }
-    
-    return extensionElements;
-  };
-
-  // Get In/Out mappings
-  const getInMappings = () => {
-    const extensionElements = getExtensionElements();
-    return extensionElements.values.filter((e: any) => e.$type === 'activiti:In');
-  };
-
-  const getOutMappings = () => {
-    const extensionElements = getExtensionElements();
-    return extensionElements.values.filter((e: any) => e.$type === 'activiti:Out');
   };
 
   return [
     {
       id: 'activitiCalledElementBinding',
+      label: translate('Called Element Binding'),
       component: ActivitiCalledElementBindingProperty,
       getValue: () => getActivitiAttribute('calledElementBinding') || 'latest',
       setValue: (value: string) => setActivitiAttribute('calledElementBinding', value),
-      translate
     },
     {
       id: 'activitiCalledElementVersion',
+      label: translate('Called Element Version'),
       component: ActivitiCalledElementVersionProperty,
       getValue: () => getActivitiAttribute('calledElementVersion') || '',
       setValue: (value: string) => setActivitiAttribute('calledElementVersion', value),
-      translate,
       isVisible: () => getActivitiAttribute('calledElementBinding') === 'version'
     },
     {
       id: 'activitiCalledElementVersionTag',
+      label: translate('Called Element Version Tag'),
       component: ActivitiCalledElementVersionTagProperty,
       getValue: () => getActivitiAttribute('calledElementVersionTag') || '',
       setValue: (value: string) => setActivitiAttribute('calledElementVersionTag', value),
-      translate,
       isVisible: () => getActivitiAttribute('calledElementBinding') === 'versionTag'
     },
     {
       id: 'activitiCalledElementTenantId',
+      label: translate('Called Element Tenant ID'),
       component: ActivitiCalledElementTenantIdProperty,
       getValue: () => getActivitiAttribute('calledElementTenantId') || '',
       setValue: (value: string) => setActivitiAttribute('calledElementTenantId', value),
-      translate
     }
+    // TODO: Add In/Out Mappings if needed, requires more complex components
   ];
 }
 
-// Activiti Process Group
-function ActivitiProcessGroup(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
+// Activiti Multi Instance Entries
+function ActivitiMultiInstanceEntries(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
   const { element, translate, moddle, commandStack } = props;
-
-  const businessObject = getBusinessObject(element);
-
-  // Get direct Activiti attribute
-  const getActivitiAttribute = (attr: string) => {
-    return businessObject.get('activiti:' + attr);
-  };
-
-  // Set direct Activiti attribute
-  const setActivitiAttribute = (attr: string, value: any) => {
-    commandStack.execute('element.updateModdleProperties', {
-      element,
-      moddleElement: businessObject,
-      properties: { ['activiti:' + attr]: value }
-    });
-  };
-
-  return [
-    {
-      id: 'activitiCandidateStarterGroups',
-      component: ActivitiCandidateStarterGroupsProperty,
-      getValue: () => getActivitiAttribute('candidateStarterGroups') || '',
-      setValue: (value: string) => setActivitiAttribute('candidateStarterGroups', value),
-      translate
-    },
-    {
-      id: 'activitiCandidateStarterUsers',
-      component: ActivitiCandidateStarterUsersProperty,
-      getValue: () => getActivitiAttribute('candidateStarterUsers') || '',
-      setValue: (value: string) => setActivitiAttribute('candidateStarterUsers', value),
-      translate
-    },
-    {
-      id: 'activitiVersionTag',
-      component: ActivitiVersionTagProperty,
-      getValue: () => getActivitiAttribute('versionTag') || '',
-      setValue: (value: string) => setActivitiAttribute('versionTag', value),
-      translate
-    },
-    {
-      id: 'activitiHistoryTimeToLive',
-      component: ActivitiHistoryTimeToLiveProperty,
-      getValue: () => getActivitiAttribute('historyTimeToLive') || '',
-      setValue: (value: string) => setActivitiAttribute('historyTimeToLive', value),
-      translate
-    },
-    {
-      id: 'activitiIsStartableInTasklist',
-      component: ActivitiIsStartableInTasklistProperty,
-      getValue: () => {
-        const isStartable = getActivitiAttribute('isStartableInTasklist');
-        return isStartable === undefined ? true : isStartable;
-      },
-      setValue: (value: boolean) => setActivitiAttribute('isStartableInTasklist', value),
-      translate
-    }
-  ];
-}
-
-// Activiti Multi Instance Group
-function ActivitiMultiInstanceGroup(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
-  const { element, translate, moddle, commandStack } = props;
-
   const businessObject = getBusinessObject(element);
   const loopCharacteristics = businessObject.loopCharacteristics;
 
-  // Get direct Activiti attribute from loop characteristics
-  const getActivitiAttribute = (attr: string) => {
+  const getLoopCharActivitiAttribute = (attr: string) => {
     return loopCharacteristics.get('activiti:' + attr);
   };
 
-  // Set direct Activiti attribute on loop characteristics
-  const setActivitiAttribute = (attr: string, value: any) => {
+  const setLoopCharActivitiAttribute = (attr: string, value: any) => {
     commandStack.execute('element.updateModdleProperties', {
-      element,
+      element, // The element whose loopCharacteristics are being modified
       moddleElement: loopCharacteristics,
       properties: { ['activiti:' + attr]: value }
     });
   };
 
-  // Get Activiti extension elements
-  const getExtensionElements = () => {
-    let extensionElements = loopCharacteristics.extensionElements;
-    
-    if (!extensionElements) {
-      extensionElements = moddle.create('bpmn:ExtensionElements', { values: [] });
-      commandStack.execute('element.updateModdleProperties', {
-        element,
-        moddleElement: loopCharacteristics,
-        properties: { extensionElements }
-      });
-    }
-    
-    return extensionElements;
-  };
-
-  // Get or create Activiti failed job retry time cycle
-  const getFailedJobRetryTimeCycle = () => {
-    const extensionElements = getExtensionElements();
-    let retryTimeCycle = extensionElements.values.find((e: any) => e.$type === 'activiti:FailedJobRetryTimeCycle');
-    
-    if (!retryTimeCycle) {
-      retryTimeCycle = moddle.create('activiti:FailedJobRetryTimeCycle', { body: '' });
-      extensionElements.values.push(retryTimeCycle);
-      commandStack.execute('element.updateModdleProperties', {
-        element,
-        moddleElement: extensionElements,
-        properties: { values: extensionElements.values }
-      });
-    }
-    
-    return retryTimeCycle;
-  };
-
   return [
     {
-      id: 'activitiAsyncBefore',
-      component: ActivitiAsyncBeforeProperty,
-      getValue: () => getActivitiAttribute('asyncBefore') || false,
-      setValue: (value: boolean) => setActivitiAttribute('asyncBefore', value),
-      translate
+      id: 'activitiCollection',
+      label: translate('Collection'),
+      component: ActivitiCollectionProperty,
+      getValue: () => getLoopCharActivitiAttribute('collection') || '',
+      setValue: (value: string) => setLoopCharActivitiAttribute('collection', value),
+      isVisible: () => !!loopCharacteristics // Only if loopCharacteristics exists
     },
     {
-      id: 'activitiAsyncAfter',
-      component: ActivitiAsyncAfterProperty,
-      getValue: () => getActivitiAttribute('asyncAfter') || false,
-      setValue: (value: boolean) => setActivitiAttribute('asyncAfter', value),
-      translate
+      id: 'activitiElementVariable',
+      label: translate('Element Variable'),
+      component: ActivitiElementVariableProperty,
+      getValue: () => getLoopCharActivitiAttribute('elementVariable') || '',
+      setValue: (value: string) => setLoopCharActivitiAttribute('elementVariable', value),
+      isVisible: () => !!loopCharacteristics
     },
     {
-      id: 'activitiFailedJobRetryTimeCycle',
-      component: ActivitiFailedJobRetryTimeCycleProperty,
-      getValue: () => {
-        const retryTimeCycle = getFailedJobRetryTimeCycle();
-        return retryTimeCycle.body || '';
-      },
+      id: 'activitiCompletionCondition',
+      label: translate('Completion Condition'),
+      component: ActivitiCompletionConditionProperty,
+      getValue: () => loopCharacteristics.get('completionCondition')?.body || '',
       setValue: (value: string) => {
-        const retryTimeCycle = getFailedJobRetryTimeCycle();
+        let completionCondition = loopCharacteristics.get('completionCondition');
+        if (!completionCondition) {
+          completionCondition = moddle.create('bpmn:FormalExpression');
+        }
+        completionCondition.body = value;
         commandStack.execute('element.updateModdleProperties', {
           element,
-          moddleElement: retryTimeCycle,
-          properties: { body: value }
+          moddleElement: loopCharacteristics,
+          properties: { completionCondition }
         });
       },
-      translate
+      isVisible: () => !!loopCharacteristics
     }
+    // TODO: Add other multi-instance properties like sequential, loopCardinality etc.
   ];
 }
 
-// Activiti Listeners Group
-function ActivitiListenersGroup(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
-  const { element, translate, moddle, commandStack } = props;
-  
-  return [
-    {
-      id: 'activitiListenersInfo',
-      component: ActivitiListenersInfoProperty,
-      translate
-    }
-  ];
-}
-
-// Individual property components
-
-function ActivitiAsyncProperty(props: { id: string; getValue: () => boolean; setValue: (value: boolean) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return CheckboxEntry({
-    element: { id },
-    id: id,
-    label: translate('Asynchronous'),
-    description: translate('The task is executed asynchronously'),
-    getValue: () => getValue(),
-    setValue: (value: boolean) => setValue(value)
-  });
-}
-
-function ActivitiExclusiveProperty(props: { id: string; getValue: () => boolean; setValue: (value: boolean) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return CheckboxEntry({
-    element: { id },
-    id: id,
-    label: translate('Exclusive'),
-    description: translate('The job is executed exclusively'),
-    getValue: () => getValue(),
-    setValue: (value: boolean) => setValue(value)
-  });
-}
-
-function ActivitiJobPriorityProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return TextFieldEntry({
-    element: { id },
-    id: id,
-    label: translate('Job Priority'),
-    description: translate('Priority for jobs related to this element'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value)
-  });
-}
-
-function ActivitiClassProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return TextFieldEntry({
-    element: { id },
-    id: id,
-    label: translate('Java Class'),
-    description: translate('The fully qualified Java class name'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value)
-  });
-}
-
-function ActivitiExpressionProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return TextFieldEntry({
-    element: { id },
-    id: id,
-    label: translate('Expression'),
-    description: translate('Expression that resolves to a delegate implementation'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value)
-  });
-}
-
-function ActivitiDelegateExpressionProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return TextFieldEntry({
-    element: { id },
-    id: id,
-    label: translate('Delegate Expression'),
-    description: translate('Expression that resolves to a delegate implementation'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value)
-  });
-}
-
-function ActivitiResultVariableProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return TextFieldEntry({
-    element: { id },
-    id: id,
-    label: translate('Result Variable'),
-    description: translate('Name of variable to store the result'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value)
-  });
-}
-
-function ActivitiAssigneeProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return TextFieldEntry({
-    element: { id },
-    id: id,
-    label: translate('Assignee'),
-    description: translate('User assigned to this task'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value)
-  });
-}
-
-function ActivitiCandidateUsersProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return TextFieldEntry({
-    element: { id },
-    id: id,
-    label: translate('Candidate Users'),
-    description: translate('Comma-separated list of candidate users'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value)
-  });
-}
-
-function ActivitiCandidateGroupsProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return TextFieldEntry({
-    element: { id },
-    id: id,
-    label: translate('Candidate Groups'),
-    description: translate('Comma-separated list of candidate groups'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value)
-  });
-}
-
-function ActivitiDueDateProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return TextFieldEntry({
-    element: { id },
-    id: id,
-    label: translate('Due Date'),
-    description: translate('Due date for the task (ISO date or expression)'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value)
-  });
-}
-
-function ActivitiPriorityProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return TextFieldEntry({
-    element: { id },
-    id: id,
-    label: translate('Priority'),
-    description: translate('Priority of the task'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value)
-  });
-}
-
-function ActivitiFormKeyProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return TextFieldEntry({
-    element: { id },
-    id: id,
-    label: translate('Form Key'),
-    description: translate('Key of the form to use'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value)
-  });
-}
-
-function ActivitiCalledElementBindingProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return SelectEntry({
-    element: { id },
-    id: id,
-    label: translate('Called Element Binding'),
-    description: translate('Version binding for the called process'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value),
-    getOptions: () => [
-      { value: 'latest', label: translate('Latest') },
-      { value: 'deployment', label: translate('Deployment') },
-      { value: 'version', label: translate('Version') },
-      { value: 'versionTag', label: translate('Version Tag') }
-    ]
-  });
-}
-
-function ActivitiCalledElementVersionProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return TextFieldEntry({
-    element: { id },
-    id: id,
-    label: translate('Called Element Version'),
-    description: translate('Version of the called process'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value)
-  });
-}
-
-function ActivitiCalledElementVersionTagProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return TextFieldEntry({
-    element: { id },
-    id: id,
-    label: translate('Called Element Version Tag'),
-    description: translate('Version tag of the called process'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value)
-  });
-}
-
-function ActivitiCalledElementTenantIdProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return TextFieldEntry({
-    element: { id },
-    id: id,
-    label: translate('Called Element Tenant ID'),
-    description: translate('Tenant ID of the called process'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value)
-  });
-}
-
-function ActivitiCandidateStarterGroupsProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return TextFieldEntry({
-    element: { id },
-    id: id,
-    label: translate('Candidate Starter Groups'),
-    description: translate('Comma-separated list of candidate starter groups'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value)
-  });
-}
-
-function ActivitiCandidateStarterUsersProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return TextFieldEntry({
-    element: { id },
-    id: id,
-    label: translate('Candidate Starter Users'),
-    description: translate('Comma-separated list of candidate starter users'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value)
-  });
-}
-
-function ActivitiVersionTagProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return TextFieldEntry({
-    element: { id },
-    id: id,
-    label: translate('Version Tag'),
-    description: translate('Version tag of the process'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value)
-  });
-}
-
-function ActivitiHistoryTimeToLiveProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return TextFieldEntry({
-    element: { id },
-    id: id,
-    label: translate('History Time To Live'),
-    description: translate('History time to live in days'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value)
-  });
-}
-
-function ActivitiIsStartableInTasklistProperty(props: { id: string; getValue: () => boolean; setValue: (value: boolean) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return CheckboxEntry({
-    element: { id },
-    id: id,
-    label: translate('Is Startable In Tasklist'),
-    description: translate('Process can be started from the tasklist'),
-    getValue: () => getValue(),
-    setValue: (value: boolean) => setValue(value)
-  });
-}
-
-function ActivitiAsyncBeforeProperty(props: { id: string; getValue: () => boolean; setValue: (value: boolean) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return CheckboxEntry({
-    element: { id },
-    id: id,
-    label: translate('Asynchronous Before'),
-    description: translate('Task is executed asynchronously before entering the activity'),
-    getValue: () => getValue(),
-    setValue: (value: boolean) => setValue(value)
-  });
-}
-
-function ActivitiAsyncAfterProperty(props: { id: string; getValue: () => boolean; setValue: (value: boolean) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return CheckboxEntry({
-    element: { id },
-    id: id,
-    label: translate('Asynchronous After'),
-    description: translate('Task is executed asynchronously after the activity'),
-    getValue: () => getValue(),
-    setValue: (value: boolean) => setValue(value)
-  });
-}
-
-function ActivitiFailedJobRetryTimeCycleProperty(props: { id: string; getValue: () => string; setValue: (value: string) => void; translate: any }) {
-  const { id, getValue, setValue, translate } = props;
-
-  return TextFieldEntry({
-    element: { id },
-    id: id,
-    label: translate('Failed Job Retry Time Cycle'),
-    description: translate('Retry time cycle for failed jobs (e.g., R3/PT10M)'),
-    getValue: () => getValue(),
-    setValue: (value: string) => setValue(value)
-  });
-}
-
-function ActivitiListenersInfoProperty(props: { id: string; translate: any }) {
-  const { id, translate } = props;
-
-  return {
-    id,
-    component: () => {
-      return {
-        id,
-        html: `
-          <div class="bio-properties-panel-entry">
-            <div class="bio-properties-panel-description">
-              ${translate('Execution and task listeners can be configured in the XML editor.')}
-            </div>
-          </div>
-        `
-      };
-    }
-  };
-}
-
-ActivitiPropertiesProvider.$inject = ['propertiesPanel', 'translate', 'moddle', 'bpmnFactory', 'commandStack', 'elementRegistry'];
+ActivitiPropertiesProvider.$inject = ['eventBus', 'translate', 'moddle', 'bpmnFactory', 'commandStack'];
 
 export default ActivitiPropertiesProvider;
