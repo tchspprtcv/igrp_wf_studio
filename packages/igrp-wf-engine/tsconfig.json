@@ -3,6 +3,8 @@
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
     "esModuleInterop": true,
     "composite": true,
     "declaration": true,

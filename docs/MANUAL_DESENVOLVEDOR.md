@@ -9,7 +9,7 @@ O IGRP Workflow Studio é uma aplicação moderna para desenho e gestão de flux
 ### 1.1. Funcionalidades Principais
 
 - 🔄 Designer visual de processos BPMN
-- 📁 Organização hierárquica com Aplicações, Áreas e SubÁreas
+- 📁 Organização hierárquica com Workspaces, Áreas e SubÁreas
 - 🚀 UI moderna e responsiva construída com React e Tailwind CSS
 - 🔒 Desenvolvimento seguro com TypeScript (Type-safe)
 - 📦 Arquitetura modular com estrutura monorepo
@@ -58,7 +58,7 @@ packages/
 
 O motor de workflow principal (`igrp-wf-engine`) é responsável por:
 
--   Gestão de Aplicações
+-   Gestão de Workspaces
 -   Manuseamento de definições de processos
 -   Operações de sistema de ficheiros (inferido, pode necessitar de confirmação)
 -   Definições de tipos TypeScript
@@ -78,19 +78,19 @@ Este pacote foca-se na apresentação e interação com o utilizador, consumindo
 
 ## 5. Funcionalidades Centrais (Perspetiva Técnica)
 
-### 5.1. Aplicações
+### 5.1. Workspaces
 
--   Permite a criação e gestão de aplicações de workflow.
+-   Permite a criação e gestão de Workspaces de workflow.
 -   Organiza processos numa estrutura hierárquica.
--   Rastreia o estado e metadados da aplicação.
--   Do ponto de vista técnico, envolve modelos de dados para aplicações, APIs para CRUD (Create, Read, Update, Delete) e lógica para versionamento e ciclo de vida.
+-   Rastreia o estado e metadados da Workspace.
+-   Do ponto de vista técnico, envolve modelos de dados para Workspaces, APIs para CRUD (Create, Read, Update, Delete) e lógica para versionamento e ciclo de vida.
 
 ### 5.2. Áreas & SubÁreas
 
 -   Agrupam processos relacionados em áreas lógicas.
 -   Permitem a criação de uma organização aninhada com subáreas.
 -   Gerem configurações e permissões específicas da área.
--   Tecnicamente, isto implica relações entre entidades (Aplicação -> Área -> SubÁrea -> Processo) e mecanismos de herança de permissões ou configurações.
+-   Tecnicamente, isto implica relações entre entidades (Workspace -> Área -> SubÁrea -> Processo) e mecanismos de herança de permissões ou configurações.
 
 ### 5.3. Designer de Processos
 

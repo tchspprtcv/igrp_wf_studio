@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { WorkflowEngineSDK } from 'igrp-wf-engine';
-import BpmnModeler from '@/components/bpmn/BpmnModeler';
-import { Save, Play, Download, ArrowLeft } from 'lucide-react';
+import BpmnModelerComponent from '@/components/bpmn/BpmnModeler'; // Renamed to avoid conflict
+import { Save, Play, Download, ArrowLeft, FileText, Image as ImageIcon } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +24,7 @@ const ProcessEditor: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const modelerRef = useRef<any>(null); // To store BpmnJS modeler instance
 
   useEffect(() => {
     loadProcessDetails();
@@ -137,6 +138,25 @@ const ProcessEditor: React.FC = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  const handleExportSvg = async () => {
+    if (!modelerRef.current || !id) return;
+    try {
+      const { svg } = await modelerRef.current.saveSVG();
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `process-${id}.svg`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export SVG', err);
+      setError('Failed to export SVG: ' + (err as Error).message);
+    }
+  };
+
   const handleDeploy = async () => {
     if (!bpmnXml || !id) return;
     try {
@@ -199,13 +219,20 @@ const ProcessEditor: React.FC = () => {
                   variant="secondary"
                   size="sm"
                   onClick={handleExport}
-                  icon={<Download className="h-4 w-4" />}
+                  icon={<FileText className="h-4 w-4" />}
                 >
-                  Export
+                  Export BPMN
                 </Button>
                 <Button
                   variant="secondary"
                   size="sm"
+                  onClick={handleExportSvg}
+                  icon={<ImageIcon className="h-4 w-4" />}
+                >
+                  Export SVG
+                </Button>
+                <Button
+                  variant="secondary"
                   onClick={handleSave}
                   icon={<Save className="h-4 w-4" />}
                   isLoading={saving}
@@ -241,7 +268,11 @@ const ProcessEditor: React.FC = () => {
       </div>
       
       <div className="flex-1 bg-gray-50 min-h-0">
-        <BpmnModeler xml={processDetails?.bpmnXml} onChange={setBpmnXml} />
+        <BpmnModelerComponent 
+          xml={processDetails?.bpmnXml} 
+          onChange={setBpmnXml} 
+          onLoad={(modeler) => modelerRef.current = modeler} 
+        />
       </div>
     </div>
   );

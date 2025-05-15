@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
-import Header from "./Header";
+// import Header from "./Header"; // Remove Header import
+import { Toaster } from 'react-hot-toast';
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { cn } from "@/lib/utils"; // Ensure cn is imported if not already
 
@@ -110,7 +111,7 @@ const MainLayout: React.FC = () => {
       {/* We need a structure that allows the main content to be always present */}
       <div className="flex flex-col flex-1 min-h-screen lg:ml-0"> {/* lg:ml-0 ensures no double margin */}
         {/* Header needs to be outside the potential PanelGroup of main content if we want it full width */}
-        <Header onMobileMenuClick={toggleMobileMenu} />
+        {/*<Header onMobileMenuClick={toggleMobileMenu} />*/}
         <main className="flex-1 overflow-y-auto">
           <div>
             <div className=" mx-auto px-4 py-6">

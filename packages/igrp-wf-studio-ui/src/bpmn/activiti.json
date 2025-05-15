@@ -201,8 +201,7 @@
         {
           "name": "modelerTemplate",
           "isAttr": true,
-          "type": "String",
-          "redefines": "camunda:TemplateSupported#modelerTemplate"
+          "type": "String"
         }
       ]
     },
@@ -237,7 +236,7 @@
     },
     {
       "name": "Process",
-      "isAbstract": true,
+      "isAbstract": false,
       "extends": ["bpmn:Process"],
       "properties": [
         {
