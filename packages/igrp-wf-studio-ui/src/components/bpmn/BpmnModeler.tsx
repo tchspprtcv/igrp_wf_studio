@@ -66,9 +66,6 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange, onLoad }) => {
         //camunda: camundaModdleDescriptor,
         //custom: customModdleDescriptor,
         activiti: activitiModdleDescriptor
-      },
-      keyboard: {
-        bindTo: document
       }
     });
 
