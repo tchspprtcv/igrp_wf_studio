@@ -2,7 +2,7 @@ import { is } from 'bpmn-js/lib/util/ModelUtil';
 import { getBusinessObject } from 'bpmn-js/lib/util/ModelUtil';
 import { TextFieldEntry, CheckboxEntry, SelectEntry, TextAreaEntry } from '@bpmn-io/properties-panel';
 
-const LOW_PRIORITY = 500;
+// const HIGH_PRIORITY = 50; // Priority can be set in BpmnModeler.tsx if needed
 
 // Helper function to create a property (generic for different types)
 function Property(props: { element: any, id: string, label: string, component: any, getValue: () => any, setValue: (value: any) => void, translate: any, isVisible?: () => boolean }) {
@@ -51,89 +51,85 @@ class ActivitiPropertiesProvider {
   private _moddle: any;
   private _bpmnFactory: any;
   private _commandStack: any;
-  // private _elementRegistry: any; // Not used in this simplified version, can be added if needed
+  private _elementRegistry: any; // Not used in this simplified version, can be added if needed
+  private _eventBus: any; // Not used in this simplified version, can be added if needed
 
-  static $inject = ['eventBus', 'translate', 'moddle', 'bpmnFactory', 'commandStack'/*, 'elementRegistry'*/];
+  static $inject = ['eventBus', 'translate', 'moddle', 'bpmnFactory', 'commandStack', 'propertiesPanel']; // Ensure propertiesPanel is injected for bpmn-js to register the provider
 
-  constructor(eventBus: any, translate: any, moddle: any, bpmnFactory: any, commandStack: any/*, elementRegistry: any*/) {
-    console.log('ActivitiPropertiesProvider: Constructor called');
+  constructor(eventBus: any, translate: any, moddle: any, bpmnFactory: any, commandStack: any /* propertiesPanel: any */) { // propertiesPanel removed as it's not used directly in the constructor body
+    console.log('[ActivitiProps] Constructor called');
     this._translate = translate;
     this._moddle = moddle;
     this._bpmnFactory = bpmnFactory;
     this._commandStack = commandStack;
-    // this._elementRegistry = elementRegistry;
+   // this._elementRegistry = propertiesPanel._elementRegistry; // Not used in this simplified version, can be added if needed
+    this._eventBus = eventBus;
 
-    // The actual registration is done by bpmn-js when listed in additionalModules
-    // propertiesPanel.registerProvider(LOW_PRIORITY, this); // This line is usually not needed here
-    // eventBus.on('propertiesPanel.getProviders', LOW_PRIORITY, (event: any) => {
-    //   event.providers.push(this);
     // }); // <--- REMOVING THIS MANUAL REGISTRATION
+    // propertiesPanel.registerProvider(HIGH_PRIORITY, this); // Registration should be handled by bpmn-js
+    console.log('[ActivitiProps] Constructor completed');
   }
 
   getGroups(element: any) {
-    console.log('ActivitiPropertiesProvider: getGroups called for element', element, element.type);
+    console.log('[ActivitiProps] getGroups called for element:', element, 'type:', element.type);
     const groups: any[] = [];
 
+    // General BPMN properties group (often handled by BpmnPropertiesProviderModule, but can add Activiti specific ones here)
+    // Example: Add a general Activiti group if needed for properties applicable to many elements
+
+    // Process specific properties
     if (is(element, 'bpmn:Process')) {
-      console.log('ActivitiPropertiesProvider: Element is bpmn:Process');
-      const processGroup = {
-        id: 'activitiProcessProperties', // Changed ID to be more specific
+      console.log('[ActivitiProps] Element is bpmn:Process, creating process properties group.');
+      groups.push({
+        id: 'activitiProcessProperties',
         label: this._translate('Activiti Process Properties'),
-        component: ProcessPropertiesGroupComponent, // Use a wrapper component
-        element: element, // Pass element to the group for context
-        translate: this._translate, // Pass translate
-        moddle: this._moddle, // Pass moddle
-        commandStack: this._commandStack, // Pass commandStack
-        bpmnFactory: this._bpmnFactory // Pass bpmnFactory
-      };
-      console.log('ActivitiPropertiesProvider: Returning processGroup for bpmn:Process', processGroup);
-      groups.push(processGroup);
+        entries: ProcessPropertiesGroupEntries({ // Call the entries function directly
+          element: element,
+          translate: this._translate,
+          moddle: this._moddle,
+          commandStack: this._commandStack,
+          bpmnFactory: this._bpmnFactory
+        })
+      });
     }
 
-    if (is(element, 'bpmn:Task') || is(element, 'bpmn:Activity')) {
-      console.log('ActivitiPropertiesProvider: Element is bpmn:Task or bpmn:Activity', element.type);
-      const taskGroup = {
+    // Task/Activity specific properties (General Activiti Task properties)
+    if (is(element, 'bpmn:Task') || 
+        is(element, 'bpmn:Activity') || 
+        is(element, 'bpmn:UserTask') || 
+        is(element, 'bpmn:ServiceTask') || 
+        is(element, 'bpmn:CallActivity')) {
+      console.log('[ActivitiProps] Element is bpmn:Task or bpmn:Activity, creating task properties group for type:', element.type);
+      groups.push({
         id: 'activitiTaskProperties',
         label: this._translate('Activiti Task Properties'),
-        component: ActivitiTaskPropertiesGroupComponent, // Use a wrapper component
-        element: element,
-        translate: this._translate,
-        moddle: this._moddle,
-        commandStack: this._commandStack
-      };
-      console.log('ActivitiPropertiesProvider: Returning taskGroup', taskGroup);
-      groups.push(taskGroup);
+        entries: ActivitiUserTaskPropertiesEntries({ // Call the entries function directly
+          element: element,
+          translate: this._translate,
+          moddle: this._moddle,
+          commandStack: this._commandStack
+        })
+      });
     }
+
     // Add other groups for different element types if needed
-    console.log('ActivitiPropertiesProvider: Final groups being returned for element', element.type, groups);
+    // Example: Add a group for Start Events if they have specific Activiti properties
+    // if (is(element, 'bpmn:StartEvent')) {
+    //   groups.push({
+    //     id: 'activitiStartEventProperties',
+    //     label: this._translate('Activiti Start Event Properties'),
+    //     entries: ActivitiStartEventEntries({ element, translate: this._translate, moddle: this._moddle, commandStack: this._commandStack })
+    //   });
+    // }
+
+    console.log('[ActivitiProps] Final groups being returned for element:', element.type, groups);
     return groups;
   }
 }
 
-// Wrapper component for Process Properties Group
-function ProcessPropertiesGroupComponent(props: { element: any; translate: any; moddle: any; commandStack: any; bpmnFactory: any; }) {
-  const { element, translate, moddle, commandStack, bpmnFactory } = props;
-  const entries = ProcessPropertiesGroupEntries({ element, translate, moddle, commandStack, bpmnFactory });
-  return (
-    <>
-      {entries.map((entry: any) => Property({ ...entry, element, translate }))}
-    </>
-  );
-}
-
-// Wrapper component for Activiti Task Properties Group
-function ActivitiTaskPropertiesGroupComponent(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
-  const { element, translate, moddle, commandStack } = props;
-  const entries = ActivitiTaskPropertiesEntries({ element, translate, moddle, commandStack });
-  return (
-    <>
-      {entries.map((entry: any) => Property({ ...entry, element, translate }))}
-    </>
-  );
-}
-
 // Entries for Process Properties Group (for bpmn:Process)
 function ProcessPropertiesGroupEntries(props: { element: any; translate: any; moddle: any; commandStack: any; bpmnFactory: any; }) {
+  console.log('[ActivitiProps] ProcessPropertiesGroupEntries called for element:', props.element);
   const { element, translate, moddle, commandStack, bpmnFactory } = props;
   const businessObject = getBusinessObject(element);
 
@@ -257,7 +253,8 @@ function ProcessPropertiesGroupEntries(props: { element: any; translate: any; mo
 }
 
 // Main function for Activiti Task Properties Entries
-function ActivitiTaskPropertiesEntries(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
+function ActivitiUserTaskPropertiesEntries(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
+  console.log('[ActivitiProps] ActivitiUserTaskPropertiesEntries called for element:', props.element);
   const { element, translate, moddle, commandStack } = props;
   const businessObject = getBusinessObject(element);
 
@@ -291,6 +288,7 @@ function ActivitiTaskPropertiesEntries(props: { element: any; translate: any; mo
 
 // Activiti General Entries for all tasks
 function ActivitiGeneralEntries(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
+  console.log('[ActivitiProps] ActivitiGeneralEntries called for element:', props.element);
   const { element, translate, moddle, commandStack } = props;
   const businessObject = getBusinessObject(element);
 
@@ -336,6 +334,7 @@ function ActivitiGeneralEntries(props: { element: any; translate: any; moddle: a
 
 // Activiti Service Task Entries
 function ActivitiServiceTaskEntries(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
+  console.log('[ActivitiProps] ActivitiServiceTaskEntries called for element:', props.element);
   const { element, translate, moddle, commandStack } = props;
   const businessObject = getBusinessObject(element);
 
@@ -403,6 +402,7 @@ function ActivitiServiceTaskEntries(props: { element: any; translate: any; moddl
 
 // Activiti User Task Entries
 function ActivitiUserTaskEntries(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
+  console.log('[ActivitiProps] ActivitiUserTaskEntries called for element:', props.element);
   const { element, translate, moddle, commandStack } = props;
   const businessObject = getBusinessObject(element);
 
@@ -466,6 +466,7 @@ function ActivitiUserTaskEntries(props: { element: any; translate: any; moddle: 
 
 // Activiti Call Activity Entries
 function ActivitiCallActivityEntries(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
+  console.log('[ActivitiProps] ActivitiCallActivityEntries called for element:', props.element);
   const { element, translate, moddle, commandStack } = props;
   const businessObject = getBusinessObject(element);
 
@@ -518,6 +519,7 @@ function ActivitiCallActivityEntries(props: { element: any; translate: any; modd
 
 // Activiti Multi Instance Entries
 function ActivitiMultiInstanceEntries(props: { element: any; translate: any; moddle: any; commandStack: any; }) {
+  console.log('[ActivitiProps] ActivitiMultiInstanceEntries called for element:', props.element);
   const { element, translate, moddle, commandStack } = props;
   const businessObject = getBusinessObject(element);
   const loopCharacteristics = businessObject.loopCharacteristics;
@@ -574,6 +576,6 @@ function ActivitiMultiInstanceEntries(props: { element: any; translate: any; mod
   ];
 }
 
-ActivitiPropertiesProvider.$inject = ['eventBus', 'translate', 'moddle', 'bpmnFactory', 'commandStack'];
+ActivitiPropertiesProvider.$inject = ['eventBus', 'translate', 'moddle', 'bpmnFactory', 'commandStack', 'propertiesPanel']; // propertiesPanel is kept here for bpmn-js DI and registration mechanism
 
 export default ActivitiPropertiesProvider;
