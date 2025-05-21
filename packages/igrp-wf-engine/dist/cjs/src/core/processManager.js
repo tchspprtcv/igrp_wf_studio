@@ -1,3 +1,6 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ProcessManager = void 0;
 /**
  * Process definition management functionality
  */
@@ -5,12 +8,12 @@ const isBrowser = typeof window !== 'undefined';
 const path = !isBrowser ? require('node:path') : {
     join: (...paths) => paths.join('/')
 };
-import { readFile, writeFile, fileExists } from '../utils/fileSystem';
-import { generateEmptyBpmnTemplate } from './templates';
+const fileSystem_1 = require("../utils/fileSystem");
+const templates_1 = require("./templates");
 /**
  * ProcessManager class for managing BPMN process definitions
  */
-export class ProcessManager {
+class ProcessManager {
     constructor(basePath = './') {
         this.basePath = basePath;
     }
@@ -33,12 +36,12 @@ export class ProcessManager {
                 processBpmnPath = path.join(this.basePath, appCode, areaCode, `${areaCode}${processCode}.bpmn`);
             }
             // Check if file exists
-            const exists = await fileExists(processBpmnPath);
+            const exists = await (0, fileSystem_1.fileExists)(processBpmnPath);
             if (!exists) {
                 return null;
             }
             // Read BPMN content
-            const bpmnXml = await readFile(processBpmnPath);
+            const bpmnXml = await (0, fileSystem_1.readFile)(processBpmnPath);
             if (!bpmnXml) {
                 return null;
             }
@@ -73,7 +76,7 @@ export class ProcessManager {
             else {
                 processBpmnPath = path.join(this.basePath, appCode, areaCode, `${areaCode}${processCode}.bpmn`);
             }
-            const result = await writeFile(processBpmnPath, bpmnXml);
+            const result = await (0, fileSystem_1.writeFile)(processBpmnPath, bpmnXml);
             return result;
         }
         catch (error) {
@@ -111,7 +114,7 @@ export class ProcessManager {
      */
     async createEmptyProcessDefinition(appCode, areaCode, processCode, title, subareaCode) {
         try {
-            const bpmnXml = generateEmptyBpmnTemplate(processCode);
+            const bpmnXml = (0, templates_1.generateEmptyBpmnTemplate)(processCode);
             return this.saveProcessDefinition(appCode, areaCode, processCode, bpmnXml, subareaCode);
         }
         catch (error) {
@@ -122,3 +125,4 @@ export class ProcessManager {
         }
     }
 }
+exports.ProcessManager = ProcessManager;

@@ -1,7 +1,10 @@
-import { v4 as uuidv4 } from 'uuid';
-import { writeFile, readFile, fileExists, ensureDir, remove, getWorkspaceDir } from '../utils/fileSystem';
-import { generateAppOptionsTemplate, generateEmptyBpmnTemplate, generateProjectConfigTemplate } from './templates';
-import { appLogger as logger } from '../utils/logger';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.WorkflowWorkspaceManager = void 0;
+const uuid_1 = require("uuid");
+const fileSystem_1 = require("../utils/fileSystem");
+const templates_1 = require("./templates");
+const logger_1 = require("../utils/logger");
 const isBrowser = typeof window !== 'undefined';
 const path = !isBrowser ? require('node:path') : {
     join: (...paths) => paths.join('/'),
@@ -11,18 +14,18 @@ const path = !isBrowser ? require('node:path') : {
         return parts.join('/');
     }
 };
-export class WorkflowWorkspaceManager {
-    constructor(basePath = getWorkspaceDir()) {
+class WorkflowWorkspaceManager {
+    constructor(basePath = (0, fileSystem_1.getWorkspaceDir)()) {
         this.basePath = basePath;
-        logger.info('Initialized WorkflowWorkspaceManager with base path: %s', basePath);
+        logger_1.appLogger.info('Initialized WorkflowWorkspaceManager with base path: %s', basePath);
     }
     setBasePath(basePath) {
-        logger.info('Setting new base path: %s', basePath);
+        logger_1.appLogger.info('Setting new base path: %s', basePath);
         this.basePath = basePath;
     }
     async listWorkspaces() {
         try {
-            logger.debug('Listing workspaces');
+            logger_1.appLogger.debug('Listing workspaces');
             if (isBrowser) {
                 const apps = [];
                 for (let i = 0; i < localStorage.length; i++) {
@@ -35,12 +38,12 @@ export class WorkflowWorkspaceManager {
                                 apps.push(app);
                             }
                             catch (err) {
-                                logger.error('Failed to parse app options: %O', err);
+                                logger_1.appLogger.error('Failed to parse app options: %O', err);
                             }
                         }
                     }
                 }
-                logger.info('Found %d workspaces in browser storage', apps.length);
+                logger_1.appLogger.info('Found %d workspaces in browser storage', apps.length);
                 return apps;
             }
             const fs = require('node:fs').promises;
@@ -50,86 +53,86 @@ export class WorkflowWorkspaceManager {
                 if (entry.isDirectory()) {
                     const appOptionsPath = path.join(this.basePath, entry.name, 'app-options.json');
                     try {
-                        const content = await readFile(appOptionsPath);
+                        const content = await (0, fileSystem_1.readFile)(appOptionsPath);
                         if (content) {
                             const app = JSON.parse(content);
                             apps.push(app);
                         }
                     }
                     catch (err) {
-                        logger.error('Failed to read app options for %s: %O', entry.name, err);
+                        logger_1.appLogger.error('Failed to read app options for %s: %O', entry.name, err);
                     }
                 }
             }
-            logger.info('Found %d workspaces in filesystem', apps.length);
+            logger_1.appLogger.info('Found %d workspaces in filesystem', apps.length);
             return apps;
         }
         catch (error) {
-            logger.error('Failed to list workspaces: %O', error);
+            logger_1.appLogger.error('Failed to list workspaces: %O', error);
             return [];
         }
     }
     async loadProjectConfig(appCode) {
         try {
-            logger.debug('Loading project config for workspace: %s', appCode);
+            logger_1.appLogger.debug('Loading project config for workspace: %s', appCode);
             const configPath = path.join(this.basePath, appCode, 'project-config.json');
-            const configContent = await readFile(configPath);
+            const configContent = await (0, fileSystem_1.readFile)(configPath);
             if (!configContent) {
-                logger.warn('No config found for workspace: %s', appCode);
+                logger_1.appLogger.warn('No config found for workspace: %s', appCode);
                 return null;
             }
             const config = JSON.parse(configContent);
-            logger.info('Loaded project config for %s with %d areas', appCode, config.areas.length);
+            logger_1.appLogger.info('Loaded project config for %s with %d areas', appCode, config.areas.length);
             return config;
         }
         catch (error) {
-            logger.error('Failed to load project config: %O', error);
+            logger_1.appLogger.error('Failed to load project config: %O', error);
             return null;
         }
     }
     async createWorkspace(code, title, description, status = 'active') {
         try {
-            logger.info('Creating new workspace: %s', code);
+            logger_1.appLogger.info('Creating new workspace: %s', code);
             if (!/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(code)) {
-                logger.warn('Invalid workspace code format: %s', code);
+                logger_1.appLogger.warn('Invalid workspace code format: %s', code);
                 return {
                     success: false,
                     message: 'Workspace code must start with a letter and can only contain letters, numbers, hyphens and underscores'
                 };
             }
             const appPath = path.join(this.basePath, code);
-            const exists = await fileExists(appPath);
+            const exists = await (0, fileSystem_1.fileExists)(appPath);
             if (exists) {
-                logger.warn('Workspace already exists: %s', code);
+                logger_1.appLogger.warn('Workspace already exists: %s', code);
                 return {
                     success: false,
                     message: `Workspace '${code}' already exists`
                 };
             }
-            const dirResult = await ensureDir(appPath);
+            const dirResult = await (0, fileSystem_1.ensureDir)(appPath);
             if (!dirResult.success) {
                 return dirResult;
             }
-            const id = uuidv4();
+            const id = (0, uuid_1.v4)();
             const appOptionsPath = path.join(appPath, 'app-options.json');
-            const appOptions = generateAppOptionsTemplate({
+            const appOptions = (0, templates_1.generateAppOptionsTemplate)({
                 id,
                 code,
                 title,
                 description,
                 status
             });
-            const appOptionsResult = await writeFile(appOptionsPath, appOptions);
+            const appOptionsResult = await (0, fileSystem_1.writeFile)(appOptionsPath, appOptions);
             if (!appOptionsResult.success) {
                 return appOptionsResult;
             }
             const projectConfigPath = path.join(appPath, 'project-config.json');
-            const projectConfig = generateProjectConfigTemplate(code, id);
-            const projectConfigResult = await writeFile(projectConfigPath, projectConfig);
+            const projectConfig = (0, templates_1.generateProjectConfigTemplate)(code, id);
+            const projectConfigResult = await (0, fileSystem_1.writeFile)(projectConfigPath, projectConfig);
             if (!projectConfigResult.success) {
                 return projectConfigResult;
             }
-            logger.info('Successfully created workspace: %s', code);
+            logger_1.appLogger.info('Successfully created workspace: %s', code);
             return {
                 success: true,
                 message: `Workflow workspace '${code}' created successfully`,
@@ -137,7 +140,7 @@ export class WorkflowWorkspaceManager {
             };
         }
         catch (error) {
-            logger.error('Failed to create workspace: %O', error);
+            logger_1.appLogger.error('Failed to create workspace: %O', error);
             return {
                 success: false,
                 message: `Failed to create workflow workspace: ${error.message}`
@@ -146,28 +149,28 @@ export class WorkflowWorkspaceManager {
     }
     async deleteWorkspace(code) {
         try {
-            logger.info('Deleting workspace: %s', code);
+            logger_1.appLogger.info('Deleting workspace: %s', code);
             const appPath = path.join(this.basePath, code);
-            const exists = await fileExists(appPath);
+            const exists = await (0, fileSystem_1.fileExists)(appPath);
             if (!exists) {
-                logger.warn('Workspace does not exist: %s', code);
+                logger_1.appLogger.warn('Workspace does not exist: %s', code);
                 return {
                     success: false,
                     message: `Workspace '${code}' does not exist`
                 };
             }
-            const result = await remove(appPath);
+            const result = await (0, fileSystem_1.remove)(appPath);
             if (!result.success) {
                 return result;
             }
-            logger.info('Successfully deleted workspace: %s', code);
+            logger_1.appLogger.info('Successfully deleted workspace: %s', code);
             return {
                 success: true,
                 message: `Workspace '${code}' deleted successfully`
             };
         }
         catch (error) {
-            logger.error('Failed to delete workspace: %O', error);
+            logger_1.appLogger.error('Failed to delete workspace: %O', error);
             return {
                 success: false,
                 message: `Failed to delete workspace: ${error.message}`
@@ -176,20 +179,20 @@ export class WorkflowWorkspaceManager {
     }
     async updateWorkspaceOptions(code, updates) {
         try {
-            logger.info('Updating workspace options for: %s', code);
+            logger_1.appLogger.info('Updating workspace options for: %s', code);
             const appPath = path.join(this.basePath, code);
             const appOptionsPath = path.join(appPath, 'app-options.json');
-            const exists = await fileExists(appOptionsPath);
+            const exists = await (0, fileSystem_1.fileExists)(appOptionsPath);
             if (!exists) {
-                logger.warn('Workspace options file does not exist: %s', appOptionsPath);
+                logger_1.appLogger.warn('Workspace options file does not exist: %s', appOptionsPath);
                 return {
                     success: false,
                     message: `Workspace options for '${code}' not found.`
                 };
             }
-            const currentOptionsContent = await readFile(appOptionsPath);
+            const currentOptionsContent = await (0, fileSystem_1.readFile)(appOptionsPath);
             if (!currentOptionsContent) {
-                logger.error('Failed to read current workspace options: %s', appOptionsPath);
+                logger_1.appLogger.error('Failed to read current workspace options: %s', appOptionsPath);
                 return {
                     success: false,
                     message: `Failed to read options for workspace '${code}'.`
@@ -204,16 +207,16 @@ export class WorkflowWorkspaceManager {
                 id: currentOptions.id, // Ensure id remains unchanged
                 updated_at: new Date().toISOString() // Always update the timestamp
             };
-            const result = await writeFile(appOptionsPath, JSON.stringify(updatedOptions, null, 2));
+            const result = await (0, fileSystem_1.writeFile)(appOptionsPath, JSON.stringify(updatedOptions, null, 2));
             if (!result.success) {
-                logger.error('Failed to write updated workspace options: %s', appOptionsPath);
+                logger_1.appLogger.error('Failed to write updated workspace options: %s', appOptionsPath);
                 return result;
             }
-            logger.info('Successfully updated workspace options for: %s', code);
+            logger_1.appLogger.info('Successfully updated workspace options for: %s', code);
             return { success: true, message: `Workspace '${code}' options updated successfully.`, path: appOptionsPath };
         }
         catch (error) {
-            logger.error('Failed to update workspace options: %O', error);
+            logger_1.appLogger.error('Failed to update workspace options: %O', error);
             return {
                 success: false,
                 message: `Failed to update workspace options: ${error.message}`
@@ -223,11 +226,11 @@ export class WorkflowWorkspaceManager {
     // Removed duplicate deleteWorkspace function
     async updateArea(appCode, areaCode, title, description, status) {
         try {
-            logger.info('Updating area %s in workspace %s', areaCode, appCode);
+            logger_1.appLogger.info('Updating area %s in workspace %s', areaCode, appCode);
             const configPath = path.join(this.basePath, appCode, 'project-config.json');
-            const configContent = await readFile(configPath);
+            const configContent = await (0, fileSystem_1.readFile)(configPath);
             if (!configContent) {
-                logger.warn('Project configuration not found for workspace: %s', appCode);
+                logger_1.appLogger.warn('Project configuration not found for workspace: %s', appCode);
                 return {
                     success: false,
                     message: `Failed to read project configuration for '${appCode}'`
@@ -236,7 +239,7 @@ export class WorkflowWorkspaceManager {
             const config = JSON.parse(configContent);
             const areaIndex = config.areas.findIndex(area => area.code === areaCode);
             if (areaIndex === -1) {
-                logger.warn('Area not found: %s', areaCode);
+                logger_1.appLogger.warn('Area not found: %s', areaCode);
                 return {
                     success: false,
                     message: `Area '${areaCode}' not found`
@@ -246,14 +249,14 @@ export class WorkflowWorkspaceManager {
             config.areas[areaIndex].description = description;
             config.areas[areaIndex].status = status;
             config.updatedAt = new Date().toISOString();
-            const updateResult = await writeFile(configPath, JSON.stringify(config, null, 2));
+            const updateResult = await (0, fileSystem_1.writeFile)(configPath, JSON.stringify(config, null, 2));
             if (updateResult.success) {
-                logger.info('Successfully updated area %s', areaCode);
+                logger_1.appLogger.info('Successfully updated area %s', areaCode);
             }
             return updateResult;
         }
         catch (error) {
-            logger.error('Failed to update area: %O', error);
+            logger_1.appLogger.error('Failed to update area: %O', error);
             return {
                 success: false,
                 message: `Failed to update area: ${error.message}`
@@ -262,11 +265,11 @@ export class WorkflowWorkspaceManager {
     }
     async updateSubArea(appCode, areaCode, subareaCode, title, description, status) {
         try {
-            logger.info('Updating subarea %s in area %s of workspace %s', subareaCode, areaCode, appCode);
+            logger_1.appLogger.info('Updating subarea %s in area %s of workspace %s', subareaCode, areaCode, appCode);
             const configPath = path.join(this.basePath, appCode, 'project-config.json');
-            const configContent = await readFile(configPath);
+            const configContent = await (0, fileSystem_1.readFile)(configPath);
             if (!configContent) {
-                logger.warn('Project configuration not found for workspace: %s', appCode);
+                logger_1.appLogger.warn('Project configuration not found for workspace: %s', appCode);
                 return {
                     success: false,
                     message: `Failed to read project configuration for '${appCode}'`
@@ -275,7 +278,7 @@ export class WorkflowWorkspaceManager {
             const config = JSON.parse(configContent);
             const areaIndex = config.areas.findIndex(area => area.code === areaCode);
             if (areaIndex === -1) {
-                logger.warn('Area not found: %s', areaCode);
+                logger_1.appLogger.warn('Area not found: %s', areaCode);
                 return {
                     success: false,
                     message: `Area '${areaCode}' not found`
@@ -283,7 +286,7 @@ export class WorkflowWorkspaceManager {
             }
             const subareaIndex = config.areas[areaIndex].subareas.findIndex(subarea => subarea.code === subareaCode);
             if (subareaIndex === -1) {
-                logger.warn('SubArea not found: %s', subareaCode);
+                logger_1.appLogger.warn('SubArea not found: %s', subareaCode);
                 return {
                     success: false,
                     message: `SubArea '${subareaCode}' not found in area '${areaCode}'`
@@ -293,14 +296,14 @@ export class WorkflowWorkspaceManager {
             config.areas[areaIndex].subareas[subareaIndex].description = description;
             config.areas[areaIndex].subareas[subareaIndex].status = status;
             config.updatedAt = new Date().toISOString();
-            const updateResult = await writeFile(configPath, JSON.stringify(config, null, 2));
+            const updateResult = await (0, fileSystem_1.writeFile)(configPath, JSON.stringify(config, null, 2));
             if (updateResult.success) {
-                logger.info('Successfully updated subarea %s', subareaCode);
+                logger_1.appLogger.info('Successfully updated subarea %s', subareaCode);
             }
             return updateResult;
         }
         catch (error) {
-            logger.error('Failed to update subarea: %O', error);
+            logger_1.appLogger.error('Failed to update subarea: %O', error);
             return {
                 success: false,
                 message: `Failed to update subarea: ${error.message}`
@@ -309,11 +312,11 @@ export class WorkflowWorkspaceManager {
     }
     async updateProcess(appCode, areaCode, processCode, title, description, status, subareaCode) {
         try {
-            logger.info('Updating process %s in workspace %s', processCode, appCode);
+            logger_1.appLogger.info('Updating process %s in workspace %s', processCode, appCode);
             const configPath = path.join(this.basePath, appCode, 'project-config.json');
-            const configContent = await readFile(configPath);
+            const configContent = await (0, fileSystem_1.readFile)(configPath);
             if (!configContent) {
-                logger.warn('Project configuration not found for workspace: %s', appCode);
+                logger_1.appLogger.warn('Project configuration not found for workspace: %s', appCode);
                 return {
                     success: false,
                     message: `Failed to read project configuration for '${appCode}'`
@@ -322,7 +325,7 @@ export class WorkflowWorkspaceManager {
             const config = JSON.parse(configContent);
             const areaIndex = config.areas.findIndex(area => area.code === areaCode);
             if (areaIndex === -1) {
-                logger.warn('Area not found: %s', areaCode);
+                logger_1.appLogger.warn('Area not found: %s', areaCode);
                 return {
                     success: false,
                     message: `Area '${areaCode}' not found`
@@ -333,7 +336,7 @@ export class WorkflowWorkspaceManager {
             if (subareaCode) {
                 subareaIndex = config.areas[areaIndex].subareas.findIndex(subarea => subarea.code === subareaCode);
                 if (subareaIndex === -1) {
-                    logger.warn('SubArea not found: %s', subareaCode);
+                    logger_1.appLogger.warn('SubArea not found: %s', subareaCode);
                     return {
                         success: false,
                         message: `SubArea '${subareaCode}' not found in area '${areaCode}'`
@@ -345,7 +348,7 @@ export class WorkflowWorkspaceManager {
                 processIndex = config.areas[areaIndex].processes.findIndex(process => process.code === processCode);
             }
             if (processIndex === -1) {
-                logger.warn('Process not found: %s', processCode);
+                logger_1.appLogger.warn('Process not found: %s', processCode);
                 return {
                     success: false,
                     message: `Process '${processCode}' not found`
@@ -358,14 +361,14 @@ export class WorkflowWorkspaceManager {
             process.description = description;
             process.status = status;
             config.updatedAt = new Date().toISOString();
-            const updateResult = await writeFile(configPath, JSON.stringify(config, null, 2));
+            const updateResult = await (0, fileSystem_1.writeFile)(configPath, JSON.stringify(config, null, 2));
             if (updateResult.success) {
-                logger.info('Successfully updated process %s', processCode);
+                logger_1.appLogger.info('Successfully updated process %s', processCode);
             }
             return updateResult;
         }
         catch (error) {
-            logger.error('Failed to update process: %O', error);
+            logger_1.appLogger.error('Failed to update process: %O', error);
             return {
                 success: false,
                 message: `Failed to update process: ${error.message}`
@@ -374,11 +377,11 @@ export class WorkflowWorkspaceManager {
     }
     async addArea(appCode, areaCode, title, description, status = 'active') {
         try {
-            logger.info('Adding new area %s to workspace %s', areaCode, appCode);
+            logger_1.appLogger.info('Adding new area %s to workspace %s', areaCode, appCode);
             const configPath = path.join(this.basePath, appCode, 'project-config.json');
-            const configContent = await readFile(configPath);
+            const configContent = await (0, fileSystem_1.readFile)(configPath);
             if (!configContent) {
-                logger.warn('Project configuration not found for workspace: %s', appCode);
+                logger_1.appLogger.warn('Project configuration not found for workspace: %s', appCode);
                 return {
                     success: false,
                     message: `Failed to read project configuration for '${appCode}'`
@@ -387,7 +390,7 @@ export class WorkflowWorkspaceManager {
             const config = JSON.parse(configContent);
             // Check if area already exists
             if (config.areas.some(area => area.code === areaCode)) {
-                logger.warn('Area already exists: %s', areaCode);
+                logger_1.appLogger.warn('Area already exists: %s', areaCode);
                 return {
                     success: false,
                     message: `Area '${areaCode}' already exists`
@@ -395,7 +398,7 @@ export class WorkflowWorkspaceManager {
             }
             // Add new area
             config.areas.push({
-                id: uuidv4(),
+                id: (0, uuid_1.v4)(),
                 code: areaCode,
                 title,
                 description,
@@ -404,14 +407,14 @@ export class WorkflowWorkspaceManager {
                 processes: []
             });
             config.updatedAt = new Date().toISOString();
-            const updateResult = await writeFile(configPath, JSON.stringify(config, null, 2));
+            const updateResult = await (0, fileSystem_1.writeFile)(configPath, JSON.stringify(config, null, 2));
             if (updateResult.success) {
-                logger.info('Successfully added area %s', areaCode);
+                logger_1.appLogger.info('Successfully added area %s', areaCode);
             }
             return updateResult;
         }
         catch (error) {
-            logger.error('Failed to add area: %O', error);
+            logger_1.appLogger.error('Failed to add area: %O', error);
             return {
                 success: false,
                 message: `Failed to add area: ${error.message}`
@@ -420,11 +423,11 @@ export class WorkflowWorkspaceManager {
     }
     async addSubArea(appCode, areaCode, subareaCode, title, description, status = 'active') {
         try {
-            logger.info('Adding new subarea %s to area %s in workspace %s', subareaCode, areaCode, appCode);
+            logger_1.appLogger.info('Adding new subarea %s to area %s in workspace %s', subareaCode, areaCode, appCode);
             const configPath = path.join(this.basePath, appCode, 'project-config.json');
-            const configContent = await readFile(configPath);
+            const configContent = await (0, fileSystem_1.readFile)(configPath);
             if (!configContent) {
-                logger.warn('Project configuration not found for workspace: %s', appCode);
+                logger_1.appLogger.warn('Project configuration not found for workspace: %s', appCode);
                 return {
                     success: false,
                     message: `Failed to read project configuration for '${appCode}'`
@@ -433,7 +436,7 @@ export class WorkflowWorkspaceManager {
             const config = JSON.parse(configContent);
             const areaIndex = config.areas.findIndex(area => area.code === areaCode);
             if (areaIndex === -1) {
-                logger.warn('Area not found: %s', areaCode);
+                logger_1.appLogger.warn('Area not found: %s', areaCode);
                 return {
                     success: false,
                     message: `Area '${areaCode}' not found`
@@ -441,7 +444,7 @@ export class WorkflowWorkspaceManager {
             }
             // Check if subarea already exists
             if (config.areas[areaIndex].subareas.some(subarea => subarea.code === subareaCode)) {
-                logger.warn('SubArea already exists: %s', subareaCode);
+                logger_1.appLogger.warn('SubArea already exists: %s', subareaCode);
                 return {
                     success: false,
                     message: `SubArea '${subareaCode}' already exists in area '${areaCode}'`
@@ -449,7 +452,7 @@ export class WorkflowWorkspaceManager {
             }
             // Add new subarea
             config.areas[areaIndex].subareas.push({
-                id: uuidv4(),
+                id: (0, uuid_1.v4)(),
                 code: subareaCode,
                 title,
                 description,
@@ -457,14 +460,14 @@ export class WorkflowWorkspaceManager {
                 processes: []
             });
             config.updatedAt = new Date().toISOString();
-            const updateResult = await writeFile(configPath, JSON.stringify(config, null, 2));
+            const updateResult = await (0, fileSystem_1.writeFile)(configPath, JSON.stringify(config, null, 2));
             if (updateResult.success) {
-                logger.info('Successfully added subarea %s', subareaCode);
+                logger_1.appLogger.info('Successfully added subarea %s', subareaCode);
             }
             return updateResult;
         }
         catch (error) {
-            logger.error('Failed to add subarea: %O', error);
+            logger_1.appLogger.error('Failed to add subarea: %O', error);
             return {
                 success: false,
                 message: `Failed to add subarea: ${error.message}`
@@ -473,11 +476,11 @@ export class WorkflowWorkspaceManager {
     }
     async addProcessDefinition(appCode, areaCode, processCode, title, description, subareaCode, status = 'active') {
         try {
-            logger.info('Adding new process %s to workspace %s', processCode, appCode);
+            logger_1.appLogger.info('Adding new process %s to workspace %s', processCode, appCode);
             const configPath = path.join(this.basePath, appCode, 'project-config.json');
-            const configContent = await readFile(configPath);
+            const configContent = await (0, fileSystem_1.readFile)(configPath);
             if (!configContent) {
-                logger.warn('Project configuration not found for workspace: %s', appCode);
+                logger_1.appLogger.warn('Project configuration not found for workspace: %s', appCode);
                 return {
                     success: false,
                     message: `Failed to read project configuration for '${appCode}'`
@@ -486,7 +489,7 @@ export class WorkflowWorkspaceManager {
             const config = JSON.parse(configContent);
             const areaIndex = config.areas.findIndex(area => area.code === areaCode);
             if (areaIndex === -1) {
-                logger.warn('Area not found: %s', areaCode);
+                logger_1.appLogger.warn('Area not found: %s', areaCode);
                 return {
                     success: false,
                     message: `Area '${areaCode}' not found`
@@ -496,7 +499,7 @@ export class WorkflowWorkspaceManager {
             if (subareaCode) {
                 const subareaIndex = config.areas[areaIndex].subareas.findIndex(subarea => subarea.code === subareaCode);
                 if (subareaIndex === -1) {
-                    logger.warn('SubArea not found: %s', subareaCode);
+                    logger_1.appLogger.warn('SubArea not found: %s', subareaCode);
                     return {
                         success: false,
                         message: `SubArea '${subareaCode}' not found in area '${areaCode}'`
@@ -509,14 +512,14 @@ export class WorkflowWorkspaceManager {
             }
             // Check if process already exists
             if (targetProcesses.some(process => process.code === processCode)) {
-                logger.warn('Process already exists: %s', processCode);
+                logger_1.appLogger.warn('Process already exists: %s', processCode);
                 return {
                     success: false,
                     message: `Process '${processCode}' already exists`
                 };
             }
             // Add new process
-            const processId = uuidv4();
+            const processId = (0, uuid_1.v4)();
             targetProcesses.push({
                 id: processId,
                 code: processCode,
@@ -527,20 +530,20 @@ export class WorkflowWorkspaceManager {
             });
             config.updatedAt = new Date().toISOString();
             // Create empty BPMN file
-            const bpmnContent = generateEmptyBpmnTemplate(processCode, title);
+            const bpmnContent = (0, templates_1.generateEmptyBpmnTemplate)(processCode, title);
             const bpmnPath = path.join(this.basePath, appCode, areaCode, subareaCode || '', `${processCode}.bpmn`);
-            const bpmnResult = await writeFile(bpmnPath, bpmnContent);
+            const bpmnResult = await (0, fileSystem_1.writeFile)(bpmnPath, bpmnContent);
             if (!bpmnResult.success) {
                 return bpmnResult;
             }
-            const updateResult = await writeFile(configPath, JSON.stringify(config, null, 2));
+            const updateResult = await (0, fileSystem_1.writeFile)(configPath, JSON.stringify(config, null, 2));
             if (updateResult.success) {
-                logger.info('Successfully added process %s', processCode);
+                logger_1.appLogger.info('Successfully added process %s', processCode);
             }
             return updateResult;
         }
         catch (error) {
-            logger.error('Failed to add process: %O', error);
+            logger_1.appLogger.error('Failed to add process: %O', error);
             return {
                 success: false,
                 message: `Failed to add process: ${error.message}`
@@ -549,11 +552,11 @@ export class WorkflowWorkspaceManager {
     }
     async deleteArea(appCode, areaCode) {
         try {
-            logger.info('Deleting area %s from workspace %s', areaCode, appCode);
+            logger_1.appLogger.info('Deleting area %s from workspace %s', areaCode, appCode);
             const configPath = path.join(this.basePath, appCode, 'project-config.json');
-            const configContent = await readFile(configPath);
+            const configContent = await (0, fileSystem_1.readFile)(configPath);
             if (!configContent) {
-                logger.warn('Project configuration not found for workspace: %s', appCode);
+                logger_1.appLogger.warn('Project configuration not found for workspace: %s', appCode);
                 return {
                     success: false,
                     message: `Failed to read project configuration for '${appCode}'`
@@ -562,7 +565,7 @@ export class WorkflowWorkspaceManager {
             const config = JSON.parse(configContent);
             const areaIndex = config.areas.findIndex(area => area.code === areaCode);
             if (areaIndex === -1) {
-                logger.warn('Area not found: %s', areaCode);
+                logger_1.appLogger.warn('Area not found: %s', areaCode);
                 return {
                     success: false,
                     message: `Area '${areaCode}' not found`
@@ -570,21 +573,21 @@ export class WorkflowWorkspaceManager {
             }
             // Remove area directory and all its contents
             const areaPath = path.join(this.basePath, appCode, areaCode);
-            const removeResult = await remove(areaPath);
+            const removeResult = await (0, fileSystem_1.remove)(areaPath);
             if (!removeResult.success) {
                 return removeResult;
             }
             // Remove area from config
             config.areas.splice(areaIndex, 1);
             config.updatedAt = new Date().toISOString();
-            const updateResult = await writeFile(configPath, JSON.stringify(config, null, 2));
+            const updateResult = await (0, fileSystem_1.writeFile)(configPath, JSON.stringify(config, null, 2));
             if (updateResult.success) {
-                logger.info('Successfully deleted area %s', areaCode);
+                logger_1.appLogger.info('Successfully deleted area %s', areaCode);
             }
             return updateResult;
         }
         catch (error) {
-            logger.error('Failed to delete area: %O', error);
+            logger_1.appLogger.error('Failed to delete area: %O', error);
             return {
                 success: false,
                 message: `Failed to delete area: ${error.message}`
@@ -593,11 +596,11 @@ export class WorkflowWorkspaceManager {
     }
     async deleteSubArea(appCode, areaCode, subareaCode) {
         try {
-            logger.info('Deleting subarea %s from area %s in workspace %s', subareaCode, areaCode, appCode);
+            logger_1.appLogger.info('Deleting subarea %s from area %s in workspace %s', subareaCode, areaCode, appCode);
             const configPath = path.join(this.basePath, appCode, 'project-config.json');
-            const configContent = await readFile(configPath);
+            const configContent = await (0, fileSystem_1.readFile)(configPath);
             if (!configContent) {
-                logger.warn('Project configuration not found for workspace: %s', appCode);
+                logger_1.appLogger.warn('Project configuration not found for workspace: %s', appCode);
                 return {
                     success: false,
                     message: `Failed to read project configuration for '${appCode}'`
@@ -606,7 +609,7 @@ export class WorkflowWorkspaceManager {
             const config = JSON.parse(configContent);
             const areaIndex = config.areas.findIndex(area => area.code === areaCode);
             if (areaIndex === -1) {
-                logger.warn('Area not found: %s', areaCode);
+                logger_1.appLogger.warn('Area not found: %s', areaCode);
                 return {
                     success: false,
                     message: `Area '${areaCode}' not found`
@@ -614,7 +617,7 @@ export class WorkflowWorkspaceManager {
             }
             const subareaIndex = config.areas[areaIndex].subareas.findIndex(subarea => subarea.code === subareaCode);
             if (subareaIndex === -1) {
-                logger.warn('SubArea not found: %s', subareaCode);
+                logger_1.appLogger.warn('SubArea not found: %s', subareaCode);
                 return {
                     success: false,
                     message: `SubArea '${subareaCode}' not found in area '${areaCode}'`
@@ -622,21 +625,21 @@ export class WorkflowWorkspaceManager {
             }
             // Remove subarea directory and all its contents
             const subareaPath = path.join(this.basePath, appCode, areaCode, subareaCode);
-            const removeResult = await remove(subareaPath);
+            const removeResult = await (0, fileSystem_1.remove)(subareaPath);
             if (!removeResult.success) {
                 return removeResult;
             }
             // Remove subarea from config
             config.areas[areaIndex].subareas.splice(subareaIndex, 1);
             config.updatedAt = new Date().toISOString();
-            const updateResult = await writeFile(configPath, JSON.stringify(config, null, 2));
+            const updateResult = await (0, fileSystem_1.writeFile)(configPath, JSON.stringify(config, null, 2));
             if (updateResult.success) {
-                logger.info('Successfully deleted subarea %s', subareaCode);
+                logger_1.appLogger.info('Successfully deleted subarea %s', subareaCode);
             }
             return updateResult;
         }
         catch (error) {
-            logger.error('Failed to delete subarea: %O', error);
+            logger_1.appLogger.error('Failed to delete subarea: %O', error);
             return {
                 success: false,
                 message: `Failed to delete subarea: ${error.message}`
@@ -645,11 +648,11 @@ export class WorkflowWorkspaceManager {
     }
     async deleteProcess(appCode, areaCode, processCode, subareaCode) {
         try {
-            logger.info('Deleting process %s from workspace %s', processCode, appCode);
+            logger_1.appLogger.info('Deleting process %s from workspace %s', processCode, appCode);
             const configPath = path.join(this.basePath, appCode, 'project-config.json');
-            const configContent = await readFile(configPath);
+            const configContent = await (0, fileSystem_1.readFile)(configPath);
             if (!configContent) {
-                logger.warn('Project configuration not found for workspace: %s', appCode);
+                logger_1.appLogger.warn('Project configuration not found for workspace: %s', appCode);
                 return {
                     success: false,
                     message: `Failed to read project configuration for '${appCode}'`
@@ -658,7 +661,7 @@ export class WorkflowWorkspaceManager {
             const config = JSON.parse(configContent);
             const areaIndex = config.areas.findIndex(area => area.code === areaCode);
             if (areaIndex === -1) {
-                logger.warn('Area not found: %s', areaCode);
+                logger_1.appLogger.warn('Area not found: %s', areaCode);
                 return {
                     success: false,
                     message: `Area '${areaCode}' not found`
@@ -669,7 +672,7 @@ export class WorkflowWorkspaceManager {
             if (subareaCode) {
                 subareaIndex = config.areas[areaIndex].subareas.findIndex(subarea => subarea.code === subareaCode);
                 if (subareaIndex === -1) {
-                    logger.warn('SubArea not found: %s', subareaCode);
+                    logger_1.appLogger.warn('SubArea not found: %s', subareaCode);
                     return {
                         success: false,
                         message: `SubArea '${subareaCode}' not found in area '${areaCode}'`
@@ -681,7 +684,7 @@ export class WorkflowWorkspaceManager {
                 processIndex = config.areas[areaIndex].processes.findIndex(process => process.code === processCode);
             }
             if (processIndex === -1) {
-                logger.warn('Process not found: %s', processCode);
+                logger_1.appLogger.warn('Process not found: %s', processCode);
                 return {
                     success: false,
                     message: `Process '${processCode}' not found`
@@ -689,7 +692,7 @@ export class WorkflowWorkspaceManager {
             }
             // Remove process BPMN file
             const bpmnPath = path.join(this.basePath, appCode, areaCode, subareaCode || '', `${processCode}.bpmn`);
-            const removeResult = await remove(bpmnPath);
+            const removeResult = await (0, fileSystem_1.remove)(bpmnPath);
             if (!removeResult.success) {
                 return removeResult;
             }
@@ -701,14 +704,14 @@ export class WorkflowWorkspaceManager {
                 config.areas[areaIndex].processes.splice(processIndex, 1);
             }
             config.updatedAt = new Date().toISOString();
-            const updateResult = await writeFile(configPath, JSON.stringify(config, null, 2));
+            const updateResult = await (0, fileSystem_1.writeFile)(configPath, JSON.stringify(config, null, 2));
             if (updateResult.success) {
-                logger.info('Successfully deleted process %s', processCode);
+                logger_1.appLogger.info('Successfully deleted process %s', processCode);
             }
             return updateResult;
         }
         catch (error) {
-            logger.error('Failed to delete process: %O', error);
+            logger_1.appLogger.error('Failed to delete process: %O', error);
             return {
                 success: false,
                 message: `Failed to delete process: ${error.message}`
@@ -716,3 +719,4 @@ export class WorkflowWorkspaceManager {
         }
     }
 }
+exports.WorkflowWorkspaceManager = WorkflowWorkspaceManager;

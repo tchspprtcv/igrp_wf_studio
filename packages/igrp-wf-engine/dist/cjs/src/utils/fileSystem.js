@@ -1,3 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getWorkspaceDir = getWorkspaceDir;
+exports.ensureDir = ensureDir;
+exports.writeFile = writeFile;
+exports.readFile = readFile;
+exports.fileExists = fileExists;
+exports.remove = remove;
 // Check if we're in a browser environment
 const isBrowser = typeof window !== 'undefined';
 // Import Node.js modules conditionally
@@ -10,13 +18,13 @@ if (!isBrowser) {
 /**
  * Get the workspace directory path
  */
-export function getWorkspaceDir() {
+function getWorkspaceDir() {
     return './';
 }
 /**
  * Creates a directory if it doesn't exist
  */
-export async function ensureDir(dirPath) {
+async function ensureDir(dirPath) {
     if (isBrowser) {
         // In browser, simulate success since we can't create directories
         return {
@@ -45,7 +53,7 @@ export async function ensureDir(dirPath) {
 /**
  * Writes content to a file, creating directories if needed
  */
-export async function writeFile(filePath, content) {
+async function writeFile(filePath, content) {
     if (isBrowser) {
         try {
             // In browser, use localStorage as a simple file system simulation
@@ -83,7 +91,7 @@ export async function writeFile(filePath, content) {
 /**
  * Reads content from a file
  */
-export async function readFile(filePath) {
+async function readFile(filePath) {
     if (isBrowser) {
         try {
             // In browser, read from localStorage
@@ -107,7 +115,7 @@ export async function readFile(filePath) {
 /**
  * Checks if a file exists
  */
-export async function fileExists(filePath) {
+async function fileExists(filePath) {
     if (isBrowser) {
         // In browser, check localStorage
         return localStorage.getItem(filePath) !== null;
@@ -123,7 +131,7 @@ export async function fileExists(filePath) {
 /**
  * Deletes a file or directory
  */
-export async function remove(path) {
+async function remove(path) {
     if (isBrowser) {
         try {
             localStorage.removeItem(path);

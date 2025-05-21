@@ -2,17 +2,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import BpmnJS from 'bpmn-js/lib/Modeler';
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
-import '@bpmn-io/properties-panel/dist/assets/properties-panel.css'; // Changed this line
-import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule,  } from 'bpmn-js-properties-panel';
-//import camundaModdleDescriptor from 'camunda-bpmn-moddle/resources/camunda.json';
+import '@bpmn-io/properties-panel/dist/assets/properties-panel.css';
+import { BpmnPropertiesPanelModule, BpmnPropertiesProviderModule } from 'bpmn-js-properties-panel';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import CustomPropertiesProvider from './CustomPropertiesProvider';
 import ActivitiPropertiesProvider from './ActivitiPropertiesProvider';
 import ZoomControls from './ZoomControls';
-import BpmnPropertiesPanel from './BpmnPropertiesPanel'; // Added import
 import customModdleDescriptor from './custom.json';
 import activitiModdleDescriptor from '../../bpmn/activiti.json';
+
+// Importar o componente de painel de propriedades customizado
+import BpmnPropertiesPanel from './BpmnPropertiesPanel';
 
 interface BpmnModelerProps {
   xml?: string;
@@ -22,7 +23,8 @@ interface BpmnModelerProps {
 
 const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange, onLoad }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  // const propertiesPanelRef = useRef<HTMLDivElement>(null); // Removed propertiesPanelRef
+  // Remover a referência direta ao painel de propriedades DOM
+  // const propertiesPanelRef = useRef<HTMLDivElement>(null);
   const modelerRef = useRef<BpmnJS | null>(null);
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const [selectedElement, setSelectedElement] = useState<any>(null);
@@ -43,15 +45,16 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange, onLoad }) => {
 </bpmn2:definitions>`;
 
   useEffect(() => {
-    // if (!containerRef.current || !propertiesPanelRef.current) return; // Adjusted condition
     if (!containerRef.current) return;
 
     const modeler = new BpmnJS({
       container: containerRef.current,
-      // propertiesPanel: { // Properties panel is now a separate component
-      //   parent: propertiesPanelRef.current
-      // },
+      // Remover a injeção do painel de propriedades padrão
+      /*propertiesPanel: {
+         parent: propertiesPanelRef.current
+      },*/
       additionalModules: [
+        // Manter os módulos para compatibilidade com o editor
         BpmnPropertiesPanelModule,
         BpmnPropertiesProviderModule,
         {
@@ -64,15 +67,13 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange, onLoad }) => {
         }
       ],
       moddleExtensions: {
-        // Support for both Camunda and Activiti
-        //camunda: camundaModdleDescriptor,
         custom: customModdleDescriptor,
         activiti: activitiModdleDescriptor
       }
     });
 
     modelerRef.current = modeler;
-    onLoad?.(modeler); // Call onLoad with the modeler instance
+    onLoad?.(modeler);
 
     // Load initial diagram
     if (xml) {
@@ -105,9 +106,6 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange, onLoad }) => {
       }
     });
 
-    // Removed custom style injection and MutationObserver logic,
-    // as the imported 'bpmn-js-properties-panel.css' should handle this.
-
     return () => {
       (modeler as any).destroy();
     };
@@ -116,12 +114,10 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange, onLoad }) => {
 
   const createNewDiagram = async (modeler: BpmnJS) => {
     try {
-      //const newDiagramXML = newDiagramXML;
-
       await modeler.importXML(DEFAULT_DIAGRAM_XML);
       
       // Get the canvas and zoom to fit the viewport
-      const canvas = (modeler as any).get('canvas'); // Cast modeler to any to access get method
+      const canvas = (modeler as any).get('canvas');
       canvas.zoom('fit-viewport');
     } catch (err) {
       console.error('Failed to create new diagram:', err);
@@ -148,24 +144,7 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange, onLoad }) => {
         isPanelCollapsed ? "translate-x-full" : "translate-x-0",
         "z-10" // Ensure panel is above the modeler canvas
       )}>
-        {/* Toggle Button */}
-        <button
-          onClick={togglePanel}
-          className={cn(
-            "absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full",
-            "bg-white border border-r-0 border-gray-300 rounded-l-md p-1.5 shadow-md",
-            "hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500",
-            "transition-all duration-200 ease-in-out"
-          )}
-          title={isPanelCollapsed ? "Show Properties" : "Hide Properties"}
-        >
-          {isPanelCollapsed ? (
-            <ChevronLeft className="h-5 w-5 text-gray-600" />
-          ) : (
-            <ChevronRight className="h-5 w-5 text-gray-600" />
-          )}
-        </button>
-
+                
         {/* BpmnPropertiesPanel Component */}
         <BpmnPropertiesPanel
           modeler={modelerRef.current}

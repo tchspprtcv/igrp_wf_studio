@@ -1,7 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.generateAppOptionsTemplate = generateAppOptionsTemplate;
+exports.generateEmptyBpmnTemplate = generateEmptyBpmnTemplate;
+exports.generateProjectConfigTemplate = generateProjectConfigTemplate;
 /**
  * Generates a default app-options.json file
  */
-export function generateAppOptionsTemplate(config) {
+function generateAppOptionsTemplate(config) {
     const template = {
         id: config.id,
         code: config.code,
@@ -16,7 +21,7 @@ export function generateAppOptionsTemplate(config) {
 /**
  * Generates an empty BPMN file with basic structure
  */
-export function generateEmptyBpmnTemplate(processCode, title) {
+function generateEmptyBpmnTemplate(processCode, title) {
     const processName = title || processCode;
     return `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="sample-diagram" targetNamespace="http://bpmn.io/schema/bpmn" xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd">
@@ -54,7 +59,7 @@ export function generateEmptyBpmnTemplate(processCode, title) {
 /**
  * Generates a project configuration template
  */
-export function generateProjectConfigTemplate(projectCode, projectId) {
+function generateProjectConfigTemplate(projectCode, projectId) {
     const template = {
         project: projectCode,
         id: projectId,
