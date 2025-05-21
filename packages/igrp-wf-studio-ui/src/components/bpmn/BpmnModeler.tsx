@@ -109,7 +109,8 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange, onLoad }) => {
     return () => {
       (modeler as any).destroy();
     };
-  }, [xml]);
+  // }, [xml]); // Removed xml from dependencies as it's handled by importXML
+  }, [onLoad, onChange]); // Adjusted dependencies
 
   const createNewDiagram = async (modeler: BpmnJS) => {
     try {
@@ -131,15 +132,17 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange, onLoad }) => {
     <div className="flex h-full relative">
       <div ref={containerRef} className={cn(
         "flex-1 h-full transition-all duration-300 ease-in-out",
-        isPanelCollapsed ? "mr-0" : "mr-96"
+        isPanelCollapsed ? "mr-0" : "mr-96" // Adjust margin based on panel state
       )} />
       
       {/* Adicionar ZoomControls */}
       {modelerRef.current && <ZoomControls modeler={modelerRef.current} />}
 
+      {/* Properties Panel Container */}
       <div className={cn(
-        "absolute right-0 h-full flex transition-all duration-300 ease-in-out",
-        isPanelCollapsed ? "translate-x-full" : "translate-x-0"
+        "absolute right-0 top-0 h-full flex transition-transform duration-300 ease-in-out",
+        isPanelCollapsed ? "translate-x-full" : "translate-x-0",
+        "z-10" // Ensure panel is above the modeler canvas
       )}>
                 
         {/* BpmnPropertiesPanel Component */}

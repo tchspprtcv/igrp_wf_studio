@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { WorkflowEngineSDK } from 'igrp-wf-engine';
 import BpmnModelerComponent from '@/components/bpmn/BpmnModeler'; // Renamed to avoid conflict
@@ -25,6 +25,10 @@ const ProcessEditor: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const modelerRef = useRef<any>(null); // To store BpmnJS modeler instance
+
+  const handleModelerLoad = useCallback((modeler: any) => {
+    modelerRef.current = modeler;
+  }, []); // Empty dependency array ensures the function is created only once
 
   useEffect(() => {
     loadProcessDetails();
@@ -271,7 +275,7 @@ const ProcessEditor: React.FC = () => {
         <BpmnModelerComponent 
           xml={processDetails?.bpmnXml} 
           onChange={setBpmnXml} 
-          onLoad={(modeler) => modelerRef.current = modeler} 
+          onLoad={handleModelerLoad} 
         />
       </div>
     </div>
