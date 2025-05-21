@@ -1,711 +1,909 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { debounce } from 'lodash';
+import React, { useEffect, useState, useCallback } from 'react';
+import styled from 'styled-components';
+import FormEditorLink from './editors/FormEditorLink';
+import DecisionTableLink from './editors/DecisionTableLink';
 
-/**
- * Interface for BPMN element properties
- * This represents the common properties that can be edited for BPMN elements
- */
-interface BpmnElementProperties {
-  id: string;
-  name?: string;
-  documentation?: string;
-  versionTag?: string;
-  isExecutable?: boolean;
-  jobPriority?: string;
-  historyTimeToLive?: string;
-  taskPriority?: string;
-  isInterrupting?: boolean;
-  isAsync?: boolean;
-  isForCompensation?: boolean;
-  gatewayDirection?: string;
-  conditionExpression?: string;
-  isImmediate?: boolean;
-  isCollection?: boolean;
-  [key: string]: any; // For additional custom properties
-}
+// Estilos para o painel de propriedades
+const PropertiesPanelContainer = styled.div<{ isVisible: boolean }>`
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 300px;
+  height: 100%;
+  background-color: #f8f8f8;
+  border-left: 1px solid #e0e0e0;
+  overflow-y: auto;
+  transition: transform 0.3s ease;
+  transform: translateX(${props => props.isVisible ? '0' : '100%'});
+  z-index: 10;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+`;
 
-/**
- * Interface for property field configuration
- * Used to define how each property should be rendered in the panel
- */
-interface PropertyField {
-  key: string;
-  label: string;
-  type: 'text' | 'textarea' | 'select' | 'checkbox' | 'number';
-  options?: Array<{ value: string; label: string }>; // For select fields
-  placeholder?: string;
-  description?: string;
-  readOnly?: boolean;
-  onChange?: (value: any) => void;
-  onBlur?: (value: any) => void;
-  onFocus?: (value: any) => void;
-  onKeyDown?: (value: any) => void;
-  onKeyUp?: (value: any) => void;
-  onKeyPress?: (value: any) => void;
-  onMouseDown?: (value: any) => void;
-  onMouseUp?: (value: any) => void;
-  onMouseOver?: (value: any) => void;
-  onMouseOut?: (value: any) => void;
-}
+const PanelHeader = styled.div`
+  padding: 12px 16px;
+  background-color: #f0f0f0;
+  border-bottom: 1px solid #e0e0e0;
+  font-weight: 500;
+  font-size: 14px;
+  color: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
 
-/**
- * Props for the BpmnPropertiesPanel component
- */
-interface BpmnPropertiesPanelProps {
-  // The selected BPMN element
-  selectedElement: any | null;
-  // Reference to the BPMN modeler instance
-  modeler: any | null;
-  // Whether the panel is visible
+const PanelContent = styled.div`
+  padding: 16px;
+  max-height: calc(100% - 50px);
+  overflow-y: auto;
+`;
+
+const PropertyGroup = styled.div`
+  margin-bottom: 20px;
+`;
+
+const GroupTitle = styled.h4`
+  margin: 0 0 12px 0;
+  padding-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  border-bottom: 1px solid #e0e0e0;
+`;
+
+const PropertyRow = styled.div`
+  margin-bottom: 12px;
+`;
+
+const PropertyLabel = styled.label`
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: #666;
+`;
+
+const PropertyInput = styled.input`
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  
+  &:focus {
+    outline: none;
+    border-color: #2196f3;
+  }
+`;
+
+const PropertySelect = styled.select`
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  
+  &:focus {
+    outline: none;
+    border-color: #2196f3;
+  }
+`;
+
+const PropertyTextarea = styled.textarea`
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  min-height: 80px;
+  resize: vertical;
+  
+  &:focus {
+    outline: none;
+    border-color: #2196f3;
+  }
+`;
+
+const NoSelectionMessage = styled.div`
+  padding: 20px;
+  text-align: center;
+  color: #666;
+`;
+
+const EditButton = styled.button`
+  padding: 4px 8px;
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  margin-left: 8px;
+  
+  &:hover {
+    background-color: #1976d2;
+  }
+`;
+
+// Interface para as propriedades do componente
+export interface BpmnPropertiesPanelProps {
+  modeler: any;
+  selectedElement: any;
   isVisible?: boolean;
-  // Whether the panel is in read-only mode
-  readOnly?: boolean;
-  // Custom styling for the panel
-  style?: React.CSSProperties;
-  // Custom class name for the panel
   className?: string;
-  // Callback when properties are updated
-  onPropertiesUpdated?: (element: any, properties: BpmnElementProperties) => void;
-  // Custom property fields to display for specific element types
-  customPropertyFields?: Record<string, PropertyField[]>;
-  // Whether the panel can be toggled
-  toggleable?: boolean;
 }
 
 /**
  * BpmnPropertiesPanel Component
  * 
- * A React component that provides a properties panel for editing BPMN element properties.
- * This component integrates with the BpmnEditor component and allows users to view and
- * modify properties of selected BPMN elements.
- * 
- * @param props - Component properties (see BpmnPropertiesPanelProps interface)
+ * Painel de propriedades para o editor BPMN
+ * Permite editar propriedades dos elementos selecionados
  */
-const BpmnPropertiesPanel: React.FC<BpmnPropertiesPanelProps> = ({
+const BpmnPropertiesPanel: React.FC<BpmnPropertiesPanelProps> = ({ 
+  modeler, 
   selectedElement,
-  modeler,
   isVisible = true,
-  readOnly = false,
-  style = {},
-  className = '',
-  onPropertiesUpdated,
-  customPropertyFields = {},
-  toggleable = true,
+  className = ''
 }) => {
-  // State to store the properties of the selected element
-  const [properties, setProperties] = useState<BpmnElementProperties | null>(null);
-  // State to track if the panel is expanded or collapsed
-  const [isExpanded, setIsExpanded] = useState<boolean>(true);
-  // State to store the element type
+  const [properties, setProperties] = useState<any>({});
   const [elementType, setElementType] = useState<string>('');
-  // Reference to track if the component is mounted
-  const isMounted = useRef(true);
-
-  /**
-   * Extract properties from the selected BPMN element
-   */
-  const extractElementProperties = useCallback((element: any): BpmnElementProperties | null => {
-    if (!element) {
-      return null;
+  const [elementBusinessObject, setElementBusinessObject] = useState<any>(null);
+  
+  // Extrair propriedades do elemento selecionado
+  useEffect(() => {
+    if (!selectedElement) {
+      setProperties({});
+      setElementType('');
+      setElementBusinessObject(null);
+      return;
     }
-
-    // Get the business object from the element
-    const businessObject = element.businessObject || {};
     
-    // Extract basic properties
-    const properties: BpmnElementProperties = {
+    const businessObject = selectedElement.businessObject;
+    setElementBusinessObject(businessObject);
+    
+    // Determinar o tipo de elemento
+    let type = selectedElement.type;
+    if (type.startsWith('bpmn:')) {
+      type = type.substring(5);
+    }
+    setElementType(type);
+    
+    // Extrair propriedades comuns
+    const commonProps = {
       id: businessObject.id || '',
       name: businessObject.name || '',
     };
-
-    // Extract documentation if available
-    if (businessObject.documentation && businessObject.documentation.length > 0) {
-      properties.documentation = businessObject.documentation[0].text || '';
-    } else {
-      properties.documentation = '';
-    }
-
-    // Extract additional properties based on element type
-    // Handle bpmn:Process and bpmn:Collaboration first to ensure their specific properties are captured
-    if (element.type === 'bpmn:Process') {
-      properties.versionTag = businessObject.versionTag || '';
-      properties.isExecutable = businessObject.isExecutable || false;
-      properties.jobPriority = businessObject.jobPriority || '';
-      properties.historyTimeToLive = businessObject.historyTimeToLive || '';
-      // For taskPriority (Activiti extension)
-      if (businessObject.extensionElements && businessObject.extensionElements.values) {
-        const activitiProps = businessObject.extensionElements.values.find((ext: any) => ext.$type === 'activiti:Properties');
-        if (activitiProps && activitiProps.values) {
-          const taskPriorityProp = activitiProps.values.find((p: any) => p.name === 'taskPriority');
-          if (taskPriorityProp) {
-            properties.taskPriority = taskPriorityProp.value;
-          }
-        }
-      }
-    } else if (element.type === 'bpmn:Collaboration') {
-      // Add any specific collaboration properties here if needed in the future
-      // For now, it will fall through to common properties like ID, name, documentation
-    } else if (element.type === 'bpmn:Task' || element.type.includes('Task')) {
-      properties.isAsync = businessObject.isAsync || false;
-      properties.isForCompensation = businessObject.isForCompensation || false;
-    } else if (element.type === 'bpmn:Gateway') {
-      properties.gatewayDirection = businessObject.gatewayDirection || 'Unspecified';
-    } else if (element.type === 'bpmn:SequenceFlow') {
-      properties.conditionExpression = businessObject.conditionExpression?.body || '';
-      properties.isImmediate = businessObject.isImmediate || false;
-    } else if (element.type === 'bpmn:DataObject') {
-      properties.isCollection = businessObject.isCollection || false;
-    } else if (element.type === 'bpmn:Event' || element.type.includes('Event')) {
-      properties.isInterrupting = businessObject.isInterrupting !== false; // Default to true
-    } else if (element.type === 'bpmn:Process') {
-      properties.versionTag = businessObject.versionTag || '';
-      properties.isExecutable = businessObject.isExecutable || false;
-      properties.jobPriority = businessObject.jobPriority || '';
-      properties.historyTimeToLive = businessObject.historyTimeToLive || '';
-      // For taskPriority (Activiti extension)
-      if (businessObject.extensionElements && businessObject.extensionElements.values) {
-        const activitiProps = businessObject.extensionElements.values.find((ext: any) => ext.$type === 'activiti:Properties');
-        if (activitiProps && activitiProps.values) {
-          const taskPriorityProp = activitiProps.values.find((p: any) => p.name === 'taskPriority');
-          if (taskPriorityProp) {
-            properties.taskPriority = taskPriorityProp.value;
-          }
-        }
-      }
-    }
-
-    // Extract custom extension elements if available
-    if (businessObject.extensionElements && 
-        businessObject.extensionElements.values && 
-        businessObject.extensionElements.values.length > 0) {
-      
-      businessObject.extensionElements.values.forEach((extension: any) => {
-        if (extension.$type === 'camunda:Properties' && extension.values) {
-          extension.values.forEach((prop: any) => {
-            properties[`extension_camunda_${prop.name}`] = prop.value;
-          });
-        } else if (extension.$type === 'custom:DataObjectProperties') {
-          // Properties from CustomPropertiesProvider for DataObjects
-          if (extension.dataType !== undefined) properties.dataType = extension.dataType;
-          if (extension.isCollection !== undefined) properties.isCollection = extension.isCollection;
-        } else if (extension.$type === 'custom:ArtifactProperties') {
-          // Properties from CustomPropertiesProvider for Artifacts
-          if (element.type === 'bpmn:TextAnnotation') {
-            if (extension.textFormat !== undefined) properties.textFormat = extension.textFormat;
-            if (extension.includeInHistory !== undefined) properties.includeInHistory = extension.includeInHistory;
-            // Visual properties for TextAnnotation (assuming they are stored similarly or need specific handling)
-            if (extension.fontSize !== undefined) properties.fontSizeAnnotation = extension.fontSize;
-            if (extension.fontWeight !== undefined) properties.fontWeightAnnotation = extension.fontWeight;
-            if (extension.fontStyle !== undefined) properties.fontStyleAnnotation = extension.fontStyle;
-            if (extension.fontColor !== undefined) properties.fontColorAnnotation = extension.fontColor;
-            if (extension.backgroundColor !== undefined) properties.backgroundColorAnnotation = extension.backgroundColor;
-            if (extension.borderColor !== undefined) properties.borderColorAnnotation = extension.borderColor;
-          } else if (element.type === 'bpmn:Group') {
-            if (extension.categoryValueRef !== undefined) properties.categoryValueRef = extension.categoryValueRef;
-            // Visual properties for Group
-            if (extension.borderColor !== undefined) properties.borderColorGroup = extension.borderColor;
-            if (extension.backgroundColor !== undefined) properties.backgroundColorGroup = extension.backgroundColor;
-            if (extension.fontColor !== undefined) properties.fontColorGroup = extension.fontColor;
-            if (extension.fontSize !== undefined) properties.fontSizeGroup = extension.fontSize;
-          }
-        } else if (extension.$type === 'custom:WorkspaceProperties') {
-          // Properties from CustomPropertiesProvider for Workspace
-          if (extension.workspaceName !== undefined) properties.workspaceName = extension.workspaceName;
-        }
-      });
-    }
-
-    return properties;
-  }, []);
-
-  /**
-   * Update the properties of the selected element
-   */
-  const updateElementProperties = useCallback((updatedProperties: BpmnElementProperties) => {
-    if (!selectedElement || !modeler || readOnly) return;
-
-    const modeling = modeler.get('modeling');
-    const elementRegistry = modeler.get('elementRegistry');
-    const moddle = modeler.get('moddle'); // Moved moddle declaration here
     
-    // Find the element in the registry (to ensure we're working with the latest version)
-    const element = elementRegistry.get(selectedElement.id);
-    if (!element) return;
-
-    // Prepare the properties to update
-    const propertiesToUpdate: any = {};
-    let needsExtensionElementsUpdate = false; // Initialize here as it's used in the Process block
+    // Extrair propriedades específicas por tipo
+    let specificProps = {};
     
-    // Handle name property
-    if (updatedProperties.name !== undefined) {
-      propertiesToUpdate.name = updatedProperties.name;
-    }
-    
-    // Handle documentation
-    if (updatedProperties.documentation !== undefined) {
-      const documentationElement = moddle.create('bpmn:Documentation', {
-        text: updatedProperties.documentation
-      });
-      
-      // Update or create documentation
-      if (element.businessObject.documentation && element.businessObject.documentation.length > 0) {
-        element.businessObject.documentation[0].text = updatedProperties.documentation;
-      } else {
-        propertiesToUpdate.documentation = [documentationElement];
-      }
+    switch (type) {
+      case 'Task':
+      case 'UserTask':
+      case 'ServiceTask':
+      case 'SendTask':
+      case 'ReceiveTask':
+      case 'ManualTask':
+      case 'BusinessRuleTask':
+      case 'ScriptTask':
+        specificProps = {
+          // Propriedades comuns de tarefas
+          implementation: businessObject.implementation || '',
+          
+          // Propriedades específicas do Activiti
+          assignee: businessObject.$attrs?.['activiti:assignee'] || '',
+          candidateUsers: businessObject.$attrs?.['activiti:candidateUsers'] || '',
+          candidateGroups: businessObject.$attrs?.['activiti:candidateGroups'] || '',
+          dueDate: businessObject.$attrs?.['activiti:dueDate'] || '',
+          priority: businessObject.$attrs?.['activiti:priority'] || '',
+          
+          // Propriedades específicas por tipo de tarefa
+          ...(type === 'UserTask' && {
+            formKey: businessObject.formKey || businessObject.$attrs?.['activiti:formKey'] || '',
+          }),
+          ...(type === 'ServiceTask' && {
+            class: businessObject.$attrs?.['activiti:class'] || '',
+            delegateExpression: businessObject.$attrs?.['activiti:delegateExpression'] || '',
+            expression: businessObject.$attrs?.['activiti:expression'] || '',
+            resultVariable: businessObject.$attrs?.['activiti:resultVariable'] || '',
+          }),
+          ...(type === 'BusinessRuleTask' && {
+            rules: businessObject.$attrs?.['activiti:rules'] || '',
+            resultVariable: businessObject.$attrs?.['activiti:resultVariable'] || '',
+            exclude: businessObject.$attrs?.['activiti:exclude'] || '',
+          }),
+          ...(type === 'ScriptTask' && {
+            scriptFormat: businessObject.scriptFormat || '',
+            script: businessObject.script || '',
+            resultVariable: businessObject.$attrs?.['activiti:resultVariable'] || '',
+          }),
+        };
+        break;
+        
+      case 'SequenceFlow':
+        specificProps = {
+          sourceRef: businessObject.sourceRef?.id || '',
+          targetRef: businessObject.targetRef?.id || '',
+          conditionExpression: businessObject.conditionExpression?.body || '',
+        };
+        break;
+        
+      case 'Gateway':
+      case 'ExclusiveGateway':
+      case 'ParallelGateway':
+      case 'InclusiveGateway':
+      case 'EventBasedGateway':
+        specificProps = {
+          gatewayDirection: businessObject.gatewayDirection || 'Unspecified',
+          default: businessObject.default?.id || '',
+        };
+        break;
+        
+      case 'StartEvent':
+      case 'EndEvent':
+      case 'IntermediateThrowEvent':
+      case 'IntermediateCatchEvent':
+      case 'BoundaryEvent':
+        specificProps = {
+          eventDefinitionType: getEventDefinitionType(businessObject),
+          ...(businessObject.eventDefinitions?.[0]?.$type === 'bpmn:TimerEventDefinition' && {
+            timeDuration: businessObject.eventDefinitions[0].timeDuration?.body || '',
+            timeDate: businessObject.eventDefinitions[0].timeDate?.body || '',
+            timeCycle: businessObject.eventDefinitions[0].timeCycle?.body || '',
+          }),
+          ...(businessObject.eventDefinitions?.[0]?.$type === 'bpmn:MessageEventDefinition' && {
+            messageRef: businessObject.eventDefinitions[0].messageRef?.id || '',
+          }),
+          ...(businessObject.eventDefinitions?.[0]?.$type === 'bpmn:SignalEventDefinition' && {
+            signalRef: businessObject.eventDefinitions[0].signalRef?.id || '',
+          }),
+          ...(businessObject.eventDefinitions?.[0]?.$type === 'bpmn:ErrorEventDefinition' && {
+            errorRef: businessObject.eventDefinitions[0].errorRef?.id || '',
+          }),
+        };
+        break;
+        
+      case 'SubProcess':
+        specificProps = {
+          triggeredByEvent: businessObject.triggeredByEvent || false,
+        };
+        break;
+        
+      case 'DataObject':
+      case 'DataObjectReference':
+        specificProps = {
+          dataObjectRef: businessObject.dataObjectRef?.id || '',
+          isCollection: businessObject.isCollection || false,
+        };
+        break;
+        
+      case 'DataStore':
+      case 'DataStoreReference':
+        specificProps = {
+          dataStoreRef: businessObject.dataStoreRef?.id || '',
+          capacity: businessObject.capacity || '',
+          isUnlimited: businessObject.isUnlimited || false,
+        };
+        break;
+        
+      case 'TextAnnotation':
+        specificProps = {
+          text: businessObject.text || '',
+        };
+        break;
+        
+      case 'Group':
+        specificProps = {
+          categoryValueRef: businessObject.categoryValueRef?.id || '',
+        };
+        break;
     }
     
-    // Handle specific element type properties
-    if (element.type === 'bpmn:Task' || element.type.includes('Task')) {
-      if (updatedProperties.isAsync !== undefined) {
-        propertiesToUpdate.isAsync = updatedProperties.isAsync;
-      }
-      if (updatedProperties.isForCompensation !== undefined) {
-        propertiesToUpdate.isForCompensation = updatedProperties.isForCompensation;
-      }
-    } else if (element.type === 'bpmn:Gateway') {
-      if (updatedProperties.gatewayDirection !== undefined) {
-        propertiesToUpdate.gatewayDirection = updatedProperties.gatewayDirection;
-      }
-    } else if (element.type === 'bpmn:SequenceFlow') {
-      if (updatedProperties.conditionExpression !== undefined) {
-        const expressionElement = moddle.create('bpmn:FormalExpression', {
-          body: updatedProperties.conditionExpression
-        });
-        propertiesToUpdate.conditionExpression = expressionElement;
-      }
-      if (updatedProperties.isImmediate !== undefined) {
-        propertiesToUpdate.isImmediate = updatedProperties.isImmediate;
-      }
-    } else if (element.type === 'bpmn:DataObject') {
-      if (updatedProperties.isCollection !== undefined) {
-        propertiesToUpdate.isCollection = updatedProperties.isCollection;
-      }
-    } else if (element.type === 'bpmn:Event' || element.type.includes('Event')) {
-      if (updatedProperties.isInterrupting !== undefined) {
-        propertiesToUpdate.isInterrupting = updatedProperties.isInterrupting;
-      }
-    } else if (element.type === 'bpmn:Process') {
-      if (updatedProperties.versionTag !== undefined) {
-        propertiesToUpdate.versionTag = updatedProperties.versionTag;
-      }
-      if (updatedProperties.isExecutable !== undefined) {
-        propertiesToUpdate.isExecutable = !!updatedProperties.isExecutable;
-      }
-      if (updatedProperties.jobPriority !== undefined) {
-        propertiesToUpdate.jobPriority = updatedProperties.jobPriority;
-      }
-      if (updatedProperties.historyTimeToLive !== undefined) {
-        propertiesToUpdate.historyTimeToLive = updatedProperties.historyTimeToLive;
-      }
-      // For taskPriority (Activiti extension)
-      if (updatedProperties.taskPriority !== undefined) {
-        let extensionElements = element.businessObject.extensionElements || moddle.create('bpmn:ExtensionElements');
-        let activitiProperties = extensionElements.values?.find((ext: any) => ext.$type === 'activiti:Properties');
-        if (!activitiProperties) {
-          activitiProperties = moddle.create('activiti:Properties');
-          extensionElements.values = extensionElements.values || [];
-          extensionElements.values.push(activitiProperties);
-        }
-        activitiProperties.values = activitiProperties.values || [];
-        let taskPriorityProp = activitiProperties.values.find((p: any) => p.name === 'taskPriority');
-        if (taskPriorityProp) {
-          taskPriorityProp.value = updatedProperties.taskPriority;
-        } else {
-          taskPriorityProp = moddle.create('activiti:Property', { name: 'taskPriority', value: updatedProperties.taskPriority });
-          activitiProperties.values.push(taskPriorityProp);
-        }
-        propertiesToUpdate.extensionElements = extensionElements;
-        needsExtensionElementsUpdate = true; // Ensure this flag is set if not already handled by other custom props
-      }
+    // Combinar propriedades comuns e específicas
+    setProperties({
+      ...commonProps,
+      ...specificProps,
+    });
+  }, [selectedElement]);
+  
+  // Determinar o tipo de definição de evento
+  const getEventDefinitionType = (businessObject: any): string => {
+    if (!businessObject.eventDefinitions || businessObject.eventDefinitions.length === 0) {
+      return 'None';
     }
     
-    let extensionElements = element.businessObject.extensionElements || 
-                            moddle.create('bpmn:ExtensionElements');
-    // needsExtensionElementsUpdate is already declared and potentially set above
-
-    // Helper function to get or create specific extension property group
-    const getOrCreateExtension = (extensionType: string) => {
-      let specificExtension = extensionElements.values?.find((ext: any) => ext.$type === extensionType);
-      if (!specificExtension) {
-        specificExtension = moddle.create(extensionType);
-        extensionElements.values = extensionElements.values || [];
-        extensionElements.values.push(specificExtension);
-        needsExtensionElementsUpdate = true;
-      }
-      return specificExtension;
-    };
-
-    // Handle Camunda extension properties
-    const camundaExtensionProps = Object.keys(updatedProperties).filter(key => key.startsWith('extension_camunda_'));
-    if (camundaExtensionProps.length > 0) {
-      let camundaProperties = getOrCreateExtension('camunda:Properties');
-      camundaProperties.values = camundaProperties.values || [];
-      camundaExtensionProps.forEach(key => {
-        const propName = key.replace('extension_camunda_', '');
-        const existingProp = camundaProperties.values.find((p: any) => p.name === propName);
-        if (existingProp) {
-          existingProp.value = updatedProperties[key];
-        } else {
-          const newProp = moddle.create('camunda:Property', { name: propName, value: updatedProperties[key] });
-          camundaProperties.values.push(newProp);
-        }
-      });
-      needsExtensionElementsUpdate = true;
-    }
-
-    // Handle custom:DataObjectProperties
-    if (element.type === 'bpmn:DataObjectReference' || element.type === 'bpmn:DataObject') {
-      const dataObjectPropsToUpdate: any = {};
-      if (updatedProperties.dataType !== undefined) dataObjectPropsToUpdate.dataType = updatedProperties.dataType;
-      if (updatedProperties.isCollection !== undefined) dataObjectPropsToUpdate.isCollection = updatedProperties.isCollection;
-      if (Object.keys(dataObjectPropsToUpdate).length > 0) {
-        const customDataObjectProps = getOrCreateExtension('custom:DataObjectProperties');
-        Object.assign(customDataObjectProps, dataObjectPropsToUpdate);
-        needsExtensionElementsUpdate = true;
-      }
-    }
-
-    // Handle custom:ArtifactProperties
-    if (element.type === 'bpmn:TextAnnotation' || element.type === 'bpmn:Group') {
-      const artifactPropsToUpdate: any = {};
-      if (element.type === 'bpmn:TextAnnotation') {
-        if (updatedProperties.textFormat !== undefined) artifactPropsToUpdate.textFormat = updatedProperties.textFormat;
-        if (updatedProperties.includeInHistory !== undefined) artifactPropsToUpdate.includeInHistory = updatedProperties.includeInHistory;
-        if (updatedProperties.fontSizeAnnotation !== undefined) artifactPropsToUpdate.fontSize = updatedProperties.fontSizeAnnotation;
-        if (updatedProperties.fontWeightAnnotation !== undefined) artifactPropsToUpdate.fontWeight = updatedProperties.fontWeightAnnotation;
-        if (updatedProperties.fontStyleAnnotation !== undefined) artifactPropsToUpdate.fontStyle = updatedProperties.fontStyleAnnotation;
-        if (updatedProperties.fontColorAnnotation !== undefined) artifactPropsToUpdate.fontColor = updatedProperties.fontColorAnnotation;
-        if (updatedProperties.backgroundColorAnnotation !== undefined) artifactPropsToUpdate.backgroundColor = updatedProperties.backgroundColorAnnotation;
-        if (updatedProperties.borderColorAnnotation !== undefined) artifactPropsToUpdate.borderColor = updatedProperties.borderColorAnnotation;
-      } else if (element.type === 'bpmn:Group') {
-        if (updatedProperties.categoryValueRef !== undefined) artifactPropsToUpdate.categoryValueRef = updatedProperties.categoryValueRef;
-        if (updatedProperties.borderColorGroup !== undefined) artifactPropsToUpdate.borderColor = updatedProperties.borderColorGroup;
-        if (updatedProperties.backgroundColorGroup !== undefined) artifactPropsToUpdate.backgroundColor = updatedProperties.backgroundColorGroup;
-        if (updatedProperties.fontColorGroup !== undefined) artifactPropsToUpdate.fontColor = updatedProperties.fontColorGroup;
-        if (updatedProperties.fontSizeGroup !== undefined) artifactPropsToUpdate.fontSize = updatedProperties.fontSizeGroup;
-      }
-      if (Object.keys(artifactPropsToUpdate).length > 0) {
-        const customArtifactProps = getOrCreateExtension('custom:ArtifactProperties');
-        Object.assign(customArtifactProps, artifactPropsToUpdate);
-        needsExtensionElementsUpdate = true;
-      }
-    }
+    const eventDefinition = businessObject.eventDefinitions[0];
+    const type = eventDefinition.$type;
     
-    // Handle custom:WorkspaceProperties
-    if (element.type === 'bpmn:Process' || element.type === 'bpmn:Collaboration') {
-        if (updatedProperties.workspaceName !== undefined) {
-            const customWorkspaceProps = getOrCreateExtension('custom:WorkspaceProperties');
-            customWorkspaceProps.workspaceName = updatedProperties.workspaceName;
-            needsExtensionElementsUpdate = true;
-        }
+    switch (type) {
+      case 'bpmn:MessageEventDefinition':
+        return 'Message';
+      case 'bpmn:TimerEventDefinition':
+        return 'Timer';
+      case 'bpmn:SignalEventDefinition':
+        return 'Signal';
+      case 'bpmn:ErrorEventDefinition':
+        return 'Error';
+      case 'bpmn:EscalationEventDefinition':
+        return 'Escalation';
+      case 'bpmn:CompensateEventDefinition':
+        return 'Compensate';
+      case 'bpmn:LinkEventDefinition':
+        return 'Link';
+      case 'bpmn:TerminateEventDefinition':
+        return 'Terminate';
+      case 'bpmn:ConditionalEventDefinition':
+        return 'Conditional';
+      default:
+        return 'Unknown';
     }
-
-    if (needsExtensionElementsUpdate) {
-      propertiesToUpdate.extensionElements = extensionElements;
-    }
-    
-    // Apply the updates
-    modeling.updateProperties(element, propertiesToUpdate);
-    
-    // Notify parent component if callback is provided
-    if (onPropertiesUpdated) {
-      onPropertiesUpdated(element, updatedProperties);
-    }
-  }, [selectedElement, modeler, readOnly, onPropertiesUpdated]);
-
-  // Debounced version of updateElementProperties to avoid too many updates
-  const debouncedUpdateProperties = useCallback(
-    debounce((props: BpmnElementProperties) => {
-      if (isMounted.current) {
-        updateElementProperties(props);
-      }
-    }, 300),
-    [updateElementProperties]
-  );
-
-  /**
-   * Handle input change for property fields
-   */
-  const handlePropertyChange = (key: string, value: any) => {
-    if (!properties || readOnly) return;
-    
-    const updatedProperties = { ...properties, [key]: value };
-    setProperties(updatedProperties);
-    debouncedUpdateProperties(updatedProperties);
   };
-
-  /**
-   * Get the appropriate property fields based on the element type
-   */
-  const getPropertyFields = useCallback((): PropertyField[] => {
-    const defaultFields: PropertyField[] = [
-      { key: 'id', label: 'ID', type: 'text', readOnly: true },
-      { key: 'name', label: 'Name', type: 'text', placeholder: 'Enter element name' },
-      { key: 'teste', label: 'teste', type: 'text', placeholder: 'Enter teste name' },
-      { key: 'documentation', label: 'Documentation', type: 'textarea', placeholder: 'Enter documentation' }
-    ];
-
-    if (!selectedElement || !elementType) {
-      return []; // No element, no properties
+  
+  // Atualizar propriedades do elemento
+  const updateElementProperties = useCallback((updatedProperties: any) => {
+    if (!modeler || !selectedElement) return;
+    
+    const modeling = modeler.get('modeling');
+    
+    // Preparar objeto de atualização
+    const updateObj: any = {};
+    
+    // Processar propriedades comuns
+    if ('name' in updatedProperties) {
+      updateObj.name = updatedProperties.name;
     }
-
-    // Handle custom properties first: if they exist and are non-empty, they take precedence.
-    if (customPropertyFields[elementType] && customPropertyFields[elementType].length > 0) {
-      return [...defaultFields, ...customPropertyFields[elementType]];
+    
+    // Processar propriedades específicas do namespace Activiti
+    const activitiAttrs: any = {};
+    
+    // Propriedades comuns de tarefas
+    if ('assignee' in updatedProperties) {
+      activitiAttrs['activiti:assignee'] = updatedProperties.assignee;
     }
-
-    // If no overriding custom properties, define type-specific fields.
-    let typeSpecificFields: PropertyField[] = [];
-
-    if (elementType === 'bpmn:Task' || elementType.includes('Task')) {
-      typeSpecificFields = [
-        { key: 'isAsync', label: 'Asynchronous', type: 'checkbox' },
-        { key: 'isForCompensation', label: 'For Compensation', type: 'checkbox' }
-      ];
-    } else if (elementType === 'bpmn:Gateway') {
-      typeSpecificFields = [
-        { 
-          key: 'gatewayDirection', 
-          label: 'Gateway Direction', 
-          type: 'select',
-          options: [
-            { value: 'Unspecified', label: 'Unspecified' },
-            { value: 'Converging', label: 'Converging' },
-            { value: 'Diverging', label: 'Diverging' },
-            { value: 'Mixed', label: 'Mixed' }
-          ]
+    if ('candidateUsers' in updatedProperties) {
+      activitiAttrs['activiti:candidateUsers'] = updatedProperties.candidateUsers;
+    }
+    if ('candidateGroups' in updatedProperties) {
+      activitiAttrs['activiti:candidateGroups'] = updatedProperties.candidateGroups;
+    }
+    if ('dueDate' in updatedProperties) {
+      activitiAttrs['activiti:dueDate'] = updatedProperties.dueDate;
+    }
+    if ('priority' in updatedProperties) {
+      activitiAttrs['activiti:priority'] = updatedProperties.priority;
+    }
+    
+    // Propriedades específicas por tipo
+    switch (elementType) {
+      case 'UserTask':
+        if ('formKey' in updatedProperties) {
+          updateObj.formKey = updatedProperties.formKey;
+          activitiAttrs['activiti:formKey'] = updatedProperties.formKey;
         }
-      ];
-    } else if (elementType === 'bpmn:SequenceFlow') {
-      typeSpecificFields = [
-        { key: 'conditionExpression', label: 'Condition Expression', type: 'textarea' },
-        { key: 'isImmediate', label: 'Is Immediate', type: 'checkbox' }
-      ];
-    } else if (elementType === 'bpmn:DataObject' || elementType === 'bpmn:DataObjectReference') {
-      typeSpecificFields = [
-        { key: 'dataType', label: 'Data Type (Custom)', type: 'text', placeholder: 'Enter data type' },
-        { key: 'isCollection', label: 'Is Collection (Custom)', type: 'checkbox' } 
-      ];
-    } else if (elementType === 'bpmn:Event' || elementType.includes('Event')) {
-      typeSpecificFields = [
-        { key: 'isInterrupting', label: 'Is Interrupting', type: 'checkbox' }
-      ];
-    } else if (elementType === 'bpmn:TextAnnotation') {
-      typeSpecificFields = [
-        { key: 'textFormat', label: 'Text Format', type: 'text', placeholder: 'e.g., text/plain', description: 'MIME type of the text' },
-        { key: 'includeInHistory', label: 'Include in History', type: 'checkbox', description: 'Include in historical data' },
-        { key: 'fontSizeAnnotation', label: 'Font Size', type: 'text', placeholder: 'e.g., 12px' },
-        { key: 'fontWeightAnnotation', label: 'Font Weight', type: 'text', placeholder: 'e.g., bold' },
-        { key: 'fontStyleAnnotation', label: 'Font Style', type: 'text', placeholder: 'e.g., italic' },
-        { key: 'fontColorAnnotation', label: 'Font Color', type: 'text', placeholder: 'e.g., #FF0000' },
-        { key: 'backgroundColorAnnotation', label: 'Background Color', type: 'text', placeholder: 'e.g., #FFFF00' },
-        { key: 'borderColorAnnotation', label: 'Border Color', type: 'text', placeholder: 'e.g., #0000FF' },
-      ];
-    } else if (elementType === 'bpmn:Group') {
-      typeSpecificFields = [
-        { key: 'categoryValueRef', label: 'Category Value Ref', type: 'text', placeholder: 'Enter category reference', description: 'Reference to a category value' },
-        { key: 'borderColorGroup', label: 'Border Color', type: 'text', placeholder: 'e.g., #00FF00' },
-        { key: 'backgroundColorGroup', label: 'Background Color', type: 'text', placeholder: 'e.g., #E0E0E0' },
-        { key: 'fontColorGroup', label: 'Font Color', type: 'text', placeholder: 'e.g., #333333' },
-        { key: 'fontSizeGroup', label: 'Font Size', type: 'text', placeholder: 'e.g., 14px' },
-      ];
-    } else if (elementType === 'bpmn:Process') {
-        typeSpecificFields = [
-            { key: 'versionTag', label: 'Version Tag', type: 'text', placeholder: 'Enter version tag' },
-            { key: 'isExecutable', label: 'Executable', type: 'checkbox' },
-            { key: 'taskPriority', label: 'Task Priority', type: 'text', placeholder: 'Enter task priority' }, // Label simplificado
-            { key: 'jobPriority', label: 'Job Priority', type: 'text', placeholder: 'Enter job priority' }, // Label simplificado
-            { key: 'historyTimeToLive', label: 'History Time To Live', type: 'text', placeholder: 'Enter history time to live' },
-            // { key: 'workspaceName', label: 'Workspace Name', type: 'text', placeholder: 'Enter workspace name' } // Removido ou comentado se não for uma propriedade direta do processo Activiti
-        ];
-    } else if (elementType === 'bpmn:Collaboration') {
-        typeSpecificFields = [
-            { key: 'workspaceName', label: 'Workspace Name', type: 'text', placeholder: 'Enter workspace name' }
-        ];
+        break;
+        
+      case 'ServiceTask':
+        if ('class' in updatedProperties) {
+          activitiAttrs['activiti:class'] = updatedProperties.class;
+        }
+        if ('delegateExpression' in updatedProperties) {
+          activitiAttrs['activiti:delegateExpression'] = updatedProperties.delegateExpression;
+        }
+        if ('expression' in updatedProperties) {
+          activitiAttrs['activiti:expression'] = updatedProperties.expression;
+        }
+        if ('resultVariable' in updatedProperties) {
+          activitiAttrs['activiti:resultVariable'] = updatedProperties.resultVariable;
+        }
+        break;
+        
+      case 'BusinessRuleTask':
+        if ('rules' in updatedProperties) {
+          activitiAttrs['activiti:rules'] = updatedProperties.rules;
+        }
+        if ('resultVariable' in updatedProperties) {
+          activitiAttrs['activiti:resultVariable'] = updatedProperties.resultVariable;
+        }
+        if ('exclude' in updatedProperties) {
+          activitiAttrs['activiti:exclude'] = updatedProperties.exclude;
+        }
+        break;
+        
+      case 'ScriptTask':
+        if ('scriptFormat' in updatedProperties) {
+          updateObj.scriptFormat = updatedProperties.scriptFormat;
+        }
+        if ('script' in updatedProperties) {
+          updateObj.script = updatedProperties.script;
+        }
+        if ('resultVariable' in updatedProperties) {
+          activitiAttrs['activiti:resultVariable'] = updatedProperties.resultVariable;
+        }
+        break;
+        
+      case 'SequenceFlow':
+        if ('conditionExpression' in updatedProperties) {
+          // Atualizar expressão de condição
+          const expressionValue = updatedProperties.conditionExpression;
+          if (expressionValue) {
+            const moddle = modeler.get('moddle');
+            const conditionExpression = moddle.create('bpmn:FormalExpression', {
+              body: expressionValue
+            });
+            updateObj.conditionExpression = conditionExpression;
+          } else {
+            updateObj.conditionExpression = null;
+          }
+        }
+        break;
+        
+      case 'TextAnnotation':
+        if ('text' in updatedProperties) {
+          updateObj.text = updatedProperties.text;
+        }
+        break;
     }
-    // For all types (including Process/Collaboration if custom fields were empty/not present),
-    // combine default fields with the determined type-specific fields.
-    return [...defaultFields, ...typeSpecificFields];
-  }, [selectedElement, elementType, customPropertyFields]);
-
-  /**
-   * Update properties when selected element changes
-   */
-  useEffect(() => {
-    if (selectedElement && modeler) {
-      const extractedProperties = extractElementProperties(selectedElement);
-      setProperties(extractedProperties);
-      setElementType(selectedElement.type || '');
-    } else {
-      setProperties(null);
-      setElementType('');
+    
+    // Adicionar atributos Activiti se houver algum
+    if (Object.keys(activitiAttrs).length > 0) {
+      // Usar extensionElements para atributos Activiti
+      updateObj.$attrs = {
+        ...elementBusinessObject.$attrs,
+        ...activitiAttrs
+      };
     }
-  }, [selectedElement, modeler, extractElementProperties]);
-
-  /**
-   * Clean up on unmount
-   */
-  useEffect(() => {
-    return () => {
-      isMounted.current = false;
-      debouncedUpdateProperties.cancel();
+    
+    // Aplicar atualizações
+    if (Object.keys(updateObj).length > 0) {
+      modeling.updateProperties(selectedElement, updateObj);
+      
+      // Forçar atualização do canvas para refletir as mudanças
+      const canvas = modeler.get('canvas');
+      const currentZoom = canvas.zoom();
+      canvas.zoom(currentZoom, 'auto');
+    }
+  }, [modeler, selectedElement, elementType, elementBusinessObject]);
+  
+  // Manipular mudanças nas propriedades
+  const handlePropertyChange = useCallback((key: string, value: any) => {
+    const updatedProperties = {
+      ...properties,
+      [key]: value
     };
-  }, [debouncedUpdateProperties]);
-
-  /**
-   * Render a property field based on its type
-   */
-  const renderPropertyField = (field: PropertyField) => {
-    if (!properties) return null;
     
-    const value = properties[field.key] !== undefined ? properties[field.key] : '';
-    const isFieldReadOnly = readOnly || field.readOnly;
+    setProperties(updatedProperties);
+    updateElementProperties({ [key]: value });
+  }, [properties, updateElementProperties]);
+  
+  // Abrir editor de formulário
+  const handleOpenFormEditor = useCallback(() => {
+    if (!properties.formKey) {
+      // Se não houver formKey, criar um novo
+      const newFormKey = `form_${Date.now()}.json`;
+      handlePropertyChange('formKey', newFormKey);
+    }
     
-    switch (field.type) {
-      case 'text':
-        return (
-          <input
-            type="text"
-            id={`property-${field.key}`}
-            value={value}
-            onChange={(e) => handlePropertyChange(field.key, e.target.value)}
-            placeholder={field.placeholder || ''}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isFieldReadOnly}
-          />
-        );
+    console.log('Opening form editor with key:', properties.formKey);
+    
+    // Importar dinamicamente para evitar problemas de ciclo de dependência
+    import('./editors/FormEditorModal').then(module => {
+      const { openFormEditorModal } = module;
       
-      case 'textarea':
-        return (
-          <textarea
-            id={`property-${field.key}`}
-            value={value}
-            onChange={(e) => handlePropertyChange(field.key, e.target.value)}
-            placeholder={field.placeholder || ''}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isFieldReadOnly}
-          />
-        );
+      openFormEditorModal({
+        formKey: properties.formKey,
+        onSave: (formKey: string) => {
+          // Atualizar formKey se mudou
+          if (formKey !== properties.formKey) {
+            handlePropertyChange('formKey', formKey);
+          }
+        }
+      });
+    }).catch(error => {
+      console.error('Erro ao carregar editor de formulário:', error);
+    });
+  }, [properties.formKey, handlePropertyChange]);
+  
+  // Abrir editor de tabela de decisão
+  const handleOpenDecisionEditor = useCallback(() => {
+    if (!properties.rules) {
+      // Se não houver rules, criar um novo
+      const newRules = `decision_${Date.now()}.dmn`;
+      handlePropertyChange('rules', newRules);
+    }
+    
+    console.log('Opening decision editor with key:', properties.rules);
+    
+    // Importar dinamicamente para evitar problemas de ciclo de dependência
+    import('./editors/DecisionEditorModal').then(module => {
+      const { openDecisionEditorModal } = module;
       
-      case 'select':
-        return (
-          <select
-            id={`property-${field.key}`}
-            value={value}
-            onChange={(e) => handlePropertyChange(field.key, e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isFieldReadOnly}
-          >
-            {field.options?.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        );
-      
-      case 'checkbox':
-        return (
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id={`property-${field.key}`}
-              checked={!!value}
-              onChange={(e) => handlePropertyChange(field.key, e.target.checked)}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              disabled={isFieldReadOnly}
+      openDecisionEditorModal({
+        decisionTableKey: properties.rules,
+        onSave: (decisionTableKey: string) => {
+          // Atualizar rules se mudou
+          if (decisionTableKey !== properties.rules) {
+            handlePropertyChange('rules', decisionTableKey);
+          }
+        }
+      });
+    }).catch(error => {
+      console.error('Erro ao carregar editor de tabela de decisão:', error);
+    });
+  }, [properties.rules, handlePropertyChange]);
+  
+  // Renderizar grupos de propriedades
+  const renderPropertyGroups = () => {
+    if (!selectedElement) {
+      return (
+        <NoSelectionMessage>
+          Selecione um elemento no diagrama para editar suas propriedades.
+        </NoSelectionMessage>
+      );
+    }
+    
+    return (
+      <>
+        {/* Grupo de propriedades gerais */}
+        <PropertyGroup>
+          <GroupTitle>Propriedades Gerais</GroupTitle>
+          <PropertyRow>
+            <PropertyLabel>ID</PropertyLabel>
+            <PropertyInput
+              value={properties.id || ''}
+              readOnly
             />
-            <label htmlFor={`property-${field.key}`} className="ml-2 block text-sm text-gray-900">
-              {field.label}
-            </label>
-          </div>
-        );
-      
-      case 'number':
+          </PropertyRow>
+          <PropertyRow>
+            <PropertyLabel>Nome</PropertyLabel>
+            <PropertyInput
+              value={properties.name || ''}
+              onChange={(e) => handlePropertyChange('name', e.target.value)}
+            />
+          </PropertyRow>
+        </PropertyGroup>
+        
+        {/* Propriedades específicas por tipo */}
+        {renderTypeSpecificProperties()}
+      </>
+    );
+  };
+  
+  // Renderizar propriedades específicas por tipo
+  const renderTypeSpecificProperties = () => {
+    switch (elementType) {
+      case 'UserTask':
         return (
-          <input
-            type="number"
-            id={`property-${field.key}`}
-            value={value}
-            onChange={(e) => handlePropertyChange(field.key, parseFloat(e.target.value))}
-            placeholder={field.placeholder || ''}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isFieldReadOnly}
-          />
+          <PropertyGroup>
+            <GroupTitle>Propriedades de Tarefa de Usuário</GroupTitle>
+            <PropertyRow>
+              <PropertyLabel>Responsável</PropertyLabel>
+              <PropertyInput
+                value={properties.assignee || ''}
+                onChange={(e) => handlePropertyChange('assignee', e.target.value)}
+                placeholder="Expressão ou ID do usuário"
+              />
+            </PropertyRow>
+            <PropertyRow>
+              <PropertyLabel>Usuários Candidatos</PropertyLabel>
+              <PropertyInput
+                value={properties.candidateUsers || ''}
+                onChange={(e) => handlePropertyChange('candidateUsers', e.target.value)}
+                placeholder="Lista separada por vírgulas"
+              />
+            </PropertyRow>
+            <PropertyRow>
+              <PropertyLabel>Grupos Candidatos</PropertyLabel>
+              <PropertyInput
+                value={properties.candidateGroups || ''}
+                onChange={(e) => handlePropertyChange('candidateGroups', e.target.value)}
+                placeholder="Lista separada por vírgulas"
+              />
+            </PropertyRow>
+            <PropertyRow>
+              <PropertyLabel>Prioridade</PropertyLabel>
+              <PropertyInput
+                value={properties.priority || ''}
+                onChange={(e) => handlePropertyChange('priority', e.target.value)}
+                type="number"
+              />
+            </PropertyRow>
+            <PropertyRow>
+              <PropertyLabel>Data de Vencimento</PropertyLabel>
+              <PropertyInput
+                value={properties.dueDate || ''}
+                onChange={(e) => handlePropertyChange('dueDate', e.target.value)}
+                placeholder="Expressão de data"
+              />
+            </PropertyRow>
+            <PropertyRow>
+              <PropertyLabel>Chave do Formulário</PropertyLabel>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <FormEditorLink
+                  formKey={properties.formKey}
+                  onChange={(value) => handlePropertyChange('formKey', value)}
+                  onOpenEditor={handleOpenFormEditor}
+                />
+              </div>
+            </PropertyRow>
+          </PropertyGroup>
         );
-      
+        
+      case 'ServiceTask':
+        return (
+          <PropertyGroup>
+            <GroupTitle>Propriedades de Tarefa de Serviço</GroupTitle>
+            <PropertyRow>
+              <PropertyLabel>Classe</PropertyLabel>
+              <PropertyInput
+                value={properties.class || ''}
+                onChange={(e) => handlePropertyChange('class', e.target.value)}
+                placeholder="Nome completo da classe"
+              />
+            </PropertyRow>
+            <PropertyRow>
+              <PropertyLabel>Expressão de Delegação</PropertyLabel>
+              <PropertyInput
+                value={properties.delegateExpression || ''}
+                onChange={(e) => handlePropertyChange('delegateExpression', e.target.value)}
+                placeholder="Expressão de delegação"
+              />
+            </PropertyRow>
+            <PropertyRow>
+              <PropertyLabel>Expressão</PropertyLabel>
+              <PropertyInput
+                value={properties.expression || ''}
+                onChange={(e) => handlePropertyChange('expression', e.target.value)}
+                placeholder="Expressão"
+              />
+            </PropertyRow>
+            <PropertyRow>
+              <PropertyLabel>Variável de Resultado</PropertyLabel>
+              <PropertyInput
+                value={properties.resultVariable || ''}
+                onChange={(e) => handlePropertyChange('resultVariable', e.target.value)}
+                placeholder="Nome da variável"
+              />
+            </PropertyRow>
+          </PropertyGroup>
+        );
+        
+      case 'BusinessRuleTask':
+        return (
+          <PropertyGroup>
+            <GroupTitle>Propriedades de Tarefa de Regra de Negócio</GroupTitle>
+            <PropertyRow>
+              <PropertyLabel>Regras</PropertyLabel>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <DecisionTableLink
+                  decisionTable={properties.rules}
+                  onChange={(value) => handlePropertyChange('rules', value)}
+                  onOpenEditor={handleOpenDecisionEditor}
+                />
+              </div>
+            </PropertyRow>
+            <PropertyRow>
+              <PropertyLabel>Variável de Resultado</PropertyLabel>
+              <PropertyInput
+                value={properties.resultVariable || ''}
+                onChange={(e) => handlePropertyChange('resultVariable', e.target.value)}
+                placeholder="Nome da variável"
+              />
+            </PropertyRow>
+            <PropertyRow>
+              <PropertyLabel>Excluir</PropertyLabel>
+              <PropertyInput
+                value={properties.exclude || ''}
+                onChange={(e) => handlePropertyChange('exclude', e.target.value)}
+                placeholder="Lista de regras a excluir"
+              />
+            </PropertyRow>
+          </PropertyGroup>
+        );
+        
+      case 'ScriptTask':
+        return (
+          <PropertyGroup>
+            <GroupTitle>Propriedades de Tarefa de Script</GroupTitle>
+            <PropertyRow>
+              <PropertyLabel>Formato do Script</PropertyLabel>
+              <PropertyInput
+                value={properties.scriptFormat || ''}
+                onChange={(e) => handlePropertyChange('scriptFormat', e.target.value)}
+                placeholder="javascript, groovy, etc."
+              />
+            </PropertyRow>
+            <PropertyRow>
+              <PropertyLabel>Script</PropertyLabel>
+              <PropertyTextarea
+                value={properties.script || ''}
+                onChange={(e) => handlePropertyChange('script', e.target.value)}
+                placeholder="Código do script"
+              />
+            </PropertyRow>
+            <PropertyRow>
+              <PropertyLabel>Variável de Resultado</PropertyLabel>
+              <PropertyInput
+                value={properties.resultVariable || ''}
+                onChange={(e) => handlePropertyChange('resultVariable', e.target.value)}
+                placeholder="Nome da variável"
+              />
+            </PropertyRow>
+          </PropertyGroup>
+        );
+        
+      case 'SequenceFlow':
+        return (
+          <PropertyGroup>
+            <GroupTitle>Propriedades de Fluxo de Sequência</GroupTitle>
+            <PropertyRow>
+              <PropertyLabel>Origem</PropertyLabel>
+              <PropertyInput
+                value={properties.sourceRef || ''}
+                readOnly
+              />
+            </PropertyRow>
+            <PropertyRow>
+              <PropertyLabel>Destino</PropertyLabel>
+              <PropertyInput
+                value={properties.targetRef || ''}
+                readOnly
+              />
+            </PropertyRow>
+            <PropertyRow>
+              <PropertyLabel>Expressão de Condição</PropertyLabel>
+              <PropertyTextarea
+                value={properties.conditionExpression || ''}
+                onChange={(e) => handlePropertyChange('conditionExpression', e.target.value)}
+                placeholder="Expressão de condição"
+              />
+            </PropertyRow>
+          </PropertyGroup>
+        );
+        
+      case 'StartEvent':
+      case 'EndEvent':
+      case 'IntermediateThrowEvent':
+      case 'IntermediateCatchEvent':
+      case 'BoundaryEvent':
+        return (
+          <PropertyGroup>
+            <GroupTitle>Propriedades de Evento</GroupTitle>
+            <PropertyRow>
+              <PropertyLabel>Tipo de Definição</PropertyLabel>
+              <PropertyInput
+                value={properties.eventDefinitionType || 'None'}
+                readOnly
+              />
+            </PropertyRow>
+            {properties.eventDefinitionType === 'Timer' && (
+              <>
+                <PropertyRow>
+                  <PropertyLabel>Data/Hora</PropertyLabel>
+                  <PropertyInput
+                    value={properties.timeDate || ''}
+                    onChange={(e) => handlePropertyChange('timeDate', e.target.value)}
+                    placeholder="Expressão de data/hora"
+                  />
+                </PropertyRow>
+                <PropertyRow>
+                  <PropertyLabel>Duração</PropertyLabel>
+                  <PropertyInput
+                    value={properties.timeDuration || ''}
+                    onChange={(e) => handlePropertyChange('timeDuration', e.target.value)}
+                    placeholder="Expressão de duração"
+                  />
+                </PropertyRow>
+                <PropertyRow>
+                  <PropertyLabel>Ciclo</PropertyLabel>
+                  <PropertyInput
+                    value={properties.timeCycle || ''}
+                    onChange={(e) => handlePropertyChange('timeCycle', e.target.value)}
+                    placeholder="Expressão de ciclo"
+                  />
+                </PropertyRow>
+              </>
+            )}
+            {properties.eventDefinitionType === 'Message' && (
+              <PropertyRow>
+                <PropertyLabel>Referência de Mensagem</PropertyLabel>
+                <PropertyInput
+                  value={properties.messageRef || ''}
+                  readOnly
+                />
+              </PropertyRow>
+            )}
+            {properties.eventDefinitionType === 'Signal' && (
+              <PropertyRow>
+                <PropertyLabel>Referência de Sinal</PropertyLabel>
+                <PropertyInput
+                  value={properties.signalRef || ''}
+                  readOnly
+                />
+              </PropertyRow>
+            )}
+            {properties.eventDefinitionType === 'Error' && (
+              <PropertyRow>
+                <PropertyLabel>Referência de Erro</PropertyLabel>
+                <PropertyInput
+                  value={properties.errorRef || ''}
+                  readOnly
+                />
+              </PropertyRow>
+            )}
+          </PropertyGroup>
+        );
+        
+      case 'ExclusiveGateway':
+      case 'ParallelGateway':
+      case 'InclusiveGateway':
+      case 'EventBasedGateway':
+        return (
+          <PropertyGroup>
+            <GroupTitle>Propriedades de Gateway</GroupTitle>
+            <PropertyRow>
+              <PropertyLabel>Direção</PropertyLabel>
+              <PropertySelect
+                value={properties.gatewayDirection || 'Unspecified'}
+                onChange={(e) => handlePropertyChange('gatewayDirection', e.target.value)}
+              >
+                <option value="Unspecified">Não especificada</option>
+                <option value="Converging">Convergente</option>
+                <option value="Diverging">Divergente</option>
+                <option value="Mixed">Mista</option>
+              </PropertySelect>
+            </PropertyRow>
+            <PropertyRow>
+              <PropertyLabel>Fluxo Padrão</PropertyLabel>
+              <PropertyInput
+                value={properties.default || ''}
+                readOnly
+              />
+            </PropertyRow>
+          </PropertyGroup>
+        );
+        
+      case 'SubProcess':
+        return (
+          <PropertyGroup>
+            <GroupTitle>Propriedades de Subprocesso</GroupTitle>
+            <PropertyRow>
+              <PropertyLabel>Acionado por Evento</PropertyLabel>
+              <PropertyInput
+                type="checkbox"
+                checked={properties.triggeredByEvent || false}
+                onChange={(e) => handlePropertyChange('triggeredByEvent', e.target.checked)}
+              />
+            </PropertyRow>
+          </PropertyGroup>
+        );
+        
+      case 'TextAnnotation':
+        return (
+          <PropertyGroup>
+            <GroupTitle>Propriedades de Anotação de Texto</GroupTitle>
+            <PropertyRow>
+              <PropertyLabel>Texto</PropertyLabel>
+              <PropertyTextarea
+                value={properties.text || ''}
+                onChange={(e) => handlePropertyChange('text', e.target.value)}
+                placeholder="Texto da anotação"
+              />
+            </PropertyRow>
+          </PropertyGroup>
+        );
+        
       default:
         return null;
     }
   };
-
-  // If the panel is not visible, return null
-  if (!isVisible) {
-    return null;
-  }
-
+  
   return (
-    <div 
-      className={`bpmn-properties-panel ${className} ${isExpanded ? 'expanded' : 'collapsed'}`}
-      style={{
-        width: isExpanded ? '300px' : '30px',
-        transition: 'width 0.3s ease',
-        backgroundColor: '#f8f8f8',
-        borderLeft: '1px solid #ccc',
-        height: '100%',
-        overflow: 'hidden',
-        ...style
-      }}
-    >
-      {/* Toggle button */}
-      {toggleable && (
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="toggle-button p-1 bg-gray-200 hover:bg-gray-300 rounded-md m-1"
-          title={isExpanded ? 'Collapse panel' : 'Expand panel'}
-        >
-          {isExpanded ? '»' : '«'}
-        </button>
-      )}
-      
-      {/* Panel content */}
-      {isExpanded && (
-        <div className="panel-content p-4 overflow-y-auto h-full">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Properties</h3>
-          
-          {!selectedElement && (
-            <p className="text-gray-500">Select an element to view its properties</p>
-          )}
-          
-          {selectedElement && !properties && (
-            <p className="text-gray-500">No editable properties for this element</p>
-          )}
-          
-          {selectedElement && properties && (
-            <div className="space-y-4">
-              {getPropertyFields().map((field) => (
-                <div key={field.key} className="property-field">
-                  {field.type !== 'checkbox' && (
-                    <label 
-                      htmlFor={`property-${field.key}`} 
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      {field.label}
-                    </label>
-                  )}
-                  {renderPropertyField(field)}
-                  {field.description && (
-                    <p className="mt-1 text-xs text-gray-500">{field.description}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+    <PropertiesPanelContainer isVisible={isVisible} className={className}>
+      <PanelHeader>
+        Propriedades {elementType ? `(${elementType})` : ''}
+      </PanelHeader>
+      <PanelContent>
+        {renderPropertyGroups()}
+      </PanelContent>
+    </PropertiesPanelContainer>
   );
 };
 

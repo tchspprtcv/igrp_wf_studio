@@ -1,16 +1,18 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
-    "esModuleInterop": true,
-    "composite": true,
     "declaration": true,
-    "outDir": "./dist",
+    "declarationDir": "dist/types",
+    "outDir": "dist/cjs",
+    "module": "CommonJS",
     "strict": true,
-    "skipLibCheck": true
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "composite": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]
