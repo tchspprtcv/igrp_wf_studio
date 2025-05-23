@@ -1,5 +1,5 @@
 {
-  "name": "igrp-wf-studio-ui",
+  "name": "@igrp/wf-studio-ui",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@igrp/wf-engine": "1.0.0",
     "@bpmn-io/properties-panel": "^3.26.4",
     "@types/lodash": "^4.17.16",
     "@types/styled-components": "^5.1.34",
@@ -43,7 +44,6 @@
     "@jsonforms/material-renderers": "^3.5.1",
     "@jsonforms/react": "^3.5.1",
     "dmn-js": "^17.2.0",
-    "react-icons": "^5.5.0",
     "styled-components": "^6.1.18"
   },
   "devDependencies": {
@@ -61,6 +61,7 @@
     "eslint-plugin-react-refresh": "^0.4.9",
     "postcss": "^8.4.29",
     "tailwindcss": "^3.3.3",
+    "@tailwindcss/forms": "^0.5.7",
     "typescript": "^5.2.2",
     "vite": "^6.3.3",
     "zeebe-bpmn-moddle": "^1.0.0"
