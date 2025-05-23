@@ -1,21 +1,25 @@
 {
   "name": "igrp-wf-engine",
   "version": "1.0.0",
-  "main": "./dist/cjs/index.js",
-  "module": "./dist/esm/index.js",
-  "types": "./dist/types/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "browser": "./dist/index.js",
   "exports": {
     ".": {
-      "require": "./dist/cjs/index.js",
-      "import": "./dist/esm/index.js",
-      "types": "./dist/types/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "browser": "./dist/index.js",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
     }
   },
+
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && tsc -p tsconfig.esm.json",
+    "build": "tsc",
     "lint": "eslint .",
     "dev": "tsc -w"
   },
@@ -28,7 +32,6 @@
     "@types/node": "^22.15.19",
     "@types/uuid": "^10.0.0",
     "eslint": "^9.8.0",
-    "typescript": "^5.2.2",
-    "uuid": "^11.1.0"
+    "typescript": "^5.2.2"
   }
 }

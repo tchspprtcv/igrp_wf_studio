@@ -43,7 +43,6 @@
     "@jsonforms/material-renderers": "^3.5.1",
     "@jsonforms/react": "^3.5.1",
     "dmn-js": "^17.2.0",
-    "react-icons": "^5.5.0",
     "styled-components": "^6.1.18"
   },
   "devDependencies": {

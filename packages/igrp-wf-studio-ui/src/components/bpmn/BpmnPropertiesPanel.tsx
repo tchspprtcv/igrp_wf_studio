@@ -494,6 +494,10 @@ const BpmnPropertiesPanel: React.FC<BpmnPropertiesPanelProps> = ({
           if (formKey !== properties.formKey) {
             handlePropertyChange('formKey', formKey);
           }
+        },
+        onClose: () => {
+          console.log('Form editor closed');
+          // Adicione qualquer lógica de limpeza ou atualização de estado necessária aqui
         }
       });
     }).catch(error => {
@@ -516,7 +520,7 @@ const BpmnPropertiesPanel: React.FC<BpmnPropertiesPanelProps> = ({
       const { openDecisionEditorModal } = module;
       
       openDecisionEditorModal({
-        decisionTableKey: properties.rules,
+        decisionTable: properties.rules,
         onSave: (decisionTableKey: string) => {
           // Atualizar rules se mudou
           if (decisionTableKey !== properties.rules) {
