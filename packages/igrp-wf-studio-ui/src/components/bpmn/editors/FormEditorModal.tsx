@@ -5,10 +5,50 @@
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
-import { FormBuilder, FormEdit } from '@formio/react';
+// Removed unused import: FormBuilder and FormEdit
 import EditorService from '../../../services/EditorService';
-import { createRoot } from 'react-dom/client';
+import { createRoot, Root } from 'react-dom/client';
 import { v4 as uuidv4 } from 'uuid';
+
+// Form component interfaces
+interface FormComponent {
+  type: string;
+  key?: string;
+  label?: string;
+  placeholder?: string;
+  description?: string;
+  components?: FormComponent[];
+  columns?: FormColumn[];
+  title?: string;
+  data?: {
+    values?: FormOption[];
+  };
+  [key: string]: any; // Allow for additional properties
+}
+
+interface FormColumn {
+  components?: FormComponent[];
+  [key: string]: any;
+}
+
+interface FormOption {
+  value: string;
+  label: string;
+  [key: string]: any;
+}
+
+interface FormDefinition {
+  display?: string;
+  components?: FormComponent[];
+  title?: string;
+  name?: string;
+  [key: string]: any;
+}
+
+// Extended HTMLDivElement with _reactRootContainer property
+interface ExtendedHTMLDivElement extends HTMLDivElement {
+  _reactRootContainer?: Root;
+}
 
 // Estilos para o modal - inspirados no demo.bpmn.io
 const ModalOverlay = styled.div`
@@ -620,11 +660,11 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ formKey, onSave, onCl
         
         // Usar uma abordagem alternativa para renderizar o preview sem hooks
         // Renderizar o formulário como HTML estático em vez de usar FormEdit
-        const renderFormPreview = (container, form) => {
+        const renderFormPreview = (container: HTMLElement, form: FormDefinition): void => {
           if (!container || !form) return;
           
           // Função para renderizar um componente como HTML
-          const renderComponent = (component) => {
+          const renderComponent = (component: FormComponent): string => {
             let html = '';
             
             switch (component.type) {
@@ -677,7 +717,7 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ formKey, onSave, onCl
                     <select class="form-control">
                       <option value="">${component.placeholder || 'Select an option'}</option>
                       ${component.data && component.data.values ? 
-                        component.data.values.map(option => 
+                        component.data.values.map((option: FormOption) => 
                           `<option value="${option.value}">${option.label}</option>`
                         ).join('') : ''}
                     </select>
@@ -699,9 +739,9 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ formKey, onSave, onCl
                   <div class="formio-component formio-component-columns" style="margin-bottom: 15px;">
                     <div class="row">
                       ${component.columns ? 
-                        component.columns.map(column => 
-                          `<div class="col-md-${Math.floor(12 / component.columns.length)}">
-                            ${column.components ? column.components.map(comp => renderComponent(comp)).join('') : ''}
+                        component.columns.map((column: FormColumn) => 
+                          `<div class="col-md-${Math.floor(12 / (component.columns?.length || 1))}">
+                            ${column.components ? column.components.map((comp: FormComponent) => renderComponent(comp)).join('') : ''}
                           </div>`
                         ).join('') : ''}
                     </div>
@@ -714,7 +754,7 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ formKey, onSave, onCl
                   <div class="formio-component formio-component-panel card" style="margin-bottom: 15px;">
                     <div class="card-header">${component.title || 'Panel'}</div>
                     <div class="card-body">
-                      ${component.components ? component.components.map(comp => renderComponent(comp)).join('') : ''}
+                      ${component.components ? component.components.map((comp: FormComponent) => renderComponent(comp)).join('') : ''}
                     </div>
                   </div>
                 `;
@@ -852,7 +892,7 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ formKey, onSave, onCl
               <h3>${form.title || form.name || 'Formulário'}</h3>
               ${styles}
               <div class="formio-components">
-                ${form.components ? form.components.map(component => renderComponent(component)).join('') : ''}
+                ${form.components ? form.components.map((component: FormComponent) => renderComponent(component)).join('') : ''}
               </div>
             </div>
           `;
@@ -867,9 +907,10 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ formKey, onSave, onCl
         
         // Mostrar mensagem de erro
         if (formEditRef.current) {
+          const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
           formEditRef.current.innerHTML = `
             <div style="padding: 16px; color: #b71c1c; background-color: #ffebee; border: 1px solid #ffcdd2; border-radius: 4px;">
-              <p><strong>Erro ao renderizar preview:</strong> ${error.message || 'Erro desconhecido'}</p>
+              <p><strong>Erro ao renderizar preview:</strong> ${errorMessage}</p>
               <p>Verifique se o formulário está corretamente configurado.</p>
             </div>
           `;
@@ -1007,7 +1048,9 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ formKey, onSave, onCl
       }
       
       componentElement.innerHTML = componentContent;
-      simpleFormBuilderRef.current.appendChild(componentElement);
+      if (simpleFormBuilderRef.current) {
+        simpleFormBuilderRef.current.appendChild(componentElement);
+      }
     });
   }, [formDefinition]);
   
@@ -1823,7 +1866,7 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ formKey, onSave, onCl
 
 // Função para abrir o modal de editor de formulário
 export const openFormEditorModal = (props: Omit<FormEditorModalProps, 'onClose'>) => {
-  const modalRoot = document.createElement('div');
+  const modalRoot = document.createElement('div') as ExtendedHTMLDivElement;
   modalRoot.id = 'form-editor-modal-root';
   document.body.appendChild(modalRoot);
   
