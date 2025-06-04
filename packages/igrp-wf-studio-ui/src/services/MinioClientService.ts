@@ -5,7 +5,7 @@ import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsCommand, HeadB
 
 export class MinioClientService {
   private static client: S3Client;
-  private static readonly BUCKET_NAME = 'igrp-wf';
+  private static readonly BUCKET_NAME = import.meta.env.VITE_MINIO_BUCKET_NAME || 'igrp-wf';
 
   /**
    * Inicializa o cliente S3 para conexão com MinIO
@@ -13,13 +13,13 @@ export class MinioClientService {
   private static initClient(): S3Client {
     if (!this.client) {
       this.client = new S3Client({
-        endpoint: 'http://localhost:9000',
-        region: 'GMT-1', // Região padrão, MinIO não exige uma região específica
+        endpoint: import.meta.env.VITE_MINIO_ENDPOINT || 'http://localhost:9000',
+        region: import.meta.env.VITE_MINIO_REGION || 'GMT-1', // Região padrão, MinIO não exige uma região específica
         credentials: {
-          accessKeyId: 'OVn3ueI6Rq4idnvCNxmT',
-          secretAccessKey: 'KMZ2qCtMVl5VinrEqz3F35ubwYpaJxYMfDPuvw0p'
+          accessKeyId: import.meta.env.VITE_MINIO_ACCESS_KEY || 'OVn3ueI6Rq4idnvCNxmT',
+          secretAccessKey: import.meta.env.VITE_MINIO_SECRET_KEY || 'KMZ2qCtMVl5VinrEqz3F35ubwYpaJxYMfDPuvw0p'
         },
-        forcePathStyle: true // Necessário para MinIO
+        forcePathStyle: import.meta.env.VITE_MINIO_FORCE_PATH_STYLE !== 'false' // Necessário para MinIO
       });
     }
     return this.client;
@@ -80,7 +80,8 @@ export class MinioClientService {
       }));
       
       // Construir a URL do arquivo
-      const url = `http://localhost:9000/${this.BUCKET_NAME}/${fileName}`;
+      const endpoint = import.meta.env.VITE_MINIO_ENDPOINT || 'http://localhost:9000';
+      const url = `${endpoint}/${this.BUCKET_NAME}/${fileName}`;
       console.log(`Upload concluído com sucesso: ${url}`);
       
       return url;
