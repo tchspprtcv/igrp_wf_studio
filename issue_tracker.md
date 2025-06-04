@@ -1,5 +1,101 @@
 # Registo de Problemas e Correções - IGRP-WF-Studio
 
+## Problema: Notificações Toast Não Aparecem na Interface
+
+### Data: 04/06/2025
+
+### Descrição do Problema
+
+As notificações toast usando a biblioteca `react-hot-toast` não estavam aparecendo na interface do usuário, apesar de o código estar chamando corretamente as funções `toast.success()` e `toast.error()`. Isso afetava o feedback ao usuário em várias operações importantes, como criação de workspaces, áreas, subáreas, processos, e operações de exclusão e exportação.
+
+### Análise do Problema
+
+1. **Verificação da Implementação**: O componente `Toaster` da biblioteca `react-hot-toast` estava corretamente importado e incluído no componente `MainLayout.tsx`, mas com configurações mínimas.
+
+2. **Verificação das Chamadas**: As chamadas para `toast.success()` e `toast.error()` estavam presentes em vários componentes, incluindo `Dashboard.tsx`, `CreateWorkspace.tsx`, `CreateArea.tsx`, `CreateSubArea.tsx`, `CreateProcess.tsx`, e outros.
+
+3. **Verificação do Console**: Não havia erros no console relacionados às chamadas de toast, sugerindo que o problema estava na configuração ou na renderização das notificações.
+
+### Ações de Correção
+
+1. **Melhoria da Configuração do Toaster**:
+   - Atualizado o componente `Toaster` no arquivo `MainLayout.tsx` com configurações mais explícitas para garantir a visibilidade das notificações:
+
+   ```tsx
+   <Toaster position="top-right" toastOptions={{
+     duration: 4000,
+     style: {
+       background: '#363636',
+       color: '#fff',
+     },
+     success: {
+       duration: 3000,
+       style: {
+         background: 'green',
+         color: '#fff',
+       },
+     },
+     error: {
+       duration: 4000,
+       style: {
+         background: 'red',
+         color: '#fff',
+       },
+     },
+   }} />
+   ```
+
+2. **Adição de Logs Detalhados**:
+   - Adicionados logs detalhados em todos os componentes que utilizam toast para rastrear o fluxo de execução e verificar se as chamadas de toast estão sendo acionadas:
+
+   ```typescript
+   // Exemplo em Dashboard.tsx
+   const handleDelete = async (code: string) => {
+     try {
+       console.log(`Iniciando exclusão do workspace ${code}`);
+       const result = await sdk.workspaces.deleteWorkspace(code);
+       console.log(`Resultado da exclusão do workspace ${code}:`, result);
+       
+       if (result.success) {
+         console.log(`Exibindo toast de sucesso para exclusão do workspace ${code}`);
+         toast.success(`Workspace '${code}' deleted successfully.`);
+         // Resto do código...
+       } else {
+         console.log(`Exibindo toast de erro para exclusão do workspace ${code}:`, result.message);
+         toast.error(result.message || 'Failed to delete workspace');
+       }
+     } catch (err) {
+       console.error(`Erro ao excluir workspace ${code}:`, err);
+       console.log(`Exibindo toast de erro para exceção na exclusão do workspace ${code}`);
+       toast.error(`Error: ${(err as Error).message}`);
+     }
+   };
+   ```
+
+3. **Verificação de Conflitos de Z-index**:
+   - Verificado o CSS para garantir que não havia conflitos de z-index que pudessem estar ocultando as notificações toast.
+   - Confirmado que o componente `Toaster` estava sendo renderizado em um nível apropriado na hierarquia do DOM.
+
+### Resultado
+
+A solução implementada resolve o problema das notificações toast não aparecerem na interface. Ao melhorar a configuração do componente `Toaster` com estilos explícitos e duração adequada, e adicionar logs detalhados para rastrear o fluxo de execução, as notificações agora são exibidas corretamente para todas as operações.
+
+### Lições Aprendidas
+
+1. **Configuração Explícita**: É importante fornecer configurações explícitas para componentes de UI, especialmente aqueles relacionados a feedback do usuário, em vez de confiar apenas nas configurações padrão.
+
+2. **Logs Detalhados**: A adição de logs detalhados em pontos críticos do código facilita a identificação de problemas relacionados ao fluxo de execução e ao comportamento de componentes de UI.
+
+3. **Verificação Visual**: Alguns problemas de UI podem não gerar erros no console, tornando importante realizar verificações visuais e testes de usabilidade para identificar problemas de renderização.
+
+### Próximos Passos
+
+1. **Testes de Usabilidade**: Realizar testes de usabilidade para garantir que as notificações toast estão sendo exibidas de forma clara e eficaz para os usuários.
+
+2. **Padronização**: Padronizar o uso de notificações toast em toda a aplicação para garantir consistência na experiência do usuário.
+
+3. **Documentação**: Atualizar a documentação do projeto para incluir informações sobre como usar corretamente as notificações toast na aplicação.
+
 ## Problema: Erro de Compatibilidade da Biblioteca MinIO com Vite
 
 ### Data: 04/06/2025

@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { WorkflowEngineSDK } from '@igrp/wf-engine';
 import { cn } from "@/lib/utils";
 import {
-  Settings,
+
   Home,
   X,
   ChevronDown,
@@ -247,7 +247,6 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const navigation = [
     { name: "Dashboard", href: "/", icon: Home },
-    { name: "Settings", href: "/settings", icon: Settings },
   ];
 
   const renderActionMenu = (

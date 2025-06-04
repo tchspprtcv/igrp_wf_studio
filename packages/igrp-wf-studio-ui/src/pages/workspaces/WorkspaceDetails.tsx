@@ -100,11 +100,14 @@ const WorkspaceDetails: React.FC = () => {
 
       if (result?.success) {
         await loadWorkspaceConfig();
+        toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} '${itemCode}' deleted successfully.`);
       } else {
         setError(result?.message || 'Failed to delete item');
+        toast.error(result?.message || `Failed to delete ${type}`);
       }
     } catch (err) {
       setError((err as Error).message);
+      toast.error(`Error: ${(err as Error).message}`);
     }
   };
 

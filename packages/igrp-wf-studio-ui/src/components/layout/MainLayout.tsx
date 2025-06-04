@@ -56,6 +56,29 @@ const MainLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex relative"> {/* Added relative for off-canvas positioning */}
+      {/* Toaster component for notifications */}
+      <Toaster position="top-right" toastOptions={{
+        duration: 4000,
+        style: {
+          background: '#363636',
+          color: '#fff',
+        },
+        success: {
+          duration: 3000,
+          style: {
+            background: 'green',
+            color: '#fff',
+          },
+        },
+        error: {
+          duration: 4000,
+          style: {
+            background: 'red',
+            color: '#fff',
+          },
+        },
+      }} />
+      
       {/* Overlay for Off-canvas Sidebar */}
       {isOffCanvasOpen && (
         <div 
