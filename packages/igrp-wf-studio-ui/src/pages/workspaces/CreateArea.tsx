@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { WorkflowEngineSDK } from 'igrp-wf-engine';
+import { WorkflowEngineSDK } from '@igrp/wf-engine';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { X } from 'lucide-react';
@@ -60,14 +60,17 @@ const CreateArea: React.FC<CreateAreaProps> = ({
     setError(null);
 
     try {
-      // Validate area code format (Allowing '.')
-      if (!/^[a-zA-Z][a-zA-Z0-9_.-]*$/.test(formData.code)) {
-        setError('Area code must start with a letter and can only contain letters, numbers, hyphens, underscores, and periods');
+      const sdk = new WorkflowEngineSDK();
+      const config = await sdk.workspaces.loadProjectConfig(workspaceCode);
+      const existingAreas = config?.areas || [];
+      const isDuplicate = existingAreas.some((area: { code: string }) => area.code === formData.code);
+      
+      if (isDuplicate) {
+        setError('This area code is already in use. Please choose a different code.');
         setIsLoading(false);
         return;
       }
 
-      const sdk = new WorkflowEngineSDK();
       const result = await sdk.workspaces.addArea(
         workspaceCode,
         formData.code,
@@ -104,14 +107,12 @@ const CreateArea: React.FC<CreateAreaProps> = ({
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <Input
-            label="Area Code" // Allow user modification
+            label="Area Code"
             value={formData.code}
             onChange={(e) => setFormData({ ...formData, code: e.target.value })}
             placeholder={isGeneratingCode ? "Generating code..." : "Enter area code"}
             disabled={isGeneratingCode}
             required
-            pattern="^[a-zA-Z][a-zA-Z0-9_.-]*$"
-            title="Area code must start with a letter and can only contain letters, numbers, hyphens, underscores, and periods"
           />
 
           <Input

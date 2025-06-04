@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { WorkflowEngineSDK } from 'igrp-wf-engine';
+import { WorkflowEngineSDK } from '@igrp/wf-engine';
 import BpmnModelerComponent from '@/components/bpmn/BpmnModeler'; // Renamed to avoid conflict
 import { Save, Play, Download, ArrowLeft, FileText, Image as ImageIcon } from 'lucide-react';
 import Button from '@/components/ui/Button';
@@ -162,13 +162,22 @@ const ProcessEditor: React.FC = () => {
   };
 
   const handleDeploy = async () => {
+    console.log('Iniciando deploy do processo...');
     if (!bpmnXml || !id) return;
     try {
-      // Comment out unused sdk variable
-      // const sdk = new WorkflowEngineSDK();
-      // TODO: Implement deployment functionality using SDK
-      console.log('Deploying process...');
+      setError(null);
+      // Importar o serviço de armazenamento MinIO
+      const MinioClientService = (await import('@/services/MinioClientService')).default;
+      
+      // Fazer deploy do processo para o MinIO
+      const deployUrl = await MinioClientService.deployProcess(id, bpmnXml);
+      
+      console.log('Processo deployado com sucesso:', deployUrl);
+      
+      // Mostrar mensagem de sucesso (pode ser implementado com toast ou outro componente)
+      alert(`Processo deployado com sucesso para o bucket igrp-wf no servidor MinIO`);
     } catch (err) {
+      console.error('Erro ao fazer deploy do processo:', err);
       setError((err as Error).message);
     }
   };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { WorkflowEngineSDK, ProjectConfig, ProcessDefinition } from 'igrp-wf-engine';
+import { WorkflowEngineSDK, ProjectConfig, ProcessDefinition } from '@igrp/wf-engine';
 import PageHeader from '@/components/layout/PageHeader';
 import TreeMenu from '@/components/workspaces/TreeMenu';
 import CreateArea from './CreateArea';

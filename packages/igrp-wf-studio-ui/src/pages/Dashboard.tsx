@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { WorkflowEngineSDK, ProjectConfig } from 'igrp-wf-engine'; // Added ProjectConfig
+import { WorkflowEngineSDK, ProjectConfig } from '@igrp/wf-engine'; // Added ProjectConfig
 import PageHeader from "@/components/layout/PageHeader";
 import { Workflow, Layers, Folder, Clock, Search, Download, Trash2 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { WorkflowEngineSDK } from 'igrp-wf-engine';
+import { WorkflowEngineSDK } from '@igrp/wf-engine';
 import { cn } from "@/lib/utils";
 import {
   Settings,
