@@ -75,52 +75,81 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange, onLoad }) => {
     modelerRef.current = modeler;
     onLoad?.(modeler);
 
-    // Load initial diagram
-    if (xml) {
-      modeler.importXML(xml);
-    } else {
-      createNewDiagram(modeler);
-    }
+    // Inicializar o canvas e criar as camadas necessárias
+    const canvas = modeler.get('canvas');
+    
+    // Garantir que o diagrama seja renderizado antes de qualquer operação
+    setTimeout(() => {
+      // Inicializar com um diagrama vazio para garantir que as camadas sejam criadas
+      if (xml) {
+        // Usar Promise API para importXML
+        modeler.importXML(xml)
+          .then(result => {
+            const { warnings } = result;
+            if (warnings && warnings.length) {
+              console.warn('Warnings during BPMN import:', warnings);
+            }
+            // Ajustar o zoom após a importação
+            (canvas as any).zoom('fit-viewport');
+          })
+          .catch(err => {
+            console.error('Error importing BPMN XML:', err);
+            // Em caso de erro, criar um diagrama padrão
+            createNewDiagram(modeler);
+          });
+      } else {
+        createNewDiagram(modeler);
+      }
 
-    // Setup change events
-    modeler.on('commandStack.changed', async () => {
-      try {
-        const { xml } = await modeler.saveXML({ format: true });
-        // Ensure onChange is called only when xml is successfully retrieved
-        if (xml) {
-          onChange?.(xml);
+      // Setup change events
+      modeler.on('commandStack.changed', async () => {
+        try {
+          const { xml } = await modeler.saveXML({ format: true });
+          // Ensure onChange is called only when xml is successfully retrieved
+          if (xml) {
+            onChange?.(xml);
+          }
+        } catch (err) {
+          console.error('Failed to save BPMN XML:', err);
         }
-      } catch (err) {
-        console.error('Failed to save BPMN XML:', err);
-      }
-    });
+      });
 
-    // Track selected element
-    modeler.on('selection.changed', (e: any) => {
-      const { newSelection } = e;
-      setSelectedElement(newSelection[0] || null);
-      
-      // Auto-expand panel when element is selected
-      if (newSelection.length > 0 && isPanelCollapsed) {
-        setIsPanelCollapsed(false);
-      }
-    });
+      // Track selected element
+      modeler.on('selection.changed', (e: any) => {
+        const { newSelection } = e;
+        setSelectedElement(newSelection[0] || null);
+        
+        // Auto-expand panel when element is selected
+        if (newSelection.length > 0 && isPanelCollapsed) {
+          setIsPanelCollapsed(false);
+        }
+      });
+    }, 100); // Pequeno atraso para garantir que o DOM esteja pronto
 
     return () => {
       (modeler as any).destroy();
     };
-  // }, [xml]); // Removed xml from dependencies as it's handled by importXML
-  }, [onLoad, onChange]); // Adjusted dependencies
+  }, [onLoad, onChange, xml]); // Adicionado xml de volta às dependências
 
   const createNewDiagram = async (modeler: BpmnJS) => {
     try {
-      await modeler.importXML(DEFAULT_DIAGRAM_XML);
+      // Garantir que o canvas esteja inicializado
+      const canvas = modeler.get('canvas');
       
-      // Get the canvas and zoom to fit the viewport
-      const canvas = (modeler as any).get('canvas');
-      canvas.zoom('fit-viewport');
+      // Usar Promise API para importXML
+      const result = await modeler.importXML(DEFAULT_DIAGRAM_XML);
+      const { warnings } = result;
+      if (warnings && warnings.length) {
+        console.warn('Warnings during default diagram import:', warnings);
+      }
+      
+      // Ajustar o zoom após a importação
+      (canvas as any).zoom('fit-viewport');
+      
+      // Notificar a mudança
+      onChange?.(DEFAULT_DIAGRAM_XML);
     } catch (err) {
-      console.error('Failed to create new diagram:', err);
+      console.error('Error creating new diagram:', err);
     }
   };
 
