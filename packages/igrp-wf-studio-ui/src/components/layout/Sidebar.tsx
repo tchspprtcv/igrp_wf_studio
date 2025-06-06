@@ -94,6 +94,11 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [editingArea, setEditingArea] = useState<{ appCode: string; area: Area } | null>(null); // State for area being edited
   const [editingSubArea, setEditingSubArea] = useState<{ appCode: string; areaCode: string; subArea: SubArea } | null>(null); // State for subarea being edited
 
+  const handleWorkspaceCreated = async () => {
+    await loadWorkspaces();
+    setShowCreateApp(false); // Close the modal after creation
+  };
+
   // Menu states
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
@@ -672,9 +677,9 @@ const Sidebar: React.FC<SidebarProps> = ({
           Keeping them here to match original structure for now. 
       */}
       {showCreateApp && (
-        <CreateWorkspace
-          onClose={() => setShowCreateApp(false)}
-          onCreated={loadWorkspaces}
+        <CreateWorkspace 
+          onClose={() => setShowCreateApp(false)} 
+          onCreated={handleWorkspaceCreated} 
         />
       )}
 
