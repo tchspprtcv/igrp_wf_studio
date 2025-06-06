@@ -193,3 +193,7 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange, onLoad }) => {
 };
 
 export default BpmnModeler;
+
+function zoom(arg0: string) {
+  throw new Error('Function not implemented.');
+}
