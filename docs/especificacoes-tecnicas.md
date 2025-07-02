@@ -17,7 +17,6 @@ Este documento fornece especificações técnicas detalhadas para a aplicação 
 - **Gestão de Estado**: Redux com Redux Toolkit
 - **Componentes UI**: Componentes personalizados com Tailwind CSS
 - **Modelagem BPMN**: Biblioteca bpmn-js
-- **Editores Integrados**: JSONForms para formulários, DMN.js para tabelas de decisão
 - **Comunicação API**: Axios
 - **Ferramentas de Build**: Webpack, Babel
 - **Testes**: Jest, React Testing Library
@@ -46,7 +45,7 @@ A aplicação IGRP-WF segue uma arquitetura modular com clara separação de res
 O diagrama de arquitetura do sistema ilustra a relação entre os dois pacotes principais:
 
 - **igrp-wf-engine**: Contém os componentes principais do motor responsáveis pela execução de processos, análise BPMN, gestão de estados e camada de API.
-- **igrp-wf-studio-ui**: Contém os componentes de UI React, incluindo o editor BPMN, painel de propriedades, painel de controle de workflow, barra lateral recolhível, e editores integrados para formulários e tabelas de decisão.
+- **igrp-wf-studio-ui**: Contém os componentes de UI React, incluindo o editor BPMN, painel de propriedades, painel de controle de workflow e barra lateral recolhível.
 
 A camada de API no pacote do motor serve como interface entre a UI e a funcionalidade principal do motor. O sistema também interage com sistemas externos como bases de dados e APIs externas.
 
@@ -62,11 +61,6 @@ O diagrama de componentes fornece uma visão mais detalhada dos principais compo
 - **BpmnPropertiesPanel.tsx**: Permite aos utilizadores visualizar e modificar propriedades dos elementos BPMN
 - **CollapsibleSidebar.tsx**: Fornece navegação e opções específicas de contexto com um design recolhível
 - **Dashboard**: Exibe uma visão geral dos processos de workflow e seus estados
-- **ZoomControls.tsx**: Fornece controles visuais para zoom no canvas BPMN
-- **FormEditorModal.tsx**: Editor visual para criação e edição de formulários
-- **DecisionEditorModal.tsx**: Editor visual para criação e edição de tabelas de decisão
-- **FormEditorLink.tsx**: Componente de link para acesso ao editor de formulários
-- **DecisionTableLink.tsx**: Componente de link para acesso ao editor de tabelas de decisão
 
 ### 4.2 Componentes do Motor
 
@@ -74,9 +68,6 @@ O diagrama de componentes fornece uma visão mais detalhada dos principais compo
 - **Process Executor**: Gere a execução em tempo real dos processos de workflow
 - **State Manager**: Lida com o estado das instâncias de processo
 - **API Layer**: Fornece endpoints REST para a UI interagir com o motor
-- **Form Storage Service**: Gerencia a persistência e recuperação de formulários
-- **Decision Storage Service**: Gerencia a persistência e recuperação de tabelas de decisão
-- **Export Service**: Responsável pela exportação de processos com seus artefatos associados
 
 ## 5. Diagramas de Sequência
 
@@ -106,16 +97,6 @@ Este diagrama mostra o fluxo de interação para:
 3. Visualização de detalhes de um processo existente
 4. Execução de ações de processo (iniciar/pausar/parar)
 
-### 5.3 Fluxo de Edição de Formulários e Tabelas de Decisão
-
-O seguinte diagrama de sequência ilustra o fluxo de trabalho para edição de formulários e tabelas de decisão:
-
-1. Seleção de um elemento BPMN (UserTask, StartEvent para formulários; BusinessRuleTask para tabelas de decisão)
-2. Acesso ao editor através do link no painel de propriedades
-3. Edição visual do formulário ou tabela de decisão
-4. Salvamento do artefato associado ao elemento BPMN
-5. Exportação do processo com todos os artefatos associados
-
 ## 6. Diagrama de Classes e Interfaces
 
 O diagrama de classes mostra as principais classes e interfaces na aplicação e seus relacionamentos:
@@ -130,20 +111,12 @@ O diagrama de classes mostra as principais classes e interfaces na aplicação e
 - **BpmnDefinition**: Contém a definição do modelo BPMN
 - **BpmnElement**: Representa elementos individuais dentro de um diagrama BPMN
 - **EventBus**: Facilita a comunicação entre componentes usando uma abordagem orientada a eventos
-- **FormStorage**: Gerencia o armazenamento e recuperação de definições de formulários
-- **DecisionStorage**: Gerencia o armazenamento e recuperação de tabelas de decisão
-- **ExportManager**: Coordena a exportação de processos com artefatos associados
 
 ### 6.2 Classes Principais da UI
 
 - **BpmnEditorComponent**: Gere o canvas do diagrama BPMN e as interações do utilizador
 - **BpmnPropertiesPanelComponent**: Lida com a exibição e edição de propriedades de elementos
-- **ZoomControlsComponent**: Gerencia os controles de zoom do canvas BPMN
-- **FormEditorComponent**: Fornece interface para edição visual de formulários
-- **DecisionEditorComponent**: Fornece interface para edição visual de tabelas de decisão
 - **WorkflowApiClient**: Fornece métodos para comunicação com a API do motor
-- **FormStorageService**: Serviço para persistência e recuperação de formulários
-- **DecisionStorageService**: Serviço para persistência e recuperação de tabelas de decisão
 
 ## 7. Diagrama de Fluxo de Dados
 
@@ -159,8 +132,6 @@ O diagrama mostra:
 4. Fluxos de dados internos do motor
 5. Persistência e recuperação de dados
 6. Integração com sistemas externos
-7. Fluxo de dados para formulários e tabelas de decisão
-8. Processo de exportação de artefatos
 
 ## 8. Diagrama de Implantação
 
@@ -197,8 +168,6 @@ A aplicação IGRP-WF implementa vários padrões de design:
 - **Padrão Strategy**: Utilizado para implementar diferentes estratégias de execução de processos
 - **Padrão Repository**: Utilizado para abstração de acesso a dados
 - **Padrão Singleton**: Utilizado para as instâncias do motor de workflow e event bus
-- **Padrão Adapter**: Utilizado para integração com editores externos (form.js e DMN.js)
-- **Padrão Composite**: Utilizado na estrutura de formulários e tabelas de decisão
 
 ### 9.2 Decisões Arquiteturais
 
@@ -234,14 +203,6 @@ Um motor de workflow personalizado foi desenvolvido em vez de usar soluções ex
 - Otimizar para os casos de uso específicos da aplicação
 - Manter controle sobre o modelo de execução
 
-#### 9.2.5 Integração com Editores Externos
-
-A decisão de integrar editores externos (JSONForms e DMN.js) foi tomada para:
-- Aproveitar bibliotecas maduras e bem testadas
-- Reduzir o tempo de desenvolvimento
-- Fornecer uma experiência de usuário consistente
-- Permitir extensibilidade futura
-
 ## 10. Melhorias Recentes
 
 A aplicação passou recentemente por várias melhorias:
@@ -252,7 +213,6 @@ A aplicação passou recentemente por várias melhorias:
 - Melhoria na interação do utilizador com elementos BPMN
 - Correção de problemas de renderização com diagramas complexos
 - Adição de suporte para tipos adicionais de elementos BPMN
-- Implementação de controles de zoom para navegação em diagramas complexos
 
 ### 10.2 Propriedades de Artefatos BPMN (BpmnPropertiesPanel.tsx)
 
@@ -260,8 +220,6 @@ A aplicação passou recentemente por várias melhorias:
 - Adição de validação para valores de propriedades
 - Implementação de formulários de propriedades dinâmicos baseados no tipo de elemento
 - Melhoria no feedback visual para alterações de propriedades
-- Suporte completo para todos os atributos BPMN do Activiti
-- Integração com editores de formulários e tabelas de decisão
 
 ### 10.3 Barra Lateral Recolhível com Tailwind CSS
 
@@ -269,21 +227,6 @@ A aplicação passou recentemente por várias melhorias:
 - Uso de Tailwind CSS para design responsivo
 - Adição de transições suaves para ações de recolher/expandir
 - Melhoria na navegação entre diferentes seções da aplicação
-
-### 10.4 Editores Integrados
-
-- Implementação de editor visual de formulários para elementos com formKey
-- Implementação de editor visual de tabelas de decisão para elementos BusinessRuleTask
-- Integração dos editores com o painel de propriedades BPMN
-- Persistência e recuperação de formulários e tabelas de decisão
-- Exportação de formulários e tabelas de decisão junto com as definições do processo
-
-### 10.5 Funcionalidade de Zoom no Canvas
-
-- Adição de controles visuais para zoom no canvas BPMN
-- Implementação de atalhos de teclado para operações de zoom (Ctrl++, Ctrl+-, Ctrl+0)
-- Suporte a gestos touch para zoom em dispositivos móveis
-- Melhoria na navegação em diagramas complexos
 
 ## 11. Conclusão
 

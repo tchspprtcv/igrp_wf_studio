@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { WorkflowEngineSDK } from '@igrp/wf-engine';
+import { WorkflowEngineSDK } from 'igrp-wf-engine';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';

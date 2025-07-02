@@ -36,25 +36,12 @@ packages/
    npm install
    ```
 
-2. Configure environment variables:
-   - Create a `.env.local` file in the `packages/igrp-wf-studio-ui` directory
-   - Use the `.env.example` file as a template
-   - Set the MinIO configuration variables:
-     ```
-     VITE_MINIO_ENDPOINT=http://localhost:9000
-     VITE_MINIO_REGION=GMT-1
-     VITE_MINIO_ACCESS_KEY=your_access_key_here
-     VITE_MINIO_SECRET_KEY=your_secret_key_here
-     VITE_MINIO_BUCKET_NAME=igrp-wf
-     VITE_MINIO_FORCE_PATH_STYLE=true
-     ```
-
-3. Start the development server:
+2. Start the development server:
    ```bash
    npm run dev
    ```
 
-4. Open [http://localhost:5173](http://localhost:5173) in your browser.
+3. Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ## Core Features
 
@@ -74,11 +61,6 @@ packages/
 - Properties panel for element configuration
 - Import/Export BPMN diagrams
 
-### MinIO Integration
-- Storage of BPMN process definitions
-- Secure file management with configurable credentials
-- Environment-based configuration for different deployment scenarios
-
 ## Development
 
 ### Engine Package (`igrp-wf-engine`)
@@ -96,14 +78,6 @@ The user interface built with:
 - Tailwind CSS for styling
 - BPMN.js for process modeling
 - React Router for navigation
-
-### Environment Configuration
-
-The application uses environment variables for configuration:
-- Create a `.env.local` file in the `packages/igrp-wf-studio-ui` directory
-- Variables are prefixed with `VITE_` to be accessible in the client-side code
-- MinIO configuration includes endpoint, credentials, and bucket settings
-- The `.env.example` file provides a template with default values
 
 ## Contributing
 
