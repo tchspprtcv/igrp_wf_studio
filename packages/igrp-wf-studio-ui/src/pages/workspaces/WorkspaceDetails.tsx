@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { WorkflowEngineSDK, ProjectConfig, ProcessDefinition } from 'igrp-wf-engine';
+import { WorkflowEngineSDK, ProjectConfig, ProcessDefinition } from '@igrp/wf-engine';
 import PageHeader from '@/components/layout/PageHeader';
 import TreeMenu from '@/components/workspaces/TreeMenu';
 import CreateArea from './CreateArea';
@@ -100,11 +100,14 @@ const WorkspaceDetails: React.FC = () => {
 
       if (result?.success) {
         await loadWorkspaceConfig();
+        toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} '${itemCode}' deleted successfully.`);
       } else {
         setError(result?.message || 'Failed to delete item');
+        toast.error(result?.message || `Failed to delete ${type}`);
       }
     } catch (err) {
       setError((err as Error).message);
+      toast.error(`Error: ${(err as Error).message}`);
     }
   };
 

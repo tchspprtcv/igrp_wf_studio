@@ -1,4 +1,4 @@
-import * as debug from 'debug';
+import debugModule from 'debug';
 
 const BASE_NAMESPACE = 'igrp-wf';
 
@@ -11,7 +11,26 @@ export interface Logger {
 
 export function createLogger(namespace: string): Logger {
   const fullNamespace = `${BASE_NAMESPACE}:${namespace}`;
-  const logger = debug(fullNamespace);
+      // Attempt to access the default export if 'debugModule' is an object (like Vite's CJS wrapper),
+  // otherwise use 'debugModule' itself (if it's already the function).
+  const debugFn = (debugModule as any).default || debugModule;
+
+  if (typeof debugFn !== 'function') {
+    console.error(
+      `[${fullNamespace}] igrp-wf-engine: Failed to load debug function. 'debugFn' is type ${typeof debugFn}. Original 'debugModule' was: `,
+      debugModule
+    );
+    // Fallback to console.log if debug is not available
+    const fallbackLogger = (...args: any[]) => console.log(`[${fullNamespace}] (logger fallback)`, ...args);
+    return {
+      info: fallbackLogger,
+      warn: fallbackLogger,
+      error: fallbackLogger,
+      debug: fallbackLogger,
+    } as Logger;
+  }
+
+  const logger = debugFn(fullNamespace);
 
   return {
     info: (message: string, ...args: any[]) => {

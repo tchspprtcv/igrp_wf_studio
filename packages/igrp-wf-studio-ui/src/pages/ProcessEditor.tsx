@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { WorkflowEngineSDK } from 'igrp-wf-engine';
+import { WorkflowEngineSDK } from '@igrp/wf-engine';
 import BpmnModelerComponent from '@/components/bpmn/BpmnModeler'; // Renamed to avoid conflict
 import { Save, Play, Download, ArrowLeft, FileText, Image as ImageIcon } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
+import { toast } from 'react-hot-toast';
 
 interface ProcessDetails {
   title: string;
@@ -25,6 +26,10 @@ const ProcessEditor: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const modelerRef = useRef<any>(null); // To store BpmnJS modeler instance
+
+  const handleModelerLoad = useCallback((modeler: any) => {
+    modelerRef.current = modeler;
+  }, []); // Empty dependency array ensures the function is created only once
 
   useEffect(() => {
     loadProcessDetails();
@@ -117,9 +122,13 @@ const ProcessEditor: React.FC = () => {
 
       if (!result.success) {
         setError(result.message);
+        toast.error(result.message || 'Failed to save process');
+      } else {
+        toast.success('Process saved successfully');
       }
     } catch (err) {
       setError((err as Error).message);
+      toast.error(`Error: ${(err as Error).message}`);
     } finally {
       setSaving(false);
     }
@@ -136,6 +145,7 @@ const ProcessEditor: React.FC = () => {
     link.click();
     link.remove();
     window.URL.revokeObjectURL(url);
+    toast.success(`Process exported as BPMN file`);
   };
 
   const handleExportSvg = async () => {
@@ -151,21 +161,33 @@ const ProcessEditor: React.FC = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+      toast.success(`Process exported as SVG image`);
     } catch (err) {
       console.error('Failed to export SVG', err);
       setError('Failed to export SVG: ' + (err as Error).message);
+      toast.error(`Failed to export SVG: ${(err as Error).message}`);
     }
   };
 
   const handleDeploy = async () => {
+    console.log('Iniciando deploy do processo...');
     if (!bpmnXml || !id) return;
     try {
-      // Comment out unused sdk variable
-      // const sdk = new WorkflowEngineSDK();
-      // TODO: Implement deployment functionality using SDK
-      console.log('Deploying process...');
+      setError(null);
+      // Importar o serviço de armazenamento MinIO
+      const MinioClientService = (await import('@/services/MinioClientService')).default;
+      
+      // Fazer deploy do processo para o MinIO
+      const deployUrl = await MinioClientService.deployProcess(id, bpmnXml);
+      
+      console.log('Processo deployado com sucesso:', deployUrl);
+      
+      // Substituir alert por toast
+      toast.success(`Process deployed successfully to MinIO server`);
     } catch (err) {
+      console.error('Erro ao fazer deploy do processo:', err);
       setError((err as Error).message);
+      toast.error(`Deploy failed: ${(err as Error).message}`);
     }
   };
 
@@ -271,7 +293,7 @@ const ProcessEditor: React.FC = () => {
         <BpmnModelerComponent 
           xml={processDetails?.bpmnXml} 
           onChange={setBpmnXml} 
-          onLoad={(modeler) => modelerRef.current = modeler} 
+          onLoad={handleModelerLoad} 
         />
       </div>
     </div>

@@ -6,15 +6,15 @@ import { Toaster } from 'react-hot-toast';
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { cn } from "@/lib/utils"; // Ensure cn is imported if not already
 
-const COLLAPSED_SIZE = 4; // Corresponds to pl-16 (4rem)
-const DEFAULT_EXPANDED_SIZE = 16; // Corresponds to pl-64 (16rem)
+const COLLAPSED_SIZE_PERCENT = 4; // Percentage size when collapsed
+const DEFAULT_EXPANDED_SIZE_PERCENT = 16; // Percentage size when expanded
 
 const MainLayout: React.FC = () => {
   const [isOffCanvasOpen, setIsOffCanvasOpen] = useState(false); // For mobile/off-canvas
   // const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Replaced by isOffCanvasOpen
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   // Store size in percentage or relative units if preferred, using rem units here for consistency
-  const [sidebarSize, setSidebarSize] = useState(DEFAULT_EXPANDED_SIZE);
+  const [sidebarSize, setSidebarSize] = useState(DEFAULT_EXPANDED_SIZE_PERCENT);
 
   const toggleMobileMenu = () => {
     // setIsMobileMenuOpen(!isMobileMenuOpen); // Replaced by toggleOffCanvas
@@ -56,6 +56,29 @@ const MainLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex relative"> {/* Added relative for off-canvas positioning */}
+      {/* Toaster component for notifications */}
+      <Toaster position="top-right" toastOptions={{
+        duration: 4000,
+        style: {
+          background: '#363636',
+          color: '#fff',
+        },
+        success: {
+          duration: 3000,
+          style: {
+            background: 'green',
+            color: '#fff',
+          },
+        },
+        error: {
+          duration: 4000,
+          style: {
+            background: 'red',
+            color: '#fff',
+          },
+        },
+      }} />
+      
       {/* Overlay for Off-canvas Sidebar */}
       {isOffCanvasOpen && (
         <div 
@@ -69,14 +92,15 @@ const MainLayout: React.FC = () => {
       <div className="hidden lg:flex h-screen">
         <PanelGroup direction="horizontal" onLayout={handleLayout}>
           <Panel
-            defaultSize={DEFAULT_EXPANDED_SIZE} 
-            minSize={COLLAPSED_SIZE} 
+            defaultSize={DEFAULT_EXPANDED_SIZE_PERCENT} 
+            minSize={COLLAPSED_SIZE_PERCENT} 
             maxSize={50} 
             collapsible={true}
             onCollapse={() => setIsSidebarCollapsed(true)}
             onExpand={() => setIsSidebarCollapsed(false)}
             order={1}
-            className={cn("transition-all duration-300 ease-in-out", isSidebarCollapsed ? "w-16" : "w-64")}
+            // Remove width classes as size is controlled by react-resizable-panels
+            className={cn("transition-all duration-300 ease-in-out")}
           >
             <Sidebar
               isMobileOpen={false} // Not used in this context

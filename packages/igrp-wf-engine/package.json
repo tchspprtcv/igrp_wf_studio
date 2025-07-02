@@ -1,37 +1,50 @@
 {
-  "name": "igrp-wf-engine",
+  "name": "@igrp/wf-engine",
   "version": "1.0.0",
-  "type": "module",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "browser": "./dist/index.js",
+  "description": "IGRP Workflow Engine SDK",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "browser": "./dist/index.js",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs",
-      "default": "./dist/index.js"
+      "require": "./dist/cjs/index.js",
+      "import": "./dist/esm/index.js",
+      "types": "./dist/types/index.d.ts"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.esm.json",
     "lint": "eslint .",
-    "dev": "tsc -w"
+    "dev": "tsc -w",
+    "prepublishOnly": "yarn build"
   },
   "dependencies": {
     "debug": "^4.3.4",
-    "uuid": "^9.0.1"
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@types/debug": "^4.1.12",
-    "@types/node": "^20.11.24",
-    "@types/uuid": "^9.0.8",
+    "@types/node": "^22.15.19",
+    "@types/uuid": "^10.0.0",
     "eslint": "^9.8.0",
     "typescript": "^5.2.2"
-  }
+  },
+  "peerDependencies": {
+    "typescript": ">=4.5.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "igrp",
+    "workflow",
+    "bpmn",
+    "engine",
+    "sdk"
+  ],
+  "author": "IGRP Team",
+  "license": "MIT"
 }

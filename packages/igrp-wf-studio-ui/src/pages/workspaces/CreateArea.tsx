@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { WorkflowEngineSDK } from 'igrp-wf-engine';
+import { WorkflowEngineSDK } from '@igrp/wf-engine';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { X } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 interface CreateAreaProps {
   workspaceCode: string;
@@ -32,10 +33,13 @@ const CreateArea: React.FC<CreateAreaProps> = ({
   const generateNextAreaCode = async () => {
     setIsGeneratingCode(true);
     setError(null);
+    console.log(`Iniciando geração de código para nova área no workspace: ${workspaceCode}`);
     try {
       const sdk = new WorkflowEngineSDK();
+      console.log('Carregando configuração do projeto para gerar código de área');
       const config = await sdk.workspaces.loadProjectConfig(workspaceCode);
       const existingAreas = config?.areas || [];
+      console.log(`Áreas existentes: ${existingAreas.length}`, existingAreas.map((a: any) => a.code));
       let nextNum = 1;
       const areaCodes = existingAreas.map((area: { code: string }) => area.code)
                                    .filter((code: string) => code.startsWith('area'))
@@ -46,9 +50,13 @@ const CreateArea: React.FC<CreateAreaProps> = ({
         nextNum = Math.max(...areaCodes) + 1;
       }
       const nextCode = `area${nextNum}`;
+      console.log(`Código gerado para nova área: ${nextCode}`);
       setFormData(prev => ({ ...prev, code: nextCode }));
     } catch (err) {
+      console.error('Erro ao gerar código de área:', err);
       setError(`Failed to generate area code: ${(err as Error).message}`);
+      console.log('Exibindo toast de erro para geração de código de área');
+      toast.error(`Failed to generate area code: ${(err as Error).message}`);
     } finally {
       setIsGeneratingCode(false);
     }
@@ -58,16 +66,25 @@ const CreateArea: React.FC<CreateAreaProps> = ({
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    console.log(`Iniciando criação de área: ${formData.code} no workspace: ${workspaceCode}`);
 
     try {
-      // Validate area code format (Allowing '.')
-      if (!/^[a-zA-Z][a-zA-Z0-9_.-]*$/.test(formData.code)) {
-        setError('Area code must start with a letter and can only contain letters, numbers, hyphens, underscores, and periods');
+      const sdk = new WorkflowEngineSDK();
+      console.log('Carregando configuração do projeto para verificar duplicidade');
+      const config = await sdk.workspaces.loadProjectConfig(workspaceCode);
+      const existingAreas = config?.areas || [];
+      const isDuplicate = existingAreas.some((area: { code: string }) => area.code === formData.code);
+      
+      if (isDuplicate) {
+        console.error(`Código de área duplicado: ${formData.code}`);
+        setError('This area code is already in use. Please choose a different code.');
+        console.log('Exibindo toast de erro para código duplicado');
+        toast.error('This area code is already in use. Please choose a different code.');
         setIsLoading(false);
         return;
       }
 
-      const sdk = new WorkflowEngineSDK();
+      console.log(`Chamando SDK para adicionar área: ${formData.code}`);
       const result = await sdk.workspaces.addArea(
         workspaceCode,
         formData.code,
@@ -77,13 +94,22 @@ const CreateArea: React.FC<CreateAreaProps> = ({
       );
 
       if (result.success) {
+        console.log(`Área ${formData.code} criada com sucesso`);
+        console.log('Exibindo toast de sucesso para criação de área');
+        toast.success(`Area '${formData.code}' created successfully.`);
         onCreated();
         onClose();
       } else {
+        console.error(`Erro ao criar área: ${result.message}`);
         setError(result.message);
+        console.log('Exibindo toast de erro para criação de área');
+        toast.error(result.message || 'Failed to create area');
       }
     } catch (err) {
+      console.error('Exceção ao criar área:', err);
       setError((err as Error).message);
+      console.log('Exibindo toast de erro para exceção na criação de área');
+      toast.error(`Error: ${(err as Error).message}`);
     } finally {
       setIsLoading(false);
     }
@@ -104,14 +130,12 @@ const CreateArea: React.FC<CreateAreaProps> = ({
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <Input
-            label="Area Code" // Allow user modification
+            label="Area Code"
             value={formData.code}
             onChange={(e) => setFormData({ ...formData, code: e.target.value })}
             placeholder={isGeneratingCode ? "Generating code..." : "Enter area code"}
             disabled={isGeneratingCode}
             required
-            pattern="^[a-zA-Z][a-zA-Z0-9_.-]*$"
-            title="Area code must start with a letter and can only contain letters, numbers, hyphens, underscores, and periods"
           />
 
           <Input
