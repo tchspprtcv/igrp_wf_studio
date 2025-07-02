@@ -28,7 +28,7 @@ services:
           
   minio:
     image: minio/minio:latest
-    container_name: igrp-minio
+    container_name: igrp-wf-minio
     ports:
       - "9000:9000"  # API port
       - "9001:9001"  # Console port
