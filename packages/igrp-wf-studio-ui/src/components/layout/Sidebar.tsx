@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { WorkflowEngineSDK } from '@igrp/wf-engine';
+import { WorkflowEngineSDK } from 'igrp-wf-engine';
 import { cn } from "@/lib/utils";
 import {
-
+  Settings,
   Home,
   X,
   ChevronDown,
@@ -93,11 +93,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [editingWorkspaceCode, setEditingWorkspaceCode] = useState<string | null>(null); // State for workspace being edited
   const [editingArea, setEditingArea] = useState<{ appCode: string; area: Area } | null>(null); // State for area being edited
   const [editingSubArea, setEditingSubArea] = useState<{ appCode: string; areaCode: string; subArea: SubArea } | null>(null); // State for subarea being edited
-
-  const handleWorkspaceCreated = async () => {
-    await loadWorkspaces();
-    setShowCreateApp(false); // Close the modal after creation
-  };
 
   // Menu states
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -252,6 +247,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const navigation = [
     { name: "Dashboard", href: "/", icon: Home },
+    { name: "Settings", href: "/settings", icon: Settings },
   ];
 
   const renderActionMenu = (
@@ -677,9 +673,9 @@ const Sidebar: React.FC<SidebarProps> = ({
           Keeping them here to match original structure for now. 
       */}
       {showCreateApp && (
-        <CreateWorkspace 
-          onClose={() => setShowCreateApp(false)} 
-          onCreated={handleWorkspaceCreated} 
+        <CreateWorkspace
+          onClose={() => setShowCreateApp(false)}
+          onCreated={loadWorkspaces}
         />
       )}
 

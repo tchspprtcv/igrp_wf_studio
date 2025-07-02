@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { WorkflowEngineSDK, ProjectConfig } from '@igrp/wf-engine'; // Added ProjectConfig
+import { WorkflowEngineSDK, ProjectConfig } from 'igrp-wf-engine'; // Added ProjectConfig
 import PageHeader from "@/components/layout/PageHeader";
 import { Workflow, Layers, Folder, Clock, Search, Download, Trash2 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
@@ -76,40 +76,30 @@ const Dashboard: React.FC = () => {
     }
 
     try {
-      console.log(`Iniciando exclusão do workspace: ${code}`);
       const result = await sdk.workspaces.deleteWorkspace(code);
       if (result.success) {
-        console.log(`Workspace ${code} excluído com sucesso, atualizando lista...`);
         await loadWorkspaces();
-        console.log(`Exibindo toast de sucesso para exclusão do workspace ${code}`);
-        toast.success(`Workspace '${code}' deleted successfully.`);
       } else {
-        console.error(`Erro ao excluir workspace ${code}: ${result.message}`);
         setError(result.message);
-        toast.error(result.message || 'Failed to delete workspace');
       }
     } catch (err) {
-      console.error(`Exceção ao excluir workspace ${code}:`, err);
       setError((err as Error).message);
-      toast.error(`Error: ${(err as Error).message}`);
     }
   };
 
   const handleExport = async (appCode: string) => {
     if (!appCode) {
-      console.error('Código do workspace ausente');
       toast.error("Workspace code is missing.");
       return;
     }
 
-    console.log(`Iniciando exportação do workspace: ${appCode}`);
     setExportingWorkspaceCode(appCode);
+    console.log('handleExport called with appCode:', appCode); 
 
     try {
       const projectConfig = await sdk.workspaces.loadProjectConfig(appCode);
 
       if (!projectConfig) {
-        console.error(`Não foi possível carregar a configuração do workspace ${appCode}`);
         toast.error(`Could not load configuration for workspace ${appCode}.`);
         setExportingWorkspaceCode(null);
         return;
@@ -120,7 +110,6 @@ const Dashboard: React.FC = () => {
       // 1. Add project-config.json to ZIP
       const projectConfigString = JSON.stringify(projectConfig, null, 2);
       zip.file(`${appCode}/project-config.json`, projectConfigString);
-      console.log(`Configuração do workspace ${appCode} adicionada ao ZIP`);
 
       // 2. Iterate through areas, subareas, and processes to get BPMN XML
       for (const area of projectConfig.areas || []) {
@@ -135,7 +124,6 @@ const Dashboard: React.FC = () => {
             );
             if (processDefinition?.bpmnXml) {
               zip.file(`${areaPath}/${process.code}.bpmn`, processDefinition.bpmnXml);
-              console.log(`Processo ${process.code} da área ${area.code} adicionado ao ZIP`);
             }
           } catch (e) {
             console.warn(`Could not read process ${process.code} in area ${area.code} for workspace ${appCode}: ${(e as Error).message}`);
@@ -155,7 +143,6 @@ const Dashboard: React.FC = () => {
               );
               if (processDefinition?.bpmnXml) {
                 zip.file(`${subAreaPath}/${process.code}.bpmn`, processDefinition.bpmnXml);
-                console.log(`Processo ${process.code} da subárea ${subArea.code} adicionado ao ZIP`);
               }
             } catch (e) {
               console.warn(`Could not read process ${process.code} in subarea ${subArea.code} (area ${area.code}) for workspace ${appCode}: ${(e as Error).message}`);
@@ -166,7 +153,6 @@ const Dashboard: React.FC = () => {
       }
 
       // 3. Generate and download the ZIP file
-      console.log(`Gerando arquivo ZIP para o workspace ${appCode}...`);
       const zipBlob = await zip.generateAsync({ type: 'blob' });
       const downloadUrl = URL.createObjectURL(zipBlob);
       const link = document.createElement('a');
@@ -176,12 +162,9 @@ const Dashboard: React.FC = () => {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(downloadUrl);
-      console.log(`Arquivo ZIP gerado com sucesso para o workspace ${appCode}`);
-      console.log(`Exibindo toast de sucesso para exportação do workspace ${appCode}`);
       toast.success(`Workspace '${appCode}' exported successfully as ZIP.`);
 
     } catch (err) {
-      console.error(`Erro ao exportar workspace ${appCode}:`, err);
       toast.error(`Failed to export workspace ${appCode}: ${(err as Error).message}`);
       console.error(`ZIP Export error for workspace ${appCode}:`, err);
     } finally {

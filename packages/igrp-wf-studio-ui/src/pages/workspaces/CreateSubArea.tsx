@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { WorkflowEngineSDK } from '@igrp/wf-engine';
+import { WorkflowEngineSDK } from 'igrp-wf-engine';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { X } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 
 interface CreateSubAreaProps {
   workspaceCode: string;
@@ -37,34 +36,23 @@ const CreateSubArea: React.FC<CreateSubAreaProps> = ({
     setIsValidating(true);
     setIsGeneratingCode(true);
     setError(null);
-    console.log(`Iniciando validação e geração de código para subárea no workspace: ${workspaceCode}, área: ${areaCode}`);
     try {
       const sdk = new WorkflowEngineSDK();
-      console.log('Carregando configuração do projeto para validar e gerar código');
       const config = await sdk.workspaces.loadProjectConfig(workspaceCode);
 
       if (!config) {
-        console.error(`Workspace '${workspaceCode}' não encontrado`);
         setError(`Workspace '${workspaceCode}' not found`);
-        console.log(`Exibindo toast de erro para workspace não encontrado: ${workspaceCode}`);
-        toast.error(`Workspace '${workspaceCode}' not found`);
         return;
       }
 
       const area = config.areas.find((a: { code: string; }) => a.code === areaCode);
       if (!area) {
-        console.error(`Área '${areaCode}' não existe no workspace '${workspaceCode}'`);
         setError(`Area '${areaCode}' does not exist in workspace '${workspaceCode}'`);
-        console.log(`Exibindo toast de erro para área não encontrada: ${areaCode}`);
-        toast.error(`Area '${areaCode}' does not exist in workspace '${workspaceCode}'`);
         return;
       }
 
-      console.log(`Área validada: ${areaCode}`);
-
       // Generate next subarea code
       const existingSubAreas = area.subareas || [];
-      console.log(`Subáreas existentes: ${existingSubAreas.length}`, existingSubAreas.map((s: any) => s.code));
       let nextNum = 1;
       const subAreaCodes = existingSubAreas
         .map((sub: { code: string }) => sub.code)
@@ -76,14 +64,10 @@ const CreateSubArea: React.FC<CreateSubAreaProps> = ({
         nextNum = Math.max(...subAreaCodes) + 1;
       }
       const nextCode = `${areaCode}.${nextNum}`;
-      console.log(`Código gerado para nova subárea: ${nextCode}`);
       setFormData(prev => ({ ...prev, code: nextCode }));
 
     } catch (err) {
-      console.error('Erro ao validar ou gerar código de subárea:', err);
       setError(`Failed to validate or generate code: ${(err as Error).message}`);
-      console.log('Exibindo toast de erro para validação ou geração de código');
-      toast.error(`Failed to validate or generate code: ${(err as Error).message}`);
     } finally {
       setIsValidating(false);
       setIsGeneratingCode(false);
@@ -94,26 +78,20 @@ const CreateSubArea: React.FC<CreateSubAreaProps> = ({
     e.preventDefault();
     
     if (error) {
-      console.log('Formulário com erro, não prosseguindo com o envio');
       return;
     }
 
     setIsLoading(true);
     setError(null);
-    console.log(`Iniciando criação de subárea: ${formData.code} na área: ${areaCode}`);
 
     try {
       // Validate subarea code format (Allowing '.')
       if (!/^[a-zA-Z][a-zA-Z0-9_.-]*$/.test(formData.code)) {
-        console.error(`Código de subárea inválido: ${formData.code}`);
         setError('SubArea code must start with a letter and can only contain letters, numbers, hyphens, underscores, and periods');
-        console.log('Exibindo toast de erro para código de subárea inválido');
-        toast.error('SubArea code must start with a letter and can only contain letters, numbers, hyphens, underscores, and periods');
         setIsLoading(false);
         return;
       }
 
-      console.log(`Chamando SDK para adicionar subárea: ${formData.code}`);
       const sdk = new WorkflowEngineSDK();
       const result = await sdk.workspaces.addSubArea(
         workspaceCode,
@@ -125,22 +103,13 @@ const CreateSubArea: React.FC<CreateSubAreaProps> = ({
       );
 
       if (result.success) {
-        console.log(`Subárea ${formData.code} criada com sucesso`);
-        console.log('Exibindo toast de sucesso para criação de subárea');
-        toast.success(`SubArea '${formData.code}' created successfully.`);
         onCreated();
         onClose();
       } else {
-        console.error(`Erro ao criar subárea: ${result.message}`);
         setError(result.message);
-        console.log('Exibindo toast de erro para criação de subárea');
-        toast.error(result.message || 'Failed to create subarea');
       }
     } catch (err) {
-      console.error('Exceção ao criar subárea:', err);
       setError((err as Error).message);
-      console.log('Exibindo toast de erro para exceção na criação de subárea');
-      toast.error(`Error: ${(err as Error).message}`);
     } finally {
       setIsLoading(false);
     }

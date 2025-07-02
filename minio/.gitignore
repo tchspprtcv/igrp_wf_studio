@@ -1,5 +1,0 @@
-# Ignorar dados do MinIO
-data/
-
-# Ignorar arquivos de log
-*.log

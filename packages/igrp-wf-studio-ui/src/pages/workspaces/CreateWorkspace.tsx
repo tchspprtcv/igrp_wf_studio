@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { WorkflowEngineSDK } from '@igrp/wf-engine';
+import { WorkflowEngineSDK } from 'igrp-wf-engine';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { X } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 
 interface CreateWorkspaceProps {
   onClose: () => void;
@@ -26,12 +25,9 @@ const CreateWorkspace: React.FC<CreateWorkspaceProps> = ({ onClose, onCreated })
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    
-    console.log('Iniciando criação de workspace:', formData);
 
     try {
       const sdk = new WorkflowEngineSDK('./');
-      console.log(`Chamando SDK para criar workspace com código: ${formData.code}`);
       const result = await sdk.workspaces.createWorkspace(
         formData.code,
         formData.title,
@@ -40,23 +36,13 @@ const CreateWorkspace: React.FC<CreateWorkspaceProps> = ({ onClose, onCreated })
       );
 
       if (result.success) {
-        console.log(`Workspace ${formData.code} criado com sucesso`);
-        console.log('Exibindo toast de sucesso para criação de workspace');
-        toast.success(`Workspace '${formData.code}' created successfully.`);
         onCreated?.();
-        console.log(`Navegando para a página do workspace: /workspaces/${formData.code}`);
         navigate(`/workspaces/${formData.code}`);
       } else {
-        console.error(`Erro ao criar workspace: ${result.message}`);
         setError(result.message);
-        console.log('Exibindo toast de erro para criação de workspace');
-        toast.error(result.message || 'Failed to create workspace');
       }
     } catch (err) {
-      console.error('Exceção ao criar workspace:', err);
       setError((err as Error).message);
-      console.log('Exibindo toast de erro para exceção na criação de workspace');
-      toast.error(`Error: ${(err as Error).message}`);
     } finally {
       setIsLoading(false);
     }

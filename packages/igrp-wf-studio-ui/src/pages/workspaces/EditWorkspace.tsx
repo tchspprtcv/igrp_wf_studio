@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { WorkflowEngineSDK } from '@igrp/wf-engine';
+import { WorkflowEngineSDK } from 'igrp-wf-engine';
 import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { toast } from 'react-hot-toast';
-import { AppOptions } from '@igrp/wf-engine'; // Import AppOptions type
+import { AppOptions } from 'igrp-wf-engine'; // Import AppOptions type
 
 interface EditWorkspaceProps {
   workspaceCode: string;

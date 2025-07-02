@@ -1,5 +1,5 @@
 {
-  "name": "@igrp/workflow",
+  "name": "igrp-wf",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -7,12 +7,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "yarn workspace @igrp/wf-studio-ui dev",
-    "build": "yarn workspaces run build",
-    "build:ordered": "yarn workspace @igrp/wf-engine build && yarn workspace @igrp/wf-studio-ui build"
+    "dev": "yarn workspace igrp-wf-studio-ui dev",
+    "build": "yarn workspaces run build"
   },
   "devDependencies": {
     "typescript": "^5.2.2"
-  },
-  "packageManager": "yarn@1.22.22"
+  }
 }

@@ -9,7 +9,10 @@
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
+    "noEmit": true, // Removed to allow tsc to check types based on referenced projects
+    "declaration": true, // Optionally emit declaration files
+    "declarationMap": true, // Optionally create sourcemaps for declarations
+    "emitDeclarationOnly": true, // Only emit .d.ts files, let Vite handle JS
     "jsx": "react-jsx",
     "strict": true,
     "noUnusedLocals": true,
@@ -21,5 +24,8 @@
     }
   },
   "include": ["src"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "references": [
+    { "path": "./tsconfig.node.json" },
+    { "path": "../igrp-wf-engine" }
+  ]
 }
