@@ -3,10 +3,12 @@
  * Modal para edição de formulários usando form-js
  * Redesenhado com base no exemplo oficial do demo.bpmn.io
  */
+"use client"; // Este modal é interativo e usa estado/efeitos
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
-// Removed unused import: FormBuilder and FormEdit
-import EditorService from '../../../services/EditorService';
+// EditorService removido, usaremos Server Actions
+import { loadFormAction, saveFormAction } from '@/app/actions'; // Ajustar caminho se necessário
 import { createRoot, Root } from 'react-dom/client';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -501,28 +503,29 @@ const SimpleFormBuilder = styled.div`
 `;
 
 interface FormEditorModalProps {
+  appCode: string; // Adicionado appCode para as Server Actions
   formKey: string;
   onSave: (formKey: string) => void;
   onClose: () => void;
 }
 
 // Formulário padrão para novos formulários
-const DEFAULT_FORM = {
+const DEFAULT_FORM_DEFINITION = { // Renomeado para clareza
   display: 'form',
   components: [],
   type: 'form',
   tags: [],
   title: 'Novo Formulário',
   name: 'novoFormulario'
+  // id e outros campos podem ser adicionados pela action ou no load
 };
 
 /**
  * FormEditorModal Component
  * 
- * Modal para edição de formulários usando form-js
- * Redesenhado com base no exemplo oficial do demo.bpmn.io
+ * Modal para edição de formulários.
  */
-const FormEditorModal: React.FC<FormEditorModalProps> = ({ formKey, onSave, onClose }) => {
+const FormEditorModal: React.FC<FormEditorModalProps> = ({ appCode, formKey, onSave, onClose }) => {
   const [formDefinition, setFormDefinition] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -566,63 +569,42 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ formKey, onSave, onCl
       setLoadError(null);
       
       try {
-        // Tentar carregar o formulário
-        let form = null;
-        
-        try {
-          form = await EditorService.loadForm(formKey);
-        } catch (error) {
-          console.log('Erro ao carregar formulário do serviço:', error);
-          throw error;
+        const result = await loadFormAction({ appCode, elementId: formKey });
+        if (result.success && result.data) {
+          let loadedForm = result.data;
+          // Garantias de campos padrão, similar à lógica original
+          if (typeof loadedForm !== 'object' || loadedForm === null) {
+            loadedForm = { ...DEFAULT_FORM_DEFINITION, id: generateFormId(formKey) };
+          }
+          if (!loadedForm.id) loadedForm.id = generateFormId(formKey);
+          if (!loadedForm.name) loadedForm.name = DEFAULT_FORM_DEFINITION.title + ' ' + (loadedForm.id || formKey);
+          if (!loadedForm.components) loadedForm.components = [];
+          if (!loadedForm.type) loadedForm.type = 'form';
+          setFormDefinition(loadedForm);
+        } else {
+          console.error('Erro ao carregar formulário via action:', result.message);
+          const newFormId = generateFormId(formKey);
+          setFormDefinition({ ...DEFAULT_FORM_DEFINITION, id: newFormId, name: 'Formulário ' + newFormId.substring(0,8) });
+          setLoadError(result.message || 'Não foi possível carregar o formulário. Um novo formulário foi criado.');
         }
-        
-        // Verificar se o retorno é um objeto válido
-        if (typeof form !== 'object' || form === null) {
-          console.log('Formato de formulário inválido:', form);
-          throw new Error('Formato de formulário inválido');
-        }
-        
-        // Garantir que o formulário tenha um ID
-        if (!form.id) {
-          form.id = generateFormId(formKey);
-        }
-        
-        // Garantir que o formulário tenha um nome
-        if (!form.name) {
-          form.name = 'Formulário ' + form.id;
-        }
-        
-        // Garantir que o formulário tenha componentes
-        if (!form.components) {
-          form.components = [];
-        }
-        
-        // Garantir que o formulário tenha um tipo
-        if (!form.type) {
-          form.type = 'form';
-        }
-        
-        setFormDefinition(form);
-      } catch (error) {
-        console.error('Erro ao carregar formulário:', error);
-        
-        // Criar um formulário vazio com ID e nome
+      } catch (error) { // Erro na chamada da action em si
+        console.error('Exceção ao carregar formulário via action:', error);
         const newFormId = generateFormId(formKey);
-        const newForm = {
-          ...DEFAULT_FORM,
-          id: newFormId,
-          name: 'Formulário ' + newFormId.substring(0, 8)
-        };
-        
-        setFormDefinition(newForm);
-        setLoadError('Não foi possível carregar o formulário. Um novo formulário foi criado.');
+        setFormDefinition({ ...DEFAULT_FORM_DEFINITION, id: newFormId, name: 'Formulário ' + newFormId.substring(0,8) });
+        setLoadError('Erro de comunicação ao carregar o formulário. Um novo formulário foi criado.');
       } finally {
         setIsLoading(false);
       }
     };
     
-    loadForm();
-  }, [formKey]);
+    if (appCode && formKey) { // Só carrega se appCode e formKey estiverem presentes
+        loadForm();
+    } else {
+        setIsLoading(false);
+        setLoadError("Workspace (appCode) ou FormKey não fornecidos.");
+        setFormDefinition({ ...DEFAULT_FORM_DEFINITION, id: generateFormId(formKey || 'unknown_form'), name: 'Formulário Inválido'});
+    }
+  }, [appCode, formKey, generateFormId]);
   
   // Gerar ID para novos formulários
   const generateFormId = useCallback((formKey: string) => {
@@ -1111,17 +1093,25 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ formKey, onSave, onCl
         updatedFormDefinition.name = 'Formulário ' + updatedFormDefinition.id;
       }
       
-      // Salvar formulário no backend ou localStorage
-      const savedFormKey = await EditorService.saveForm(formKey, updatedFormDefinition);
-      
-      // Notificar componente pai
-      onSave(savedFormKey);
-      
-      // Fechar modal
-      onClose();
-    } catch (error) {
-      console.error('Erro ao salvar formulário:', error);
-      alert('Erro ao salvar formulário. Verifique o console para mais detalhes.');
+      // Salvar formulário usando Server Action
+      const result = await saveFormAction({
+        appCode,
+        elementId: formKey,
+        definition: updatedFormDefinition
+      });
+
+      if (result.success) {
+        toast.success(result.message || "Formulário salvo com sucesso!");
+        onSave(formKey); // formKey não deve mudar, a action retorna o formKey original ou o do backend
+        onClose();
+      } else {
+        toast.error(result.message || 'Erro ao salvar formulário.');
+        console.error('Erro ao salvar formulário via action:', result.message);
+        // Opcional: Não fechar o modal em caso de erro para permitir nova tentativa
+      }
+    } catch (error) { // Erro na chamada da action em si
+      console.error('Exceção ao salvar formulário via action:', error);
+      toast.error('Erro de comunicação ao salvar o formulário.');
     }
   };
   

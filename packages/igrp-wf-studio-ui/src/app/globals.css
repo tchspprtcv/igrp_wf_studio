@@ -12,7 +12,7 @@
     @apply border-gray-200;
   }
 
-  html, body, #root {
+  html, body, #__next { /* Alterado de #root para #__next, que é o id padrão do Next.js */
     @apply h-full;
   }
 

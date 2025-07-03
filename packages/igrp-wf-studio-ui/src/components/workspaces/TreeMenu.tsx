@@ -1,6 +1,8 @@
+"use client"; // TreeMenu é interativo
+
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, ChevronDown, /*Folder,*/ Layers, Workflow, MoreVertical, Trash2, Edit } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ChevronRight, ChevronDown, Layers, Workflow, MoreVertical, Trash2, Edit } from 'lucide-react';
+import Link from 'next/link'; // Alterado de react-router-dom
 import Button from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 
@@ -14,15 +16,18 @@ interface TreeNode {
 }
 
 interface TreeMenuProps {
+  appCode: string; // Adicionado para construir URLs corretas
   areas: TreeNode[];
   onCreateArea?: () => void;
   onCreateSubArea?: (areaCode: string) => void;
   onCreateProcess?: (areaCode: string, subareaCode?: string) => void;
-  onEditItem?: (type: 'area' | 'subarea' | 'process', code: string, parentCode?: string) => void;
-  onDeleteItem?: (type: 'area' | 'subarea' | 'process', code: string, parentCode?: string) => void;
+  // Ajustado para incluir grandParentCode para processos em subáreas, para consistência com WorkspaceDetailsClientContent
+  onEditItem?: (type: 'area' | 'subarea' | 'process', itemCode: string, parentCode?: string, grandParentCode?: string) => void;
+  onDeleteItem?: (type: 'area' | 'subarea' | 'process', itemCode: string, parentCode?: string, grandParentCode?: string) => void;
 }
 
 const TreeMenu: React.FC<TreeMenuProps> = ({
+  appCode, // Receber appCode
   areas,
   onCreateArea,
   onCreateSubArea,
@@ -103,11 +108,18 @@ const TreeMenu: React.FC<TreeMenuProps> = ({
     </div>
   );
 
-  const renderProcessNode = (process: TreeNode, areaCode: string /*, subareaCode?: string*/) => {
-    const menuId = `process-${process.id}`;
+  const renderProcessNode = (process: TreeNode, areaCode: string, subAreaCode?: string) => { // Adicionado subAreaCode
+    const menuId = `process-${appCode}-${areaCode}${subAreaCode ? '-' + subAreaCode : ''}-${process.code}`;
+    // Construir a URL correta para o editor de processos
+    const processPath = `/workspaces/${appCode}/processes/${process.code}`;
+    // Para onEditItem e onDeleteItem, precisamos passar o contexto correto
+    // Se subAreaCode existir, ele é o parentCode para a action, e areaCode é o grandParentCode
+    const editParentCode = subAreaCode || areaCode;
+    const editGrandParentCode = subAreaCode ? areaCode : undefined;
+
     return (
       <div key={process.id} className="flex items-center py-1 pl-8">
-        <Link to={`/process/${process.code}`} className="flex items-center flex-1 text-sm text-gray-700 hover:text-primary-600">
+        <Link href={processPath} className="flex items-center flex-1 text-sm text-gray-700 hover:text-primary-600">
           <Workflow className="h-4 w-4 text-gray-400 mr-2" />
           <span className="truncate">{process.title}</span>
         </Link>
@@ -115,12 +127,12 @@ const TreeMenu: React.FC<TreeMenuProps> = ({
           {
             label: "Edit",
             icon: <Edit className="h-4 w-4" />,
-            onClick: () => onEditItem?.('process', process.code, areaCode)
+            onClick: () => onEditItem?.('process', process.code, editParentCode, editGrandParentCode)
           },
           {
             label: "Delete",
             icon: <Trash2 className="h-4 w-4" />,
-            onClick: () => onDeleteItem?.('process', process.code, areaCode),
+            onClick: () => onDeleteItem?.('process', process.code, editParentCode, editGrandParentCode),
             className: "text-red-600 hover:text-red-700"
           }
         ])}
@@ -130,7 +142,7 @@ const TreeMenu: React.FC<TreeMenuProps> = ({
 
   const renderSubArea = (subarea: TreeNode, areaCode: string) => {
     const isExpanded = expandedNodes.has(subarea.id);
-    const menuId = `subarea-${subarea.id}`;
+    const menuId = `subarea-${appCode}-${areaCode}-${subarea.code}`; // MenuId mais específico
 
     return (
       <div key={subarea.id}>
@@ -151,7 +163,7 @@ const TreeMenu: React.FC<TreeMenuProps> = ({
             {
               label: "Edit",
               icon: <Edit className="h-4 w-4" />,
-              onClick: () => onEditItem?.('subarea', subarea.code, areaCode)
+              onClick: () => onEditItem?.('subarea', subarea.code, areaCode) // parentCode é areaCode
             },
             {
               label: "Add Process",
@@ -161,14 +173,14 @@ const TreeMenu: React.FC<TreeMenuProps> = ({
             {
               label: "Delete",
               icon: <Trash2 className="h-4 w-4" />,
-              onClick: () => onDeleteItem?.('subarea', subarea.code, areaCode),
+              onClick: () => onDeleteItem?.('subarea', subarea.code, areaCode), // parentCode é areaCode
               className: "text-red-600 hover:text-red-700"
             }
           ])}
         </div>
         {isExpanded && subarea.processes && (
           <div className="ml-4">
-            {subarea.processes.map(process => renderProcessNode(process, areaCode))}
+            {subarea.processes.map(process => renderProcessNode(process, areaCode, subarea.code))} {/* Passar subarea.code */}
           </div>
         )}
       </div>
@@ -177,7 +189,7 @@ const TreeMenu: React.FC<TreeMenuProps> = ({
 
   const renderArea = (area: TreeNode) => {
     const isExpanded = expandedNodes.has(area.id);
-    const menuId = `area-${area.id}`;
+    const menuId = `area-${appCode}-${area.code}`; // MenuId mais específico
 
     return (
       <div key={area.id} className="border-b border-gray-200 last:border-0">
@@ -198,7 +210,7 @@ const TreeMenu: React.FC<TreeMenuProps> = ({
             {
               label: "Edit",
               icon: <Edit className="h-4 w-4" />,
-              onClick: () => onEditItem?.('area', area.code)
+              onClick: () => onEditItem?.('area', area.code) // Não tem parentCode
             },
             {
               label: "Add SubArea",
