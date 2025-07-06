@@ -9,6 +9,7 @@ A modern workflow designer and management application built with React, TypeScri
 - 🚀 Modern and responsive UI built with React and Tailwind CSS
 - 🔒 Type-safe development with TypeScript
 - 📦 Modular architecture with monorepo structure
+- 💾 Flexible workspace storage (defaults to local file system, engine can be configured for others like MinIO)
 
 ## Project Structure
 
@@ -16,72 +17,83 @@ A modern workflow designer and management application built with React, TypeScri
 packages/
 ├── igrp-wf-engine/      # Core workflow engine library
 │   ├── src/
-│   │   ├── core/        # Core business logic
+│   │   ├── core/        # Core business logic for managing workspaces and processes
 │   │   ├── types/       # TypeScript type definitions
-│   │   └── utils/       # Utility functions
+│   │   └── utils/       # Utility functions (e.g., file system interaction)
 │   └── package.json
 │
 └── igrp-wf-studio-ui/   # React-based UI application
     ├── src/
-    │   ├── components/  # Reusable UI components
-    │   ├── pages/       # Application pages
-    │   └── lib/         # Utility functions
+    │   ├── components/  # Reusable UI components (BPMN editor, modals, etc.)
+    │   ├── app/         # Next.js app router (pages and layouts)
+    │   ├── services/    # Client-side services (e.g., EditorService)
+    │   ├── igrpwfstudio/ # Studio-specific utilities (workspace catalog, manager)
+    │   └── lib/         # General utility functions
     └── package.json
 ```
 
 ## Getting Started
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+1.  **Install Dependencies:**
+    ```bash
+    npm install
+    ```
 
-2. Configure environment variables:
-   - Create a `.env.local` file in the `packages/igrp-wf-studio-ui` directory
-   - Use the `.env.example` file as a template
-   - Set the MinIO configuration variables:
-     ```
-     VITE_MINIO_ENDPOINT=http://localhost:9000
-     VITE_MINIO_REGION=GMT-1
-     VITE_MINIO_ACCESS_KEY=your_access_key_here
-     VITE_MINIO_SECRET_KEY=your_secret_key_here
-     VITE_MINIO_BUCKET_NAME=igrp-wf
-     VITE_MINIO_FORCE_PATH_STYLE=true
-     ```
+2.  **Workspace Storage:**
+    The IGRP Workflow Studio manages workspaces, which are essentially directories on your file system. The location of these workspaces is tracked by a catalog file stored in your home directory (`~/.igrp_wf_studio/workspaces_catalog.json`).
+    *   When you create a new workspace through the Studio UI, you will specify a base path where this workspace's directory will be created.
+    *   The core `igrp-wf-engine` reads and writes files (like `project-config.json`, BPMN files) within these workspace directories.
 
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
+3.  **Environment Variables (for UI development):**
+    While the core storage is file-system based as managed by the catalog, the UI might have example environment variables for other services. Create a `.env.local` file in the `packages/igrp-wf-studio-ui` directory if specific UI features require them (e.g., for alternative backend connections if the engine's storage is swapped).
+    The example `.env.example` might contain MinIO variables. MinIO is one potential backend the `igrp-wf-engine` *could* be adapted to use for storing process definitions and related artifacts, but the Studio's default interaction via `workspaceManager.ts` uses the file system approach described above.
+    ```
+    # Example for packages/igrp-wf-studio-ui/.env.local (if needed for specific UI features)
+    # VITE_MINIO_ENDPOINT=http://localhost:9000
+    # ... other MinIO vars
+    ```
 
-4. Open [http://localhost:5173](http://localhost:5173) in your browser.
+4.  **Start the Development Server:**
+    ```bash
+    npm run dev
+    ```
+    This usually starts the Next.js UI application.
+
+5.  **Open in Browser:**
+    Access [http://localhost:5173](http://localhost:5173) (or the port specified by `npm run dev`).
 
 ## Core Features
 
-### Applications
-- Create and manage workflow applications
-- Organize processes in a hierarchical structure
-- Track application status and metadata
+### Workspaces (formerly Applications)
+- Create and manage Workspaces: Each workspace is a self-contained project directory.
+- Organize processes in a hierarchical structure (Workspace -> Areas -> SubAreas -> Processes).
+- Track workspace status and metadata via `app-options.json` and `project-config.json` within its directory.
 
 ### Areas & SubAreas
-- Group related processes into areas
-- Create nested organization with subareas
-- Manage area-specific settings and permissions
+- Group related processes into logical Areas.
+- Create nested organization with SubAreas within Areas.
+- Configuration is stored in the workspace's `project-config.json`.
 
 ### Process Designer
-- Visual BPMN 2.0 process designer
-- Real-time process validation
-- Properties panel for element configuration
-- Import/Export BPMN diagrams
+- Visual BPMN 2.0 process designer using `bpmn-js`.
+- Real-time process validation (basic, provided by `bpmn-js`).
+- Properties panel for configuring BPMN element attributes.
+- Import/Export of BPMN diagrams (manual file operations currently, can be enhanced).
+- Process definitions (BPMN XML) are stored as `.bpmn` files within the area/sub-area directories of a workspace.
 
-### MinIO Integration
-- Storage of BPMN process definitions
-- Secure file management with configurable credentials
-- Environment-based configuration for different deployment scenarios
+### Storage Mechanism
+- **Primary (Studio Interaction):** The Studio UI, through `workspaceManager.ts`, interacts with the `igrp-wf-engine`. This engine, by default, uses a local file system approach. A catalog (`~/.igrp_wf_studio/workspaces_catalog.json`) tracks the base paths of different workspaces. All process definitions and configurations are stored within these workspace directories.
+- **MinIO (Engine Capability - Optional/Alternative):** The `igrp-wf-engine` *could* be configured or extended to use object storage like MinIO as a backend for process definitions and artifacts. The `.env.example` variables related to MinIO are for such scenarios or if specific UI components are built to interact directly with a MinIO-backed engine. The default Studio setup does not require MinIO to function for workspace and process management.
+
 
 ## Development
 
 ### Engine Package (`igrp-wf-engine`)
+The `igrp-wf-engine` is a Node.js library responsible for the core logic of managing workflow structures and process definitions.
+- It operates on a given `basePath` which corresponds to a specific workspace's root directory.
+- Key modules:
+    - `WorkflowWorkspaceManager`: Handles CRUD for workspaces (directory structure, `app-options.json`, `project-config.json`), areas, sub-areas, and process metadata.
+    - `ProcessManager`: Handles reading and writing of BPMN XML files.
 
 The core workflow engine provides:
 - Application management
