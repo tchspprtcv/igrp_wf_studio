@@ -1,11 +1,13 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache"; // Adicionar revalidateTag
-import { WorkflowEngineSDK, ProjectConfig, AppOptions } from '@igrp/wf-engine';
+import { revalidatePath, revalidateTag } from "next/cache";
+import { ProjectConfig, AppOptions } from '@igrp/wf-engine'; // Tipos ainda são úteis
 import { z } from 'zod';
-
-// Instanciar o SDK. Considerar injetar ou configurar basePath de forma mais robusta.
-const sdk = new WorkflowEngineSDK();
+import * as studioMgr from '@/igrpwfstudio/utils/workspaceManager'; // Nosso novo gerenciador
+// As funções de fileSystem do SDK não serão mais usadas diretamente nas actions se precisarem de basePath.
+// import { readFile, writeFile, ensureDir } from '@igrp/wf-engine'; // Remover se substituído
+import path from 'node:path'; // Usar node:path no servidor para construir caminhos relativos aos workspaces
+import fs from 'node:fs/promises'; // Adicionado para fs.access
 
 // Schema para validação do código do workspace
 const workspaceCodeSchema = z.string().min(1, "Workspace code cannot be empty.");
@@ -16,7 +18,8 @@ export async function deleteWorkspaceAction(code: string) {
     const validatedCode = workspaceCodeSchema.parse(code);
 
     console.log(`Server Action: Deleting workspace ${validatedCode}`);
-    const result = await sdk.workspaces.deleteWorkspace(validatedCode);
+    // const result = await sdk.workspaces.deleteWorkspace(validatedCode);
+    const result = await studioMgr.deleteStudioWorkspace(validatedCode);
 
     if (result.success) {
       revalidatePath("/");
@@ -52,7 +55,8 @@ export async function getWorkspaceExportDataAction(appCode: string): Promise<{ s
   try {
     const validatedAppCode = exportAppCodeSchema.parse(appCode);
 
-    const projectConfig = await sdk.workspaces.loadProjectConfig(validatedAppCode);
+    // const projectConfig = await sdk.workspaces.loadProjectConfig(validatedAppCode);
+    const projectConfig = await studioMgr.loadStudioWorkspaceConfig(validatedAppCode);
     if (!projectConfig) {
       return { success: false, message: `Could not load configuration for workspace ${validatedAppCode}.` };
     }
@@ -62,7 +66,8 @@ export async function getWorkspaceExportDataAction(appCode: string): Promise<{ s
     for (const area of projectConfig.areas || []) {
       for (const process of area.processes || []) {
         try {
-          const processDefinition = await sdk.processes.readProcessDefinition(
+          // const processDefinition = await sdk.processes.readProcessDefinition(
+          const processDefinition = await studioMgr.readStudioProcessDefinition(
             validatedAppCode,
             area.code,
             process.code
@@ -82,7 +87,8 @@ export async function getWorkspaceExportDataAction(appCode: string): Promise<{ s
       for (const subArea of area.subareas || []) {
         for (const process of subArea.processes || []) {
           try {
-            const processDefinition = await sdk.processes.readProcessDefinition(
+            // const processDefinition = await sdk.processes.readProcessDefinition(
+            const processDefinition = await studioMgr.readStudioProcessDefinition(
               validatedAppCode,
               area.code,
               process.code,
@@ -168,7 +174,8 @@ export async function addAreaToAction(prevState: any, formData: FormData) {
     return { success: false, message: "Validation failed.", errors: validation.error.flatten().fieldErrors };
   }
   const { appCode, code, title, description } = validation.data;
-  const result = await sdk.workspaces.addArea(appCode, code, title, description || '', 'active');
+  // const result = await sdk.workspaces.addArea(appCode, code, title, description || '', 'active');
+  const result = await studioMgr.addStudioArea(appCode, code, title, description || '', 'active');
   if (result.success) {
     revalidatePath(`/workspaces/${appCode}`);
     revalidateTag('projects');
@@ -192,7 +199,8 @@ export async function addSubAreaToAction(prevState: any, formData: FormData) {
     return { success: false, message: "Validation failed.", errors: validation.error.flatten().fieldErrors };
   }
   const { appCode, areaCode, code, title, description } = validation.data;
-  const result = await sdk.workspaces.addSubArea(appCode, areaCode, code, title, description || '', 'active');
+  // const result = await sdk.workspaces.addSubArea(appCode, areaCode, code, title, description || '', 'active');
+  const result = await studioMgr.addStudioSubArea(appCode, areaCode, code, title, description || '', 'active');
   if (result.success) {
     revalidatePath(`/workspaces/${appCode}`);
     revalidateTag('projects');
@@ -223,7 +231,8 @@ export async function addProcessToAction(prevState: any, formData: FormData) {
   });
   console.log("addProcessToAction validated data for SDK call:", { appCode, areaCode, subAreaCode, code, title });
 
-  const sdkResult = await sdk.workspaces.addProcessDefinition(appCode, areaCode, code, title, description || '', subAreaCode, 'active');
+  // const sdkResult = await sdk.workspaces.addProcessDefinition(appCode, areaCode, code, title, description || '', subAreaCode, 'active');
+  const sdkResult = await studioMgr.addStudioProcessDefinition(appCode, areaCode, code, title, description || '', subAreaCode, 'active');
 
   if (sdkResult.success) {
     revalidatePath(`/workspaces/${appCode}`);
@@ -271,17 +280,20 @@ export async function deleteWorkspaceItemAction(payload: z.infer<typeof deleteIt
   try {
     switch (itemType) {
       case 'area':
-        result = await sdk.workspaces.deleteArea(appCode, itemCode);
+        // result = await sdk.workspaces.deleteArea(appCode, itemCode);
+        result = await studioMgr.deleteStudioArea(appCode, itemCode);
         break;
       case 'subarea':
         if (!parentCode) return { success: false, message: "Area code (parentCode) is required for subarea." };
-        result = await sdk.workspaces.deleteSubArea(appCode, parentCode, itemCode);
+        // result = await sdk.workspaces.deleteSubArea(appCode, parentCode, itemCode);
+        result = await studioMgr.deleteStudioSubArea(appCode, parentCode, itemCode);
         break;
       case 'process':
         const areaForProcess = grandParentCode || parentCode; // Se grandParentCode existe, é area; senão parentCode é area
         if (!areaForProcess) return { success: false, message: "Area code is required for process." };
         const subAreaForProcess = grandParentCode ? parentCode : undefined; // Se grandParentCode existe, parentCode é subArea
-        result = await sdk.workspaces.deleteProcess(appCode, areaForProcess, itemCode, subAreaForProcess);
+        // result = await sdk.workspaces.deleteProcess(appCode, areaForProcess, itemCode, subAreaForProcess);
+        result = await studioMgr.deleteStudioProcess(appCode, areaForProcess, itemCode, subAreaForProcess);
         break;
       default:
         return { success: false, message: "Invalid item type for deletion." };
@@ -352,17 +364,20 @@ export async function updateWorkspaceItemAction(prevState: any, formData: FormDa
 
     switch (itemType) {
       case 'area':
-        result = await sdk.workspaces.updateArea(appCode, itemCode, title, description || '', status);
+        // result = await sdk.workspaces.updateArea(appCode, itemCode, title, description || '', status);
+        result = await studioMgr.updateStudioArea(appCode, itemCode, title, description || '', status);
         break;
       case 'subarea':
         if (!parentCode) return { success: false, message: "Area code (parentCode) is required for subarea update." };
-        result = await sdk.workspaces.updateSubArea(appCode, parentCode, itemCode, title, description || '', status);
+        // result = await sdk.workspaces.updateSubArea(appCode, parentCode, itemCode, title, description || '', status);
+        result = await studioMgr.updateStudioSubArea(appCode, parentCode, itemCode, title, description || '', status);
         break;
       case 'process':
         const areaForProcess = grandParentCode || parentCode;
         if (!areaForProcess) return { success: false, message: "Area code is required for process update." };
         const subAreaForProcess = grandParentCode ? parentCode : undefined;
-        result = await sdk.workspaces.updateProcess(appCode, areaForProcess, itemCode, title, description || '', status, subAreaForProcess);
+        // result = await sdk.workspaces.updateProcess(appCode, areaForProcess, itemCode, title, description || '', status, subAreaForProcess);
+        result = await studioMgr.updateStudioProcess(appCode, areaForProcess, itemCode, title, description || '', status, subAreaForProcess);
         break;
       default:
         return { success: false, message: "Invalid item type for update." };
@@ -381,9 +396,10 @@ export async function updateWorkspaceItemAction(prevState: any, formData: FormDa
 
 // Schema para validação dos dados de criação do workspace
 const createWorkspaceFormSchema = z.object({
-  code: itemCodeSchema, // Reutilizando itemCodeSchema
-  title: titleSchema, // Reutilizando titleSchema
+  code: itemCodeSchema,
+  title: titleSchema,
   description: descriptionSchema,
+  basePath: z.string().min(1, "O diretório base é obrigatório."), // Novo campo
 });
 
 // Schema para Save Process
@@ -402,7 +418,8 @@ export async function saveProcessAction(payload: z.infer<typeof saveProcessSchem
   }
   const { appCode, areaCode, subAreaCode, processCode, bpmnXml } = validation.data;
   try {
-    const result = await sdk.processes.saveProcessDefinition(appCode, areaCode, processCode, bpmnXml, subAreaCode);
+    // const result = await sdk.processes.saveProcessDefinition(appCode, areaCode, processCode, bpmnXml, subAreaCode);
+    const result = await studioMgr.saveStudioProcessDefinition(appCode, areaCode, processCode, bpmnXml, subAreaCode);
     if (result.success) {
       revalidatePath(`/workspaces/${appCode}/processes/${processCode}`);
       revalidatePath(`/workspaces/${appCode}`);
@@ -506,11 +523,11 @@ export async function deployProcessAction(payload: z.infer<typeof deployProcessS
   }
 }
 
-// Usar as funções de fileSystem do SDK para consistência, se possível, ou node:fs/promises
-import { readFile, writeFile, ensureDir } from '@igrp/wf-engine';
-import path from 'node:path'; // Usar node:path no servidor
+// import path from 'node:path'; // Já importado no topo
 
 // --- Form and Decision Table Actions (armazenamento no File System) ---
+// As funções readFile, writeFile, ensureDir do SDK foram substituídas pelas equivalentes
+// em studioMgr (readStudioFile, writeStudioFile, ensureStudioDir) que respeitam o basePath.
 
 const formElementIdSchema = z.string().min(1, "Element ID (formKey) cannot be empty.");
 const formDefinitionSchema = z.any(); // Idealmente, um schema Zod mais específico
@@ -521,7 +538,8 @@ function getFormPath(appCode: string, elementId: string): string {
   // O SDK usa './' como basePath padrão. Se os dados dos workspaces estiverem em um subdiretório (ex: 'data/workspaces'),
   // o basePath do SDK precisa ser configurado para isso, ou o path aqui precisa ser ajustado.
   // Assumindo que o basePath do SDK já aponta para o diretório que contém os workspaces.
-  return path.join(appCode, '_forms', `${elementId}.form.json`);
+  // Com a nova lógica, este path é relativo à pasta do workspace.
+  return path.join('_forms', `${elementId}.form.json`);
 }
 
 export async function loadFormAction(payload: { appCode: string; elementId: string }): Promise<{ success: boolean; data?: any; message?: string; errors?: any }> {
@@ -531,23 +549,18 @@ export async function loadFormAction(payload: { appCode: string; elementId: stri
     return { success: false, message: "Invalid parameters for loading form.", errors: validation.error.flatten().fieldErrors };
   }
   const { appCode, elementId } = validation.data;
-  const formPath = getFormPath(appCode, elementId);
+  const formPath = getFormPath(appCode, elementId); // Agora retorna o caminho relativo correto
 
   try {
-    const content = await readFile(formPath); // readFile do SDK já usa o basePath
+    const content = await studioMgr.readStudioFile(appCode, formPath); // Passa appCode e o caminho relativo
     if (content) {
       return { success: true, data: JSON.parse(content) };
     }
-    // Se o arquivo não existir, retornar um formulário vazio (ou erro, dependendo do requisito)
+    // Se o arquivo não existir (readStudioFile retorna null), retornar um formulário vazio
+    console.log(`Form file not found for ${elementId} in ${appCode} (path: ${formPath}), returning empty form.`);
     return { success: true, data: { display: 'form', components: [], title: `New Form for ${elementId}` } };
-  } catch (error) {
-    // readFile pode lançar erro se o arquivo não existir, dependendo da implementação do SDK.
-    // Se o erro for "não encontrado", podemos querer retornar um formulário vazio.
-    if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
-        console.log(`Form file not found for ${elementId} in ${appCode}, returning empty form.`);
-        return { success: true, data: { display: 'form', components: [], title: `New Form for ${elementId}` } };
-    }
-    console.error(`Error in loadFormAction for ${elementId} in ${appCode}:`, error);
+  } catch (error) { // readStudioFile pode lançar outros erros além de ENOENT (que ele já trata retornando null)
+    console.error(`Error in loadFormAction for ${elementId} in ${appCode} (path: ${formPath}):`, error);
     return { success: false, message: `Server error loading form: ${(error as Error).message}` };
   }
 }
@@ -563,19 +576,12 @@ export async function saveFormAction(payload: { appCode: string; elementId: stri
     return { success: false, message: "Invalid data for saving form.", errors: validation.error.flatten().fieldErrors };
   }
   const { appCode, elementId, definition } = validation.data;
-  const formPath = getFormPath(appCode, elementId);
+  const formPath = getFormPath(appCode, elementId); // Caminho relativo dentro do workspace
 
   try {
-    // Garantir que o diretório _forms exista dentro do workspace
-    const formsDir = path.dirname(formPath); // ex: appCode/_forms
-    // ensureDir do SDK precisa do path completo relativo ao basePath do SDK.
-    // Se o basePath do SDK é './', então formsDir deve ser 'appCode/_forms'.
-    // Se o basePath do SDK é 'data/workspaces', então formsDir deve ser 'appCode/_forms'
-    // (porque o path.join em getFormPath já começa com appCode).
-    // O ensureDir do SDK já deve lidar com o basePath internamente.
-    await ensureDir(formsDir);
+    // studioMgr.writeStudioFile agora lida com a criação de diretórios.
+    const result = await studioMgr.writeStudioFile(appCode, formPath, JSON.stringify(definition, null, 2));
 
-    const result = await writeFile(formPath, JSON.stringify(definition, null, 2));
     if (result.success) {
       revalidatePath(`/workspaces/${appCode}`); // Revalidar página de detalhes do workspace
       // Poderia ter uma tag específica para formulários se necessário: revalidateTag(`forms-${appCode}`)
@@ -601,6 +607,7 @@ export async function createWorkspaceAction(
       code: formData.get('code'),
       title: formData.get('title'),
       description: formData.get('description'),
+      basePath: formData.get('basePath'), // Ler o novo campo
     };
 
     const validationResult = createWorkspaceFormSchema.safeParse(rawData);
@@ -613,14 +620,38 @@ export async function createWorkspaceAction(
       };
     }
 
-    const { code, title, description } = validationResult.data;
+    const { code, title, description, basePath } = validationResult.data;
 
-    console.log(`Server Action: Creating workspace ${code}`);
-    const result = await sdk.workspaces.createWorkspace(
+    // Validação adicional: Verificar se o diretório do workspace já existe
+    const targetWorkspacePath = path.join(basePath, code);
+    try {
+      await fs.access(targetWorkspacePath);
+      // Se fs.access não der erro, o diretório existe.
+      return {
+        success: false,
+        message: `O diretório para o workspace '${code}' já existe em '${basePath}'. Escolha um código ou diretório base diferente.`,
+        errors: { code: [`Workspace '${code}' já existe neste local.`], basePath: [`Diretório '${targetWorkspacePath}' já existe.`] }
+      };
+    } catch (e: any) {
+      // Esperamos um erro ENOENT (não existe), o que é bom. Outros erros são problemáticos.
+      if (e.code !== 'ENOENT') {
+        console.error(`[createWorkspaceAction] Erro ao verificar o diretório ${targetWorkspacePath}:`, e);
+        return {
+          success: false,
+          message: `Erro ao verificar o diretório do workspace: ${e.message}`,
+          errors: { _form: [`Erro no servidor ao verificar diretório: ${e.message}`] }
+        };
+      }
+      // Diretório não existe, podemos prosseguir.
+    }
+
+    console.log(`Server Action: Creating workspace ${code} at basePath ${basePath}`);
+    const result = await studioMgr.createStudioWorkspace(
       code,
       title,
       description || '',
-      'active'
+      'active', // status padrão
+      basePath
     );
 
     if (result.success) {
@@ -659,7 +690,8 @@ export async function updateWorkspaceOptionsAction(prevState: any, formData: For
   const { workspaceCode, title, description } = validation.data;
 
   try {
-    const result = await sdk.workspaces.updateWorkspaceOptions(workspaceCode, { title, description });
+    // const result = await sdk.workspaces.updateWorkspaceOptions(workspaceCode, { title, description });
+    const result = await studioMgr.updateStudioWorkspaceOptions(workspaceCode, { title, description });
     if (result.success) {
       revalidatePath("/");
       revalidatePath("/workspaces");

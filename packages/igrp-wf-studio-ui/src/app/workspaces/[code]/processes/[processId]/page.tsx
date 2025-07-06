@@ -1,43 +1,42 @@
 import { Metadata, ResolvingMetadata } from 'next';
-import { WorkflowEngineSDK, ProjectConfig, Process } from '@igrp/wf-engine'; // Supondo que Process é um tipo exportado
-import ProcessEditorClient from "./ProcessEditorClient"; // Novo Client Component
+import { ProjectConfig, Process } from '@igrp/wf-engine'; // Tipos
+import ProcessEditorClient from "./ProcessEditorClient";
 import { notFound } from 'next/navigation';
 import { unstable_cache as nextCache } from 'next/cache';
-import PageHeader from '@/components/layout/PageHeader';
+// import PageHeader from '@/components/layout/PageHeader'; // Não usado diretamente aqui
+import * as studioMgr from '@/igrpwfstudio/utils/workspaceManager'; // Nosso gerenciador
 
-const sdk = new WorkflowEngineSDK();
+// const sdk = new WorkflowEngineSDK(); // REMOVIDO
 
 type Props = {
-  params: { code: string; processId: string };
+  params: { code: string; processId: string }; // 'code' aqui é o workspaceCode
 };
 
 interface ProcessDetailsForEditor extends Process {
   bpmnXml?: string | null;
-  appCode: string;
+  appCode: string; // workspaceCode
   areaCode: string;
   subAreaCode?: string;
 }
 
-// Reutilizar getProjectConfigCached de /app/workspaces/[code]/page.tsx ou definir uma versão aqui.
-// Para evitar duplicação, idealmente seria importada de um utilitário.
-// Vou assumir que uma versão similar está disponível ou redefinir aqui.
-const getProjectConfigCachedForProcess = nextCache(
-  async (appCode: string) => {
-    console.log(`Cache Miss: ProcessEditor - getProjectConfigCachedForProcess para ${appCode}`);
-    return sdk.workspaces.loadProjectConfig(appCode);
+const getProjectConfigCachedForProcessPage = nextCache( // Renomeado para evitar conflitos de chave se importado
+  async (appCode: string): Promise<ProjectConfig | null> => {
+    console.log(`[ProcessEditorPage] Cache Miss: getProjectConfigCachedForProcessPage para ${appCode}`);
+    // return sdk.workspaces.loadProjectConfig(appCode); // Lógica Antiga
+    return await studioMgr.loadStudioWorkspaceConfig(appCode); // Nova Lógica
   },
-  ['project-config-process'],
-  { tags: ['projects'] }
+  ['project-config-for-process-editor'], // Chave de cache única
+  { tags: ['projects', (appCode: string) => `project-${appCode}`] } // Tags para revalidação
 );
 
-const getProcessDefinitionCached = nextCache(
+const getProcessDefinitionCachedForEditorPage = nextCache( // Renomeado para evitar conflitos
   async (params: {appCode: string, areaCode: string, processCode: string, subAreaCode?: string}) => {
-    console.log(`Cache Miss: ProcessEditor - getProcessDefinitionCached para ${params.processCode}`);
-    return sdk.processes.readProcessDefinition(params.appCode, params.areaCode, params.processCode, params.subAreaCode);
+    console.log(`[ProcessEditorPage] Cache Miss: getProcessDefinitionCachedForEditorPage para ${params.processCode} em ${params.appCode}`);
+    // return sdk.processes.readProcessDefinition(params.appCode, params.areaCode, params.processCode, params.subAreaCode); // Lógica Antiga
+    return await studioMgr.readStudioProcessDefinition(params.appCode, params.areaCode, params.processCode, params.subAreaCode); // Nova Lógica
   },
-  ['process-definition'],
-  // Tags podem ser mais específicas: [`process-${appCode}-${processCode}`]
-  { tags: ['processes', 'projects'] } // 'projects' porque a estrutura do processo está no config
+  ['process-definition-editor'], // Chave de cache única
+  { tags: ['processes', (params: {appCode: string, processCode: string}) => `process-${params.appCode}-${params.processCode}`] }
 );
 
 
@@ -46,14 +45,13 @@ export async function generateMetadata(
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const { code: workspaceCode, processId } = params;
-  const config = await getProjectConfigCachedForProcess(workspaceCode); // Cache
+  const config = await getProjectConfigCachedForProcessPage(workspaceCode);
   let processTitle = processId;
   if (config) {
-    // Lógica para encontrar o título (mantida)
-    for (const area of config.areas) {
+    for (const area of config.areas || []) {
       const pInArea = area.processes.find(p => p.code === processId);
       if (pInArea) { processTitle = pInArea.title; break; }
-      for (const subArea of area.subareas) {
+      for (const subArea of area.subareas || []) {
         const pInSubArea = subArea.processes.find(p => p.code === processId);
         if (pInSubArea) { processTitle = pInSubArea.title; break; }
       }
@@ -67,10 +65,11 @@ export async function generateMetadata(
 }
 
 async function getProcessData(workspaceCode: string, processId: string): Promise<ProcessDetailsForEditor | null> {
+  console.log(`[ProcessEditorPage] getProcessData para workspace: ${workspaceCode}, processo: ${processId}`);
   try {
-    const config = await getProjectConfigCachedForProcess(workspaceCode); // Cache
+    const config = await getProjectConfigCachedForProcessPage(workspaceCode);
     if (!config) {
-      console.error(`Workspace config not found for ${workspaceCode}`);
+      console.error(`[ProcessEditorPage] Configuração do Workspace não encontrada para ${workspaceCode}`);
       return null;
     }
 
@@ -78,11 +77,10 @@ async function getProcessData(workspaceCode: string, processId: string): Promise
     let areaCodeFound: string | undefined;
     let subAreaCodeFound: string | undefined;
 
-    // Lógica para encontrar metadados (mantida)
-    for (const area of config.areas) {
+    for (const area of config.areas || []) {
       processMeta = area.processes.find(p => p.code === processId);
       if (processMeta) { areaCodeFound = area.code; break; }
-      for (const subArea of area.subareas) {
+      for (const subArea of area.subareas || []) {
         processMeta = subArea.processes.find(p => p.code === processId);
         if (processMeta) { areaCodeFound = area.code; subAreaCodeFound = subArea.code; break; }
       }
@@ -90,41 +88,56 @@ async function getProcessData(workspaceCode: string, processId: string): Promise
     }
 
     if (!processMeta || !areaCodeFound) {
-      console.error(`Process metadata not found for ${processId} in workspace ${workspaceCode}`);
+      console.error(`[ProcessEditorPage] Metadados do processo não encontrados para ${processId} no workspace ${workspaceCode}`);
       return null;
     }
+    console.log(`[ProcessEditorPage] Metadados encontrados: Area ${areaCodeFound}, SubArea ${subAreaCodeFound}, Processo ${processMeta.title}`);
 
-    const processDefinition = await getProcessDefinitionCached({ // Cache
+    const processDefinition = await getProcessDefinitionCachedForEditorPage({
         appCode: workspaceCode,
         areaCode: areaCodeFound,
         processCode: processId,
         subAreaCode: subAreaCodeFound
     });
 
+    if (!processDefinition) {
+        console.warn(`[ProcessEditorPage] Definição BPMN não encontrada para o processo ${processId}. Um novo diagrama pode ser criado.`);
+    }
+
     return {
       ...processMeta,
-      bpmnXml: processDefinition?.bpmnXml || null,
+      bpmnXml: processDefinition?.bpmnXml || null, // Permite XML nulo se não encontrado (editor pode criar novo)
       appCode: workspaceCode,
       areaCode: areaCodeFound,
       subAreaCode: subAreaCodeFound,
     };
   } catch (err) {
-    console.error(`Error fetching data for process ${processId} in workspace ${workspaceCode}:`, err);
+    console.error(`[ProcessEditorPage] Erro ao buscar dados para processo ${processId} no workspace ${workspaceCode}:`, err);
     return null;
   }
 }
 
 export default async function ProcessEditorPage({ params }: Props) {
   const { code: workspaceCode, processId } = params;
+  console.log(`[ProcessEditorPage] Renderizando editor para workspace: ${workspaceCode}, processo: ${processId}`);
   const processDetails = await getProcessData(workspaceCode, processId);
 
   if (!processDetails) {
-    notFound();
+    // Adicionar uma mensagem mais informativa aqui em vez de apenas notFound()
+    // para que o usuário saiba o que aconteceu.
+    // notFound() pode ser chamado se quisermos uma página 404 genérica.
+    return (
+      <div className="p-4">
+        <h1 className="text-xl font-semibold text-red-600">Error Loading Process</h1>
+        <p>Could not load details for process '{processId}' in workspace '{workspaceCode}'.</p>
+        <p>The process may not exist or the workspace configuration is missing.</p>
+      </div>
+    );
   }
 
+  console.log(`[ProcessEditorPage] Passando initialProcessDetails para o cliente:`, { title: processDetails.title, hasBpmn: !!processDetails.bpmnXml });
+
   return (
-    // O layout do editor é bem específico (altura total, etc.),
-    // então o ProcessEditorClient provavelmente controlará a maior parte da estrutura.
     <ProcessEditorClient initialProcessDetails={processDetails} />
   );
 }

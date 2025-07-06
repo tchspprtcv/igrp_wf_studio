@@ -99,6 +99,17 @@ const CreateWorkspace: React.FC<CreateWorkspaceProps> = ({ onClose, onCreated })
             {formState.errors?.description && <p className="text-red-500 text-xs">{formState.errors.description[0]}</p>}
           </div>
 
+          <Input
+            label="Diretório Base do Workspace (Caminho Absoluto)"
+            name="basePath"
+            id="basePath"
+            placeholder="Ex: /utilizadores/nome/meus_workspaces/este_workspace ou C:\\Workspaces\\este_workspace"
+            required
+            error={formState.errors?.basePath?.[0]}
+          />
+          {formState.errors?.basePath && <p className="text-red-500 text-xs">{formState.errors.basePath[0]}</p>}
+
+
           {/* O campo status foi removido do formulário pois a action define como 'active' por padrão */}
           {/* Se precisar dele, adicionar de volta e no schema da action */}
 

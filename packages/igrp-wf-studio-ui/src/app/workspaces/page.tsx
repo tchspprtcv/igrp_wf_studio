@@ -1,10 +1,12 @@
 import { Metadata } from 'next';
-import { WorkflowEngineSDK, AppOptions } from '@igrp/wf-engine';
+// import { WorkflowEngineSDK, AppOptions } from '@igrp/wf-engine'; // SDK direto não mais usado para listar
+import { AppOptions } from '@igrp/wf-engine'; // AppOptions ainda é útil como tipo
 import { unstable_cache as nextCache } from 'next/cache';
 import PageHeader from "@/components/layout/PageHeader";
-import WorkspaceListClientContent from "./WorkspaceListClientContent";
+import WorkspaceListClientContent from "./WorkspaceListClientContent"; // Assumindo que este é o caminho correto
+import * as studioMgr from '@/igrpwfstudio/utils/workspaceManager'; // Nosso gerenciador
 
-const sdk = new WorkflowEngineSDK();
+// const sdk = new WorkflowEngineSDK(); // REMOVIDO
 
 export const metadata: Metadata = {
   title: 'Workflow Workspaces - IGRP Workflow Studio',
@@ -13,12 +15,13 @@ export const metadata: Metadata = {
 
 const getWorkspacesDataCached = nextCache(
   async () => {
-    console.log("Cache Miss: Recalculando getWorkspacesDataCached");
+    console.log("Cache Miss: Recalculando getWorkspacesDataCached com studioMgr");
     try {
-      const workspaces = await sdk.workspaces.listWorkspaces();
+      // const workspaces = await sdk.workspaces.listWorkspaces(); // Lógica antiga
+      const workspaces = await studioMgr.listStudioWorkspaces(); // Nova lógica baseada no catálogo
       return { workspaces, error: null };
     } catch (err) {
-      console.error("Error fetching workspaces list (cached):", err);
+      console.error("Error fetching workspaces list via studioMgr (cached):", err);
       return { workspaces: [], error: (err as Error).message };
     }
   },
@@ -28,6 +31,7 @@ const getWorkspacesDataCached = nextCache(
 
 export default async function WorkspacesPage() {
   const { workspaces, error } = await getWorkspacesDataCached();
+  console.log('[WorkspacesPage] Dados de getWorkspacesDataCached:', { workspaces, error }); // <--- NOVO LOG AQUI
 
   return (
     <div className="animate-fade-in">

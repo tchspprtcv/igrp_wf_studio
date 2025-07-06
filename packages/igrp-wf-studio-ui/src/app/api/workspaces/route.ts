@@ -1,39 +1,42 @@
 import { NextResponse } from 'next/server';
-import { WorkflowEngineSDK } from '@igrp/wf-engine';
+// import { WorkflowEngineSDK } from '@igrp/wf-engine'; // Não mais necessário aqui
+import * as studioMgr from '@/igrpwfstudio/utils/workspaceManager'; // Nosso gerenciador
+import { AppOptions, ProjectConfig } from '@igrp/wf-engine'; // Apenas os tipos
 
-// Initialize SDK on the server side
-const sdk = new WorkflowEngineSDK();
+// const sdk = new WorkflowEngineSDK(); // REMOVIDO
 
 export async function GET() {
   try {
-    // Fetch workspaces
-    const apps = await sdk.workspaces.listWorkspaces();
+    // Fetch AppOptions dos workspaces a partir do catálogo
+    const appOptionsList: AppOptions[] = await studioMgr.listStudioWorkspaces();
     
-    // Fetch project config for each workspace
-    const appsWithConfig = await Promise.all(
-      apps.map(async (app: {title: string; code: string; description?: string }) => {
-        const config = await sdk.workspaces.loadProjectConfig(app.code);
+    // Fetch project config completo para cada workspace
+    // A UI do dashboard parece precisar da estrutura completa com áreas e processos.
+    const workspacesWithFullConfig = await Promise.all(
+      appOptionsList.map(async (appOpt) => {
+        const projectConfig: ProjectConfig | null = await studioMgr.loadStudioWorkspaceConfig(appOpt.code);
         return {
-          code: app.code,
-          title: app.title || app.description || app.code, 
-          areas: (config?.areas || []).map((area: any) => ({
+          code: appOpt.code,
+          title: appOpt.title || appOpt.description || appOpt.code,
+          // Usar áreas do projectConfig se disponível, senão array vazio
+          areas: (projectConfig?.areas || []).map((area: any) => ({
             ...area,
-            description: area.description || '', // Default description
-            status: area.status || 'active', // Default status
+            description: area.description || '',
+            status: area.status || 'active',
             processes: area.processes || [],
-            // Ensure subareas within areas also have required fields
             subareas: (area.subareas || []).map((subarea: any) => ({
               ...subarea,
-              description: subarea.description || '', // Default description
-              status: subarea.status || 'active', // Default status
+              description: subarea.description || '',
+              status: subarea.status || 'active',
               processes: subarea.processes || []
             }))
           }))
+          // Poderia adicionar outros campos do appOpt aqui se necessário, como description, status global, etc.
         };
       })
     );
     
-    return NextResponse.json({ workspaces: appsWithConfig });
+    return NextResponse.json({ workspaces: workspacesWithFullConfig });
   } catch (error) {
     console.error('Error fetching workspaces:', error);
     return NextResponse.json(
