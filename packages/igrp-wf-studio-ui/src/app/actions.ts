@@ -7,6 +7,7 @@ import * as studioMgr from '@/igrpwfstudio/utils/workspaceManager'; // Nosso nov
 // As funções de fileSystem do SDK não serão mais usadas diretamente nas actions se precisarem de basePath.
 // import { readFile, writeFile, ensureDir } from '@igrp/wf-engine'; // Remover se substituído
 import path from 'node:path'; // Usar node:path no servidor para construir caminhos relativos aos workspaces
+import fs from 'node:fs/promises'; // Adicionado para fs.access
 
 // Schema para validação do código do workspace
 const workspaceCodeSchema = z.string().min(1, "Workspace code cannot be empty.");
@@ -621,8 +622,30 @@ export async function createWorkspaceAction(
 
     const { code, title, description, basePath } = validationResult.data;
 
+    // Validação adicional: Verificar se o diretório do workspace já existe
+    const targetWorkspacePath = path.join(basePath, code);
+    try {
+      await fs.access(targetWorkspacePath);
+      // Se fs.access não der erro, o diretório existe.
+      return {
+        success: false,
+        message: `O diretório para o workspace '${code}' já existe em '${basePath}'. Escolha um código ou diretório base diferente.`,
+        errors: { code: [`Workspace '${code}' já existe neste local.`], basePath: [`Diretório '${targetWorkspacePath}' já existe.`] }
+      };
+    } catch (e: any) {
+      // Esperamos um erro ENOENT (não existe), o que é bom. Outros erros são problemáticos.
+      if (e.code !== 'ENOENT') {
+        console.error(`[createWorkspaceAction] Erro ao verificar o diretório ${targetWorkspacePath}:`, e);
+        return {
+          success: false,
+          message: `Erro ao verificar o diretório do workspace: ${e.message}`,
+          errors: { _form: [`Erro no servidor ao verificar diretório: ${e.message}`] }
+        };
+      }
+      // Diretório não existe, podemos prosseguir.
+    }
+
     console.log(`Server Action: Creating workspace ${code} at basePath ${basePath}`);
-    // A função createStudioWorkspace será atualizada no próximo passo para aceitar basePath
     const result = await studioMgr.createStudioWorkspace(
       code,
       title,
