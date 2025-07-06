@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import { WorkflowEngineSDK } from '@igrp/wf-engine';
-import { cn } from "@/lib/utils";
-import {
+"use client"; // Adicionado para Next.js App Router
 
+import React, { useState, useEffect } from "react";
+import Link from "next/link"; // Alterado de NavLink
+import { useRouter, usePathname } from "next/navigation"; // Alterado de useNavigate
+import type { AppOptions, ProjectConfig } from '@igrp/wf-engine';
+import { cn } from "@/lib/utils";
+import { deleteWorkspaceAction, deleteWorkspaceItemAction } from "@/app/actions"; // Import server actions
+import { toast } from 'react-hot-toast';
+import {
   Home,
   X,
   ChevronDown,
@@ -14,47 +18,26 @@ import {
   Trash2,
   MoreVertical,
   Edit,
-  PanelLeftClose, // Add icon for collapse
-  PanelRightClose, // Add icon for expand
   ChevronsRight,
   ChevronsLeft
 } from "lucide-react";
 import Button from "@/components/ui/Button";
-import CreateWorkspace from "@/pages/workspaces/CreateWorkspace";
-import CreateArea from "@/pages/workspaces/CreateArea";
-import CreateSubArea from "@/pages/workspaces/CreateSubArea";
-import CreateProcess from "@/pages/workspaces/CreateProcess";
-import EditWorkspace from "@/pages/workspaces/EditWorkspace"; // Import the new component
-import EditArea from "@/pages/workspaces/EditArea"; // Import EditArea modal
-import EditSubArea from "@/pages/workspaces/EditSubArea"; // Import EditSubArea modal
-
-interface Workspace {
-  code: string;
-  title: string;
-  areas: Area[];
-}
-
-interface Area {
-  code: string;
-  title: string;
-  description: string; // Make description required
-  status: 'active' | 'inactive' | 'draft'; // Make status required
-  processes: Process[];
-  subareas: SubArea[];
-}
-
-interface SubArea {
-  code: string;
-  title: string;
-  description: string; // Make description required
-  status: 'active' | 'inactive' | 'draft'; // Make status required
-  processes: Process[];
-}
-
-interface Process {
-  code: string;
-  title: string;
-}
+// As importações de páginas de modais podem precisar de ajuste de caminho se as páginas forem movidas
+// ou se os modais forem extraídos para componentes dedicados.
+// Por agora, mantendo os caminhos originais relativos a 'src'.
+import CreateWorkspace from "@/components/modals/CreateWorkspaceModal"; // Atualizado
+import CreateArea from "@/components/modals/CreateAreaModal";
+import CreateSubArea from "@/components/modals/CreateSubAreaModal";
+import CreateProcess from "@/components/modals/CreateProcessModal";
+import EditWorkspace from "@/components/modals/EditWorkspaceModal"; // Atualizado
+import EditArea from "@/components/modals/EditAreaModal";           // Atualizado
+import EditSubArea from "@/components/modals/EditSubAreaModal";         // Atualizado
+import type {
+  SidebarWorkspace,
+  SidebarArea,
+  SidebarSubArea,
+  SidebarProcess
+} from '@/types'; // Importar tipos centralizados
 
 interface SidebarProps {
   isMobileOpen: boolean;
@@ -63,17 +46,17 @@ interface SidebarProps {
   onToggleCollapse: () => void; // Add prop for toggling collapse
 }
 
-const sdk = new WorkflowEngineSDK();
+// SDK is now used via server actions
 
 const Sidebar: React.FC<SidebarProps> = ({ 
-  isMobileOpen, 
-  onCloseMobile, 
-  isCollapsed, 
-  onToggleCollapse 
+  isMobileOpen,
+  onCloseMobile,
+  isCollapsed,
+  onToggleCollapse
 }) => {
-  const navigate = useNavigate();
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  // const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const pathname = usePathname();
+  const [workspaces, setWorkspaces] = useState<SidebarWorkspace[]>([]); // Usar tipo centralizado
   const [expandedApps, setExpandedApps] = useState<Set<string>>(new Set());
   const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -84,15 +67,15 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [showCreateArea, setShowCreateArea] = useState(false);
   const [showCreateSubArea, setShowCreateSubArea] = useState(false);
   const [showCreateProcess, setShowCreateProcess] = useState(false);
-  const [showEditWorkspace, setShowEditWorkspace] = useState(false); // State for edit modal
-  const [showEditArea, setShowEditArea] = useState(false); // State for EditArea modal
-  const [showEditSubArea, setShowEditSubArea] = useState(false); // State for EditSubArea modal
+  const [showEditWorkspace, setShowEditWorkspace] = useState(false);
+  const [showEditArea, setShowEditArea] = useState(false);
+  const [showEditSubArea, setShowEditSubArea] = useState(false);
   const [selectedApp, setSelectedApp] = useState<string | null>(null);
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
   const [selectedSubArea, setSelectedSubArea] = useState<string | null>(null);
-  const [editingWorkspaceCode, setEditingWorkspaceCode] = useState<string | null>(null); // State for workspace being edited
-  const [editingArea, setEditingArea] = useState<{ appCode: string; area: Area } | null>(null); // State for area being edited
-  const [editingSubArea, setEditingSubArea] = useState<{ appCode: string; areaCode: string; subArea: SubArea } | null>(null); // State for subarea being edited
+  const [editingWorkspaceCode, setEditingWorkspaceCode] = useState<string | null>(null);
+  const [editingArea, setEditingArea] = useState<{ appCode: string; area: SidebarArea } | null>(null); // Usar SidebarArea
+  const [editingSubArea, setEditingSubArea] = useState<{ appCode: string; areaCode: string; subArea: SidebarSubArea } | null>(null); // Usar SidebarSubArea
 
   const handleWorkspaceCreated = async () => {
     await loadWorkspaces();
@@ -121,35 +104,19 @@ const Sidebar: React.FC<SidebarProps> = ({
   const loadWorkspaces = async () => {
     try {
       setLoading(true);
-      const apps = await sdk.workspaces.listWorkspaces();
       
-      const appsWithConfig = await Promise.all(
-        apps.map(async (app: {title: string; code: string; description?: string }) => { // Assume app has code and optional description
-          const config = await sdk.workspaces.loadProjectConfig(app.code);
-          return {
-            code: app.code,
-            title: app.title || app.description || app.code, 
-            areas: (config?.areas || []).map((area: any) => ({
-              ...area,
-              description: area.description || '', // Default description
-              status: area.status || 'active', // Default status
-              processes: area.processes || [],
-              // Ensure subareas within areas also have required fields
-              subareas: (area.subareas || []).map((subarea: any) => ({
-                ...subarea,
-                description: subarea.description || '', // Default description
-                status: subarea.status || 'active', // Default status
-                processes: subarea.processes || []
-              }))
-            }))
-          };
-        })
-      );
+      // Fetch workspaces data from the server
+      const response = await fetch('/api/workspaces');
+      if (!response.ok) {
+        throw new Error('Failed to fetch workspaces');
+      }
       
-      setWorkspaces(appsWithConfig);
+      const data = await response.json();
+      setWorkspaces(data.workspaces || []);
     } catch (error) {
       console.error('Failed to load workspaces:', error);
       setError((error as Error).message);
+      toast.error(`Failed to load workspaces: ${(error as Error).message}`);
     } finally {
       setLoading(false);
     }
@@ -161,14 +128,17 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
 
     try {
-      const result = await sdk.workspaces.deleteWorkspace(code);
+      const result = await deleteWorkspaceAction(code);
       if (result.success) {
+        toast.success(result.message || `Workspace '${code}' deleted successfully.`);
         await loadWorkspaces();
-        navigate('/');
+        router.push('/'); // Alterado de navigate('/')
       } else {
+        toast.error(result.message || 'Failed to delete workspace');
         setError(result.message);
       }
     } catch (err) {
+      toast.error(`Error: ${(err as Error).message}`);
       setError((err as Error).message);
     }
   };
@@ -179,13 +149,21 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
 
     try {
-      const result = await sdk.workspaces.deleteArea(appCode, areaCode);
+      const result = await deleteWorkspaceItemAction({
+        appCode,
+        itemType: 'area',
+        itemCode: areaCode
+      });
+      
       if (result.success) {
+        toast.success(result.message || `Area '${areaCode}' deleted successfully.`);
         await loadWorkspaces();
       } else {
+        toast.error(result.message || 'Failed to delete area');
         setError(result.message);
       }
     } catch (err) {
+      toast.error(`Error: ${(err as Error).message}`);
       setError((err as Error).message);
     }
   };
@@ -196,13 +174,22 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
 
     try {
-      const result = await sdk.workspaces.deleteSubArea(appCode, areaCode, subareaCode);
+      const result = await deleteWorkspaceItemAction({
+        appCode,
+        itemType: 'subarea',
+        itemCode: subareaCode,
+        parentCode: areaCode
+      });
+      
       if (result.success) {
+        toast.success(result.message || `Subarea '${subareaCode}' deleted successfully.`);
         await loadWorkspaces();
       } else {
+        toast.error(result.message || 'Failed to delete subarea');
         setError(result.message);
       }
     } catch (err) {
+      toast.error(`Error: ${(err as Error).message}`);
       setError((err as Error).message);
     }
   };
@@ -213,14 +200,24 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
 
     try {
-      const result = await sdk.workspaces.deleteProcess(appCode, areaCode, processCode, subareaCode);
+      const result = await deleteWorkspaceItemAction({
+        appCode,
+        itemType: 'process',
+        itemCode: processCode,
+        parentCode: subareaCode || areaCode,
+        grandParentCode: subareaCode ? areaCode : undefined
+      });
+      
       if (result.success) {
+        toast.success(result.message || `Process '${processCode}' deleted successfully.`);
         await loadWorkspaces();
-        navigate('/workspaces/' + appCode);
+        router.push('/workspaces/' + appCode); // Alterado de navigate
       } else {
+        toast.error(result.message || 'Failed to delete process');
         setError(result.message);
       }
     } catch (err) {
+      toast.error(`Error: ${(err as Error).message}`);
       setError((err as Error).message);
     }
   };
@@ -297,31 +294,32 @@ const Sidebar: React.FC<SidebarProps> = ({
     </div>
   );
 
-  const renderProcess = (appCode: string, areaCode: string, process: Process, isCollapsed: boolean, subareaCode?: string) => {
-    const processPath = `/process/${process.code}`;
-    // const isActive = location.pathname === processPath; // Commented out unused variable
-    const menuId = `process-${process.code}`;
+  const renderProcess = (appCode: string, areaCode: string, process: SidebarProcess, isCollapsed: boolean, subareaCode?: string) => { // Usar SidebarProcess
+    // Ajustar o path do processo para a nova estrutura de rotas
+    const processPath = `/workspaces/${appCode}/processes/${process.code}`;
+    const isActive = pathname === processPath;
+    const menuId = `process-${appCode}-${areaCode}-${subareaCode || 'root'}-${process.code}`;
+
 
     return (
       <div key={process.code} className="flex items-center pl-12 py-1 text-sm">
-        <NavLink
-          to={processPath}
-          className={({ isActive }) =>
-            cn(
-              "flex items-center flex-1 rounded-md px-2 py-1",
-              isActive
-                ? "bg-primary-100 text-primary-700 font-medium" // Use a slightly darker blue for active state
-                : "text-gray-600 bg-blue-300 hover:bg-blue-400"
-            )}
+        <Link
+          href={processPath}
+          className={cn(
+            "flex items-center flex-1 rounded-md px-2 py-1",
+            isActive
+              ? "bg-primary-100 text-primary-700 font-medium"
+              : "text-gray-600 bg-blue-300 hover:bg-blue-400" // Mantido estilo original para consistência visual inicial
+          )}
         >
           <Workflow className="h-4 w-4 mr-2" />
           <span className="truncate">{process.title}</span>
-        </NavLink>
-        {renderActionMenu(menuId, [
+        </Link>
+        {!isCollapsed && renderActionMenu(menuId, [
           {
             label: "Edit",
             icon: <Edit className="h-4 w-4" />,
-            onClick: () => navigate(processPath)
+            onClick: () => router.push(processPath) // Alterado de navigate
           },
           {
             label: "Delete",
@@ -334,8 +332,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     );
   };
 
-  const renderSubArea = (appCode: string, areaCode: string, subarea: SubArea, isCollapsed: boolean) => {
-    const menuId = `subarea-${subarea.code}`;
+  const renderSubArea = (appCode: string, areaCode: string, subarea: SidebarSubArea, isCollapsed: boolean) => { // Usar SidebarSubArea
+    const menuId = `subarea-${appCode}-${areaCode}-${subarea.code}`; // MenuId mais específico
 
     return (
       <div key={subarea.code} className="pl-8">
@@ -376,9 +374,9 @@ const Sidebar: React.FC<SidebarProps> = ({
     );
   };
 
-  const renderArea = (appCode: string, area: Area, isCollapsed: boolean) => {
+  const renderArea = (appCode: string, area: SidebarArea, isCollapsed: boolean) => { // Usar SidebarArea
     const isExpanded = expandedAreas.has(area.code);
-    const menuId = `area-${area.code}`;
+    const menuId = `area-${appCode}-${area.code}`; // MenuId mais específico
 
     return (
       <div key={area.code}>
@@ -446,7 +444,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     );
   };
 
-  const renderWorkspace = (app: Workspace, isCollapsed: boolean) => {
+  const renderWorkspace = (app: SidebarWorkspace, isCollapsed: boolean) => { // Usar SidebarWorkspace
     const isExpanded = expandedApps.has(app.code);
     const menuId = `app-${app.code}`;
 
@@ -573,32 +571,28 @@ const Sidebar: React.FC<SidebarProps> = ({
         <nav className="space-y-1">
           {/* Static Navigation Links */}
           {navigation.map((item) => (
-            <NavLink
+            <Link
               key={item.name}
-              to={item.href}
-              onClick={isMobileOpen ? onCloseMobile : undefined} // Close mobile sidebar on nav click
-              className={({ isActive }) =>
-                cn(
-                  "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors",
-                  isCollapsed && !isMobileOpen ? "justify-center" : "", // Center items if collapsed desktop
-                  isActive
-                    ? "bg-primary-50 text-primary-600"
-                    : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                )
-              }
-              title={isCollapsed && !isMobileOpen ? item.name : undefined} // Tooltip for collapsed desktop items
-              end={item.href === "/"}
+              href={item.href}
+              onClick={isMobileOpen ? onCloseMobile : undefined}
+              className={cn(
+                "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors",
+                isCollapsed && !isMobileOpen ? "justify-center" : "",
+                pathname === item.href
+                  ? "bg-primary-50 text-primary-600"
+                  : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+              )}
+              title={isCollapsed && !isMobileOpen ? item.name : undefined}
             >
               <item.icon
                 className={cn(
                   "h-5 w-5",
-                  isCollapsed && !isMobileOpen ? "" : "mr-3", // No margin if collapsed desktop
+                  isCollapsed && !isMobileOpen ? "" : "mr-3",
                 )}
                 aria-hidden="true"
               />
-              {/* Show label if not collapsed desktop */} 
               {!(isCollapsed && !isMobileOpen) && <span>{item.name}</span>}
-            </NavLink>
+            </Link>
           ))}
         </nav>
 
@@ -718,9 +712,10 @@ const Sidebar: React.FC<SidebarProps> = ({
             setSelectedArea(null);
             setSelectedSubArea(null);
           }}
-          onCreated={(newProcessCode) => { // Modified: Receive newProcessCode
-            loadWorkspaces(); // Keep reloading workspaces in the background
-            navigate(`/process/${newProcessCode}`); // Navigate to the new process
+          onCreated={(appCode, areaCode, subAreaCode, newProcessCode) => {
+            loadWorkspaces();
+            // Navegar para a nova rota de processo
+            router.push(`/workspaces/${appCode}/processes/${newProcessCode}`);
           }}
         />
       )}
@@ -745,7 +740,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         <EditArea
           isOpen={showEditArea}
           appCode={editingArea.appCode}
-          area={editingArea.area as Required<Area>}
+          area={editingArea.area as Required<SidebarArea>} // Usar SidebarArea
           onClose={() => {
             setShowEditArea(false);
             setEditingArea(null);
@@ -764,7 +759,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           isOpen={showEditSubArea}
           appCode={editingSubArea.appCode}
           areaCode={editingSubArea.areaCode}
-          subArea={editingSubArea?.subArea as SubArea}
+          subArea={editingSubArea?.subArea as SidebarSubArea} // Usar SidebarSubArea
           onClose={() => {
             setShowEditSubArea(false);
             setEditingSubArea(null);

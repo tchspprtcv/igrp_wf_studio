@@ -12,7 +12,8 @@
     "build:ordered": "yarn workspace @igrp/wf-engine build && yarn workspace @igrp/wf-studio-ui build"
   },
   "devDependencies": {
-    "typescript": "^5.2.2"
+    "@tailwindcss/postcss": "^4.1.11",
+    "typescript": "^5.8.3"
   },
   "packageManager": "yarn@1.22.22"
 }
