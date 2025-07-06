@@ -8,9 +8,10 @@ import type { DashboardStats } from '@/types'; // Importar tipo centralizado
 
 // Instanciar o SDK. O basePath pode precisar de configuração dependendo de onde os dados estão.
 import { unstable_cache as nextCache } from 'next/cache'; // Importar unstable_cache
+import * as studioMgr from '@/igrpwfstudio/utils/workspaceManager'; // Nosso gerenciador
 
 // Por enquanto, o padrão do SDK é './', relativo ao diretório de execução do servidor Next.js.
-const sdk = new WorkflowEngineSDK();
+// const sdk = new WorkflowEngineSDK(); // REMOVIDO - Não usar SDK globalmente aqui
 
 export const metadata: Metadata = {
   title: 'Dashboard - IGRP Workflow Studio',
@@ -20,19 +21,24 @@ export const metadata: Metadata = {
 // Função para buscar e calcular os dados do dashboard, agora com cache
 const getDashboardDataCached = nextCache(
   async () => {
-    console.log("Cache Miss: Recalculando getDashboardDataCached");
+    console.log("[app/page.tsx] Cache Miss: Recalculando getDashboardDataCached com studioMgr");
     try {
-      const apps = await sdk.workspaces.listWorkspaces();
+      const appOptionsList = await studioMgr.listStudioWorkspaces(); // (1) Lista do catálogo
       const statsData: DashboardStats = {
-        workspaces: apps.length,
+        workspaces: appOptionsList.length,
         areas: 0,
         processes: 0,
-        active: apps.filter(app => app.status === 'active').length
+        active: appOptionsList.filter(app => app.status === 'active').length
       };
 
-      for (const app of apps) {
-        // Usar uma função cacheada para loadProjectConfig também, se for chamado em múltiplos lugares
-        const config = await getProjectConfigCached(app.code);
+      const workspacesDataForClient: AppOptions[] = []; // Para passar para DashboardClientContent
+
+      for (const appOpt of appOptionsList) {
+        workspacesDataForClient.push(appOpt);
+
+        // Carrega ProjectConfig para as estatísticas
+        // const config = await getProjectConfigCached(appOpt.code); // (2) Config do catálogo - getProjectConfigCached também precisa ser refatorado
+        const config = await studioMgr.loadStudioWorkspaceConfig(appOpt.code); // Usar studioMgr diretamente
         if (config) {
           statsData.areas += config.areas.length;
           for (const area of config.areas) {
@@ -43,11 +49,9 @@ const getDashboardDataCached = nextCache(
           }
         }
       }
-      return { workspaces: apps, stats: statsData, error: null };
+      return { workspaces: workspacesDataForClient, stats: statsData, error: null };
     } catch (err) {
-      console.error("Error fetching dashboard data (cached):", err);
-      // É importante que a função cacheada não retorne undefined em caso de erro se o tipo não permitir.
-      // Retornar uma estrutura de erro consistente.
+      console.error("[app/page.tsx] Error fetching dashboard data (cached):", err);
       return {
         workspaces: [],
         stats: { workspaces: 0, areas: 0, processes: 0, active: 0 },
@@ -55,25 +59,30 @@ const getDashboardDataCached = nextCache(
       };
     }
   },
-  ['dashboard-data'], // Chave base para o cache
-  { tags: ['workspaces', 'projects'] } // Tags para revalidação
+  // ['dashboard-data'], // Chave antiga
+  ['dashboard-data-v3'], // Nova chave para tentar forçar refresh
+  { tags: ['workspaces', 'projects'] }
 );
 
-// Função cacheada para carregar configuração de projeto individualmente
+// getProjectConfigCached não é mais diretamente necessário por HomePage se getDashboardDataCached já faz tudo
+// e usa studioMgr.loadStudioWorkspaceConfig diretamente.
+// Se for usado em outros lugares, precisará ser refatorado também.
+/*
 const getProjectConfigCached = nextCache(
   async (appCode: string) => {
-    console.log(`Cache Miss: Recalculando getProjectConfigCached para ${appCode}`);
-    return sdk.workspaces.loadProjectConfig(appCode);
+    console.log(`[app/page.tsx] Cache Miss: Recalculando getProjectConfigCached para ${appCode} com studioMgr`);
+    return await studioMgr.loadStudioWorkspaceConfig(appCode);
   },
-  ['project-config'], // Chave base, será sufixada com appCode pela keyParts
-  // A tag pode ser mais específica se necessário, ex: [`project-${appCode}`]
-  // ou uma tag genérica se muitas coisas invalidam configs de projeto.
+  ['project-config-v3'], // Nova chave
   { tags: ['projects'] }
 );
-
+*/
 
 export default async function HomePage() {
   const { workspaces, stats, error } = await getDashboardDataCached();
+  // Adicionar o log que sugeri anteriormente para verificar os dados aqui
+  console.log('[HomePage] Dados recebidos de getDashboardDataCached:', { workspaces: workspaces, stats, error });
+
 
   // O PageHeader precisa saber se o modal de criação deve ser aberto.
   // Essa lógica de estado (showCreateModal) será movida para DashboardClientContent.
