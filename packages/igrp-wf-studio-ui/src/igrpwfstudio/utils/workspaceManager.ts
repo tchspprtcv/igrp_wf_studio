@@ -1,5 +1,7 @@
 import { WorkflowEngineSDK, ProjectConfig, FileOperationResult, AppOptions } from '@igrp/wf-engine';
 import { getBaseWorkspacePath } from '../config/workspace'; // Função do Passo 2
+import nodePath from 'node:path'; // Movido para o topo
+import fs from 'node:fs/promises';   // Movido para o topo
 
 /**
  * Obtém uma instância do WorkflowEngineSDK configurada com o basePath
@@ -250,12 +252,7 @@ export async function updateStudioProcess(
 
 // Vou implementar o workaround (2) por agora.
 
-export async function readStudioFile(relativePathInWorkspace: string): Promise<string | null> {
-// Requer 'node:path' e 'node:fs/promises' importados no topo do arquivo.
-// Adicionarei explicitamente essas importações.
-import nodePath from 'node:path'; // Renomeado para evitar conflito com o path global/browser
-import fs from 'node:fs/promises';
-
+// Comentários sobre importações removidos pois elas estão no topo agora.
 
 export async function readStudioFile(relativePathInWorkspace: string): Promise<string | null> {
   // const sdk = await getSdkWithBaseConfigured(); // Não precisamos mais do SDK aqui para basePath
@@ -304,9 +301,4 @@ export async function ensureStudioDir(relativePathInWorkspace: string): Promise<
   }
 }
 
-// Requer 'node:path' e 'node:fs/promises' importados no topo do arquivo.
-// Adicionarei explicitamente essas importações.
-import nodePath from 'node:path'; // Renomeado para evitar conflito com o path global/browser
-import fs from 'node:fs/promises';
-// E ajustar o uso de 'path' para 'nodePath' nas funções acima.
-// (Feito na próxima etapa de refatoração)
+// Comentários sobre importações e ajustes removidos.
