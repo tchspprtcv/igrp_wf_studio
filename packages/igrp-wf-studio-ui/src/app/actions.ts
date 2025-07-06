@@ -395,9 +395,10 @@ export async function updateWorkspaceItemAction(prevState: any, formData: FormDa
 
 // Schema para validação dos dados de criação do workspace
 const createWorkspaceFormSchema = z.object({
-  code: itemCodeSchema, // Reutilizando itemCodeSchema
-  title: titleSchema, // Reutilizando titleSchema
+  code: itemCodeSchema,
+  title: titleSchema,
   description: descriptionSchema,
+  basePath: z.string().min(1, "O diretório base é obrigatório."), // Novo campo
 });
 
 // Schema para Save Process
@@ -536,7 +537,8 @@ function getFormPath(appCode: string, elementId: string): string {
   // O SDK usa './' como basePath padrão. Se os dados dos workspaces estiverem em um subdiretório (ex: 'data/workspaces'),
   // o basePath do SDK precisa ser configurado para isso, ou o path aqui precisa ser ajustado.
   // Assumindo que o basePath do SDK já aponta para o diretório que contém os workspaces.
-  return path.join(appCode, '_forms', `${elementId}.form.json`);
+  // Com a nova lógica, este path é relativo à pasta do workspace.
+  return path.join('_forms', `${elementId}.form.json`);
 }
 
 export async function loadFormAction(payload: { appCode: string; elementId: string }): Promise<{ success: boolean; data?: any; message?: string; errors?: any }> {
@@ -546,11 +548,10 @@ export async function loadFormAction(payload: { appCode: string; elementId: stri
     return { success: false, message: "Invalid parameters for loading form.", errors: validation.error.flatten().fieldErrors };
   }
   const { appCode, elementId } = validation.data;
-  const formPath = getFormPath(appCode, elementId); // formPath é relativo ao workspace: appCode/_forms/elementId.form.json
+  const formPath = getFormPath(appCode, elementId); // Agora retorna o caminho relativo correto
 
   try {
-    // const content = await readFile(formPath); // readFile do SDK original
-    const content = await studioMgr.readStudioFile(formPath); // Usa nosso wrapper
+    const content = await studioMgr.readStudioFile(appCode, formPath); // Passa appCode e o caminho relativo
     if (content) {
       return { success: true, data: JSON.parse(content) };
     }
@@ -574,16 +575,11 @@ export async function saveFormAction(payload: { appCode: string; elementId: stri
     return { success: false, message: "Invalid data for saving form.", errors: validation.error.flatten().fieldErrors };
   }
   const { appCode, elementId, definition } = validation.data;
-  const formPath = getFormPath(appCode, elementId); // relativo ao workspace: appCode/_forms/elementId.form.json
+  const formPath = getFormPath(appCode, elementId); // Caminho relativo dentro do workspace
 
   try {
-    // Garantir que o diretório _forms exista dentro do workspace
-    // const formsDir = path.dirname(formPath); // path.dirname("appCode/_forms/file.json") -> "appCode/_forms"
-    // await ensureDir(formsDir); // ensureDir do SDK original
-    // Não precisamos mais chamar ensureDir separadamente se writeStudioFile já o faz (como implementado)
-
-    // const result = await writeFile(formPath, JSON.stringify(definition, null, 2));
-    const result = await studioMgr.writeStudioFile(formPath, JSON.stringify(definition, null, 2));
+    // studioMgr.writeStudioFile agora lida com a criação de diretórios.
+    const result = await studioMgr.writeStudioFile(appCode, formPath, JSON.stringify(definition, null, 2));
 
     if (result.success) {
       revalidatePath(`/workspaces/${appCode}`); // Revalidar página de detalhes do workspace
@@ -610,6 +606,7 @@ export async function createWorkspaceAction(
       code: formData.get('code'),
       title: formData.get('title'),
       description: formData.get('description'),
+      basePath: formData.get('basePath'), // Ler o novo campo
     };
 
     const validationResult = createWorkspaceFormSchema.safeParse(rawData);
@@ -622,15 +619,16 @@ export async function createWorkspaceAction(
       };
     }
 
-    const { code, title, description } = validationResult.data;
+    const { code, title, description, basePath } = validationResult.data;
 
-    console.log(`Server Action: Creating workspace ${code}`);
-    // const result = await sdk.workspaces.createWorkspace(
+    console.log(`Server Action: Creating workspace ${code} at basePath ${basePath}`);
+    // A função createStudioWorkspace será atualizada no próximo passo para aceitar basePath
     const result = await studioMgr.createStudioWorkspace(
       code,
       title,
       description || '',
-      'active'
+      'active', // status padrão
+      basePath
     );
 
     if (result.success) {
