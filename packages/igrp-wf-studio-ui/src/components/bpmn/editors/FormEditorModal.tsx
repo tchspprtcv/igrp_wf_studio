@@ -10,6 +10,7 @@ import styled from 'styled-components';
 // EditorService removido, usaremos Server Actions
 import { loadFormAction, saveFormAction } from '@/app/actions'; // Ajustar caminho se necessário
 import { createRoot, Root } from 'react-dom/client';
+import ButtonComponent from '@/components/ui/Button'; // Renamed to avoid conflict with styled-component
 import { v4 as uuidv4 } from 'uuid';
 
 // Form component interfaces
@@ -110,17 +111,7 @@ const ModalFooter = styled.div`
 `;
 
 const Button = styled.button<{ primary?: boolean }>`
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: pointer;
-  border: 1px solid ${props => props.primary ? '#2196f3' : '#ddd'};
-  background-color: ${props => props.primary ? '#2196f3' : 'white'};
-  color: ${props => props.primary ? 'white' : '#333'};
-  
-  &:hover {
-    background-color: ${props => props.primary ? '#1976d2' : '#f5f5f5'};
-  }
+  /* Styled-component Button removed, will use the main Button from '@/components/ui/Button' */
 `;
 
 const CloseButton = styled.button`
@@ -711,7 +702,7 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ appCode, formKey, onS
               case 'button':
                 html = `
                   <div class="formio-component formio-component-button" style="margin-bottom: 15px;">
-                    <button class="btn btn-primary">${component.label || 'Button'}</button>
+                    <button class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">${component.label || 'Button'}</button>
                   </div>
                 `;
                 break;
@@ -798,11 +789,7 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ appCode, formKey, onS
                 transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
               }
               
-              .btn-primary {
-                color: #fff;
-                background-color: #0d6efd;
-                border-color: #0d6efd;
-              }
+              /* .btn-primary removed as it's now using Tailwind classes directly in the preview string */
               
               .row {
                 display: flex;
@@ -1834,8 +1821,8 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ appCode, formKey, onS
         </ModalBody>
         
         <ModalFooter>
-          <Button onClick={onClose}>Cancelar</Button>
-          <Button primary onClick={handleSave}>Salvar</Button>
+          <ButtonComponent variant="outline" onClick={onClose}>Cancelar</ButtonComponent>
+          <ButtonComponent variant="primary" onClick={handleSave}>Salvar</ButtonComponent>
         </ModalFooter>
       </ModalContent>
       
