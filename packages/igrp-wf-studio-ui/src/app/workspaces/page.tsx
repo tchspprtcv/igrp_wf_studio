@@ -31,6 +31,7 @@ const getWorkspacesDataCached = nextCache(
 
 export default async function WorkspacesPage() {
   const { workspaces, error } = await getWorkspacesDataCached();
+  console.log('[WorkspacesPage] Dados de getWorkspacesDataCached:', { workspaces, error }); // <--- NOVO LOG AQUI
 
   return (
     <div className="animate-fade-in">

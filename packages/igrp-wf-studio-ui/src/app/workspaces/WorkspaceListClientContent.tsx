@@ -27,6 +27,7 @@ interface WorkspaceListClientProps {
 }
 
 export default function WorkspaceListClientContent({ initialWorkspaces }: WorkspaceListClientProps) {
+  console.log('[WorkspaceListClientContent] initialWorkspaces recebidos:', initialWorkspaces); // <--- NOVO LOG AQUI
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
