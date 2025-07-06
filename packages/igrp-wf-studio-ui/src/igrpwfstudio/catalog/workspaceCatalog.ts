@@ -65,6 +65,7 @@ export async function writeCatalog(entries: WorkspaceCatalogEntry[]): Promise<vo
     await ensureCatalogDirExists();
     const data = JSON.stringify(entries, null, 2);
     await fs.writeFile(filePath, data, 'utf-8');
+    console.log(`[WorkspaceCatalog] Catálogo salvo em ${filePath} com ${entries.length} entradas.`); // Log adicionado
   } catch (error: any) {
     console.error(`[WorkspaceCatalog] Erro ao salvar catálogo (${filePath}):`, error.message);
     throw error; // Re-lança o erro para que o chamador saiba que a escrita falhou
@@ -90,13 +91,13 @@ export async function addWorkspaceToCatalog(newEntry: WorkspaceCatalogEntry): Pr
       ...newEntry,
       createdAt: entries[existingIndex].createdAt || newEntry.createdAt || new Date().toISOString()
     };
-    console.log(`[WorkspaceCatalog] Entrada atualizada para o workspace: ${newEntry.code}`);
+    console.log(`[WorkspaceCatalog] Entrada atualizada para o workspace: ${newEntry.code} em basePath: ${newEntry.basePath}`);
   } else {
     entries.push({
       ...newEntry,
       createdAt: newEntry.createdAt || new Date().toISOString()
     });
-    console.log(`[WorkspaceCatalog] Nova entrada adicionada para o workspace: ${newEntry.code}`);
+    console.log(`[WorkspaceCatalog] Nova entrada adicionada para o workspace: ${newEntry.code} em basePath: ${newEntry.basePath}`);
   }
   await writeCatalog(entries);
 }

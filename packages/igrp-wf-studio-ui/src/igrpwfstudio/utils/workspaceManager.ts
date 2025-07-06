@@ -49,20 +49,23 @@ export async function listStudioWorkspaces(): Promise<AppOptions[]> {
   const appOptionsList: AppOptions[] = [];
 
   for (const entry of catalogEntries) {
+    const appOptionsPath = nodePath.join(entry.basePath, entry.code, 'app-options.json');
     try {
-      const appOptionsPath = nodePath.join(entry.basePath, entry.code, 'app-options.json');
-      const appOptionsContent = await fs.readFile(appOptionsPath, 'utf-8'); // Usando fs direto
+      console.log(`[listStudioWorkspaces] Tentando ler: ${appOptionsPath}`); // Log Adicionado
+      const appOptionsContent = await fs.readFile(appOptionsPath, 'utf-8');
       if (appOptionsContent) {
         const appOpt = JSON.parse(appOptionsContent) as AppOptions;
         appOptionsList.push(appOpt);
       } else {
-        console.warn(`[WorkspaceManager] app-options.json não encontrado para ${entry.code} em ${entry.basePath}`);
+        // Este bloco é menos provável de ser atingido se readFile lançar ENOENT
+        console.warn(`[listStudioWorkspaces] app-options.json encontrado mas conteúdo vazio para ${entry.code} em ${entry.basePath}`);
       }
     } catch (error: any) {
        if (error.code === 'ENOENT') {
-        console.warn(`[WorkspaceManager] app-options.json não encontrado para ${entry.code} em ${entry.basePath} (ENOENT)`);
+        // Log específico para ENOENT, mostrando o caminho que falhou
+        console.warn(`[listStudioWorkspaces] ERRO ENOENT ao ler ${appOptionsPath}`);
       } else {
-        console.error(`[WorkspaceManager] Falha ao carregar app-options para workspace ${entry.code} em ${entry.basePath}:`, error);
+        console.error(`[listStudioWorkspaces] Falha ao carregar app-options para workspace ${entry.code} (path: ${appOptionsPath}):`, error);
       }
     }
   }
