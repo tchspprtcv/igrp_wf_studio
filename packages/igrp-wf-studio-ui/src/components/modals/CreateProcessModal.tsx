@@ -94,7 +94,10 @@ const CreateProcessModal: React.FC<CreateProcessProps> = ({
         <form action={formAction} className="p-4 space-y-4">
           <input type="hidden" name="appCode" value={workspaceCode} />
           <input type="hidden" name="areaCode" value={selectedAreaCode} />
-          {/* areaCode e subAreaCode serão passados via select e hidden inputs se necessário, ou a action os infere */}
+          {/* Ensure subAreaCode is submitted if selected, especially when dropdown might be disabled */}
+          {selectedSubAreaCode && (
+            <input type="hidden" name="subAreaCode" value={selectedSubAreaCode} />
+          )}
 
           <div>
             <label htmlFor="areaCode" className="form-label">Area*</label>
