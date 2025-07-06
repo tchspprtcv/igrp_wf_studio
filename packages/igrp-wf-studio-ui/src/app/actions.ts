@@ -214,6 +214,15 @@ export async function addProcessToAction(prevState: any, formData: FormData) {
     return { success: false, message: "Validation failed.", errors: validation.error.flatten().fieldErrors };
   }
   const { appCode, areaCode, subAreaCode, code, title, description } = validation.data;
+
+  // Logging to verify received codes
+  console.log("addProcessToAction received FormData values:", {
+    appCodeFromData: formData.get('appCode'),
+    areaCodeFromData: formData.get('areaCode'),
+    subAreaCodeFromData: formData.get('subAreaCode'),
+  });
+  console.log("addProcessToAction validated data for SDK call:", { appCode, areaCode, subAreaCode, code, title });
+
   const result = await sdk.workspaces.addProcessDefinition(appCode, areaCode, code, title, description || '', subAreaCode, 'active');
   if (result.success) {
     revalidatePath(`/workspaces/${appCode}`);

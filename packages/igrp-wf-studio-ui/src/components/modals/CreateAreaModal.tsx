@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { addAreaToAction } from '@/app/actions'; // Ajustar caminho
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { generateNextCode } from '@/lib/utils'; // Import the generator
 
 interface CreateAreaProps {
   workspaceCode: string;
+  existingAreaCodes: string[]; // Prop to pass existing codes
   onClose: () => void;
   onCreated: () => void; // Chamado após criação bem-sucedida para refresh
 }
@@ -30,10 +32,20 @@ function SubmitButton() {
 
 const CreateAreaModal: React.FC<CreateAreaProps> = ({
   workspaceCode,
+  existingAreaCodes,
   onClose,
   onCreated
 }) => {
   const [formState, formAction] = useFormState(addAreaToAction, initialState);
+  const [generatedCode, setGeneratedCode] = useState('');
+
+  useEffect(() => {
+    // Generate code when the modal is opened or workspaceCode/existingAreaCodes change
+    if (workspaceCode) {
+      const nextCode = generateNextCode('area', workspaceCode, undefined, existingAreaCodes);
+      setGeneratedCode(nextCode);
+    }
+  }, [workspaceCode, existingAreaCodes]);
 
   useEffect(() => {
     if (formState.success) {
@@ -66,7 +78,8 @@ const CreateAreaModal: React.FC<CreateAreaProps> = ({
             label="Area Code"
             name="code"
             id="areaCode"
-            placeholder="Enter area code (e.g., finance)"
+            placeholder="e.g., finance"
+            defaultValue={generatedCode} // Use generated code as default
             required
             error={formState.errors?.code?.[0]}
           />

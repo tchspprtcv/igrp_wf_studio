@@ -249,6 +249,7 @@ const WorkspaceDetailsClientContent: React.FC<WorkspaceDetailsClientProps> = ({ 
       {showCreateArea && (
         <CreateAreaModal
           workspaceCode={workspaceCode}
+          existingAreaCodes={config?.areas?.map(a => a.code) || []}
           onClose={() => setShowCreateArea(false)}
           onCreated={() => {
             setShowCreateArea(false);
@@ -261,6 +262,11 @@ const WorkspaceDetailsClientContent: React.FC<WorkspaceDetailsClientProps> = ({ 
         <CreateSubAreaModal
           workspaceCode={workspaceCode}
           areaCode={selectedAreaForModal}
+          existingSubAreaCodes={
+            config?.areas
+              .find(a => a.code === selectedAreaForModal)
+              ?.subareas?.map(sa => sa.code) || []
+          }
           onClose={() => {
             setShowCreateSubArea(false);
             setSelectedAreaForModal(null);
@@ -279,6 +285,16 @@ const WorkspaceDetailsClientContent: React.FC<WorkspaceDetailsClientProps> = ({ 
           initialArea={selectedAreaForModal}
           initialSubArea={selectedSubAreaForModal}
           availableAreas={config.areas.map(a => ({ code: a.code, title: a.title, subareas: a.subareas.map(sa => ({ code: sa.code, title: sa.title })) })) || []}
+          existingProcessCodes={(() => {
+            if (!config || !selectedAreaForModal) return [];
+            const area = config.areas.find(a => a.code === selectedAreaForModal);
+            if (!area) return [];
+            if (selectedSubAreaForModal) {
+              const subArea = area.subareas.find(sa => sa.code === selectedSubAreaForModal);
+              return subArea?.processes?.map(p => p.code) || [];
+            }
+            return area.processes?.map(p => p.code) || [];
+          })()}
           onClose={() => {
             setShowCreateProcess(false);
             setSelectedAreaForModal(null);
