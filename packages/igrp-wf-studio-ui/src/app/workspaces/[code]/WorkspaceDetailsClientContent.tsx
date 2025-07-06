@@ -14,12 +14,9 @@ import { Archive } from 'lucide-react';
 import JSZip from 'jszip';
 import {
     getWorkspaceExportDataAction,
-    getWorkspaceExportDataAction,
     addAreaToAction,
     addSubAreaToAction,
     addProcessToAction,
-    updateWorkspaceItemAction,
-    deleteWorkspaceItemAction
     updateWorkspaceItemAction,
     deleteWorkspaceItemAction
 } from '@/app/actions';
@@ -168,7 +165,7 @@ const WorkspaceDetailsClientContent: React.FC<WorkspaceDetailsClientProps> = ({ 
       return;
     }
     setExportingZip(true);
-    toast.info(`Fetching data for ${workspaceCode} export...`);
+    toast.success(`Fetching data for ${workspaceCode} export...`);
     try {
       const result = await getWorkspaceExportDataAction(workspaceCode);
       if (!result.success || !result.data || !result.data.projectConfig) {
@@ -177,7 +174,7 @@ const WorkspaceDetailsClientContent: React.FC<WorkspaceDetailsClientProps> = ({ 
       }
       const { projectConfig, processes } = result.data;
 
-      toast.info(`Generating ZIP for ${workspaceCode}...`);
+      toast.success(`Generating ZIP for ${workspaceCode}...`);
       const zip = new JSZip();
       zip.file(`${workspaceCode}/project-config.json`, JSON.stringify(projectConfig, null, 2));
       for (const processFile of processes) {

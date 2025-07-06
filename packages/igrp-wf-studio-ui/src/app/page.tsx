@@ -1,7 +1,5 @@
 import { Metadata } from 'next';
 import { WorkflowEngineSDK, ProjectConfig, AppOptions } from '@igrp/wf-engine';
-import { Metadata } from 'next';
-import { WorkflowEngineSDK, ProjectConfig, AppOptions } from '@igrp/wf-engine';
 import PageHeader from "@/components/layout/PageHeader";
 import { Folder, Layers, Workflow, Clock } from "lucide-react"; // Importar ícones
 import CreateWorkspaceModal from "@/pages/workspaces/CreateWorkspace";

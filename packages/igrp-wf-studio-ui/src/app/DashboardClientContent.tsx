@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation"; // Para revalidação ou navegação programática
-import { WorkflowEngineSDK, AppOptions, ProjectConfig } from '@igrp/wf-engine';
+import type { AppOptions, ProjectConfig } from '@igrp/wf-engine';
 import { Workflow, Layers, Folder, Clock, Search, Download, Trash2 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import Button from "@/components/ui/Button";
@@ -11,10 +11,7 @@ import CreateWorkspaceModal from "@/components/modals/CreateWorkspaceModal"; // 
 import PageHeader from "@/components/layout/PageHeader";
 import JSZip from 'jszip';
 import { toast } from 'react-hot-toast';
-
-// SDK instance for client-side operations if strictly necessary (e.g. export)
-// Idealmente, a maioria das chamadas ao SDK seria via Server Actions.
-const sdk = new WorkflowEngineSDK();
+import { deleteWorkspaceAction, getWorkspaceExportDataAction } from "./actions"; // Importar as Server Actions
 
 interface DashboardClientContentProps {
   initialWorkspaces: AppOptions[]; // AppOptions é o tipo retornado por listWorkspaces
@@ -37,32 +34,6 @@ export default function DashboardClientContent({ initialWorkspaces, initialError
   useEffect(() => {
     setError(initialError || null);
   }, [initialError]);
-
-
-import { deleteWorkspaceAction } from "./actions"; // Importar a Server Action
-
-  const handleDelete = async (code: string) => {
-    if (!confirm('Are you sure you want to delete this workspace?')) {
-      return;
-    }
-    try {
-      const result = await deleteWorkspaceAction(code);
-      if (result.success) {
-        toast.success(result.message || `Workspace '${code}' deleted successfully.`);
-        // router.refresh(); // revalidatePath na action deve ser suficiente
-                         // mas router.refresh() pode ser usado se a revalidação não for imediata.
-                         // Por ora, vamos confiar no revalidatePath.
-      } else {
-        toast.error(result.message || 'Failed to delete workspace');
-        setError(result.message);
-      }
-    } catch (err) {
-      toast.error(`Error: ${(err as Error).message}`);
-      setError((err as Error).message); // Pode ser um erro de rede ou da action não ter sido pega pelo try/catch interno dela
-    }
-  };
-
-import { deleteWorkspaceAction, getWorkspaceExportDataAction } from "./actions"; // Importar a Server Action
 
   const handleDelete = async (code: string) => {
     if (!confirm('Are you sure you want to delete this workspace?')) {
@@ -91,7 +62,7 @@ import { deleteWorkspaceAction, getWorkspaceExportDataAction } from "./actions";
       return;
     }
     setExportingWorkspaceCode(appCode);
-    toast.info(`Fetching data for ${appCode} export...`);
+    toast.success(`Fetching data for ${appCode} export...`);
 
     try {
       const result = await getWorkspaceExportDataAction(appCode);
@@ -104,7 +75,7 @@ import { deleteWorkspaceAction, getWorkspaceExportDataAction } from "./actions";
 
       const { projectConfig, processes } = result.data;
 
-      toast.info(`Generating ZIP for ${appCode}...`);
+      toast.success(`Generating ZIP for ${appCode}...`);
       const zip = new JSZip();
       // Adiciona o project-config.json na raiz da pasta do appCode dentro do ZIP
       zip.file(`${appCode}/project-config.json`, JSON.stringify(projectConfig, null, 2));

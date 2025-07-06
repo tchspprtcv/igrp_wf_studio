@@ -79,6 +79,7 @@ const CreateProcessModal: React.FC<CreateProcessProps> = ({
 
         <form action={formAction} className="p-4 space-y-4">
           <input type="hidden" name="appCode" value={workspaceCode} />
+          <input type="hidden" name="areaCode" value={selectedAreaCode} />
           {/* areaCode e subAreaCode serão passados via select e hidden inputs se necessário, ou a action os infere */}
 
           <div>

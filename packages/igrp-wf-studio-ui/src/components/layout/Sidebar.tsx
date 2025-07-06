@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link"; // Alterado de NavLink
 import { useRouter, usePathname } from "next/navigation"; // Alterado de useNavigate
-import { WorkflowEngineSDK } from '@igrp/wf-engine';
+import type { AppOptions, ProjectConfig } from '@igrp/wf-engine';
 import { cn } from "@/lib/utils";
+import { deleteWorkspaceAction, deleteWorkspaceItemAction } from "@/app/actions"; // Import server actions
+import { toast } from 'react-hot-toast';
 import {
   Home,
   X,
@@ -44,7 +46,7 @@ interface SidebarProps {
   onToggleCollapse: () => void; // Add prop for toggling collapse
 }
 
-const sdk = new WorkflowEngineSDK();
+// SDK is now used via server actions
 
 const Sidebar: React.FC<SidebarProps> = ({ 
   isMobileOpen,
@@ -102,35 +104,19 @@ const Sidebar: React.FC<SidebarProps> = ({
   const loadWorkspaces = async () => {
     try {
       setLoading(true);
-      const apps = await sdk.workspaces.listWorkspaces();
       
-      const appsWithConfig = await Promise.all(
-        apps.map(async (app: {title: string; code: string; description?: string }) => { // Assume app has code and optional description
-          const config = await sdk.workspaces.loadProjectConfig(app.code);
-          return {
-            code: app.code,
-            title: app.title || app.description || app.code, 
-            areas: (config?.areas || []).map((area: any) => ({
-              ...area,
-              description: area.description || '', // Default description
-              status: area.status || 'active', // Default status
-              processes: area.processes || [],
-              // Ensure subareas within areas also have required fields
-              subareas: (area.subareas || []).map((subarea: any) => ({
-                ...subarea,
-                description: subarea.description || '', // Default description
-                status: subarea.status || 'active', // Default status
-                processes: subarea.processes || []
-              }))
-            }))
-          };
-        })
-      );
+      // Fetch workspaces data from the server
+      const response = await fetch('/api/workspaces');
+      if (!response.ok) {
+        throw new Error('Failed to fetch workspaces');
+      }
       
-      setWorkspaces(appsWithConfig);
+      const data = await response.json();
+      setWorkspaces(data.workspaces || []);
     } catch (error) {
       console.error('Failed to load workspaces:', error);
       setError((error as Error).message);
+      toast.error(`Failed to load workspaces: ${(error as Error).message}`);
     } finally {
       setLoading(false);
     }
@@ -142,14 +128,17 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
 
     try {
-      const result = await sdk.workspaces.deleteWorkspace(code);
+      const result = await deleteWorkspaceAction(code);
       if (result.success) {
+        toast.success(result.message || `Workspace '${code}' deleted successfully.`);
         await loadWorkspaces();
         router.push('/'); // Alterado de navigate('/')
       } else {
+        toast.error(result.message || 'Failed to delete workspace');
         setError(result.message);
       }
     } catch (err) {
+      toast.error(`Error: ${(err as Error).message}`);
       setError((err as Error).message);
     }
   };
@@ -160,13 +149,21 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
 
     try {
-      const result = await sdk.workspaces.deleteArea(appCode, areaCode);
+      const result = await deleteWorkspaceItemAction({
+        appCode,
+        itemType: 'area',
+        itemCode: areaCode
+      });
+      
       if (result.success) {
+        toast.success(result.message || `Area '${areaCode}' deleted successfully.`);
         await loadWorkspaces();
       } else {
+        toast.error(result.message || 'Failed to delete area');
         setError(result.message);
       }
     } catch (err) {
+      toast.error(`Error: ${(err as Error).message}`);
       setError((err as Error).message);
     }
   };
@@ -177,13 +174,22 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
 
     try {
-      const result = await sdk.workspaces.deleteSubArea(appCode, areaCode, subareaCode);
+      const result = await deleteWorkspaceItemAction({
+        appCode,
+        itemType: 'subarea',
+        itemCode: subareaCode,
+        parentCode: areaCode
+      });
+      
       if (result.success) {
+        toast.success(result.message || `Subarea '${subareaCode}' deleted successfully.`);
         await loadWorkspaces();
       } else {
+        toast.error(result.message || 'Failed to delete subarea');
         setError(result.message);
       }
     } catch (err) {
+      toast.error(`Error: ${(err as Error).message}`);
       setError((err as Error).message);
     }
   };
@@ -194,14 +200,24 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
 
     try {
-      const result = await sdk.workspaces.deleteProcess(appCode, areaCode, processCode, subareaCode);
+      const result = await deleteWorkspaceItemAction({
+        appCode,
+        itemType: 'process',
+        itemCode: processCode,
+        parentCode: subareaCode || areaCode,
+        grandParentCode: subareaCode ? areaCode : undefined
+      });
+      
       if (result.success) {
+        toast.success(result.message || `Process '${processCode}' deleted successfully.`);
         await loadWorkspaces();
         router.push('/workspaces/' + appCode); // Alterado de navigate
       } else {
+        toast.error(result.message || 'Failed to delete process');
         setError(result.message);
       }
     } catch (err) {
+      toast.error(`Error: ${(err as Error).message}`);
       setError((err as Error).message);
     }
   };
