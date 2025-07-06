@@ -223,13 +223,29 @@ export async function addProcessToAction(prevState: any, formData: FormData) {
   });
   console.log("addProcessToAction validated data for SDK call:", { appCode, areaCode, subAreaCode, code, title });
 
-  const result = await sdk.workspaces.addProcessDefinition(appCode, areaCode, code, title, description || '', subAreaCode, 'active');
-  if (result.success) {
+  const sdkResult = await sdk.workspaces.addProcessDefinition(appCode, areaCode, code, title, description || '', subAreaCode, 'active');
+
+  if (sdkResult.success) {
     revalidatePath(`/workspaces/${appCode}`);
     revalidateTag('projects');
-    // Adicionar revalidação para a lista de processos se houver cache específico para isso
+
+    let successMessage = sdkResult.message; // Use SDK message if available
+    if (!successMessage) { // Fallback to custom message if SDK doesn't provide one
+        if (subAreaCode) {
+            successMessage = `Process '${title}' created successfully in subarea '${subAreaCode}'.`;
+        } else {
+            successMessage = `Process '${title}' created successfully in area '${areaCode}'.`;
+        }
+    }
+
+    return {
+      ...sdkResult,
+      message: successMessage,
+      newProcessCode: code // Ensure newProcessCode is available for the modal's onCreated callback
+    };
   }
-  return result;
+
+  return sdkResult; // This will include { success: false, message: "Error from SDK..." } on failure
 }
 
 
