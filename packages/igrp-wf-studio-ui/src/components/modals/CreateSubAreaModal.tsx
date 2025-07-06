@@ -1,16 +1,18 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { addSubAreaToAction } from '@/app/actions'; // Ajustar caminho
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { generateNextCode } from '@/lib/utils'; // Import the generator
 
 interface CreateSubAreaProps {
-  workspaceCode: string;
-  areaCode: string;
+  workspaceCode: string; // Still needed for the form action
+  areaCode: string;      // Parent code for generation
+  existingSubAreaCodes: string[]; // Prop to pass existing codes for this area
   onClose: () => void;
   onCreated: () => void;
 }
@@ -32,10 +34,22 @@ function SubmitButton() {
 const CreateSubAreaModal: React.FC<CreateSubAreaProps> = ({
   workspaceCode,
   areaCode,
+  existingSubAreaCodes,
   onClose,
   onCreated
 }) => {
   const [formState, formAction] = useFormState(addSubAreaToAction, initialState);
+  const [generatedCode, setGeneratedCode] = useState('');
+
+  useEffect(() => {
+    // Generate code when the modal is opened or parentAreaCode/existingSubAreaCodes change
+    if (areaCode) {
+      // projectCode (workspaceCode) is not directly used by generateNextCode for subareas,
+      // but it's good practice to ensure parentCode (areaCode) is present.
+      const nextCode = generateNextCode('subarea', workspaceCode, areaCode, existingSubAreaCodes);
+      setGeneratedCode(nextCode);
+    }
+  }, [workspaceCode, areaCode, existingSubAreaCodes]);
 
   useEffect(() => {
     if (formState.success) {
@@ -77,7 +91,8 @@ const CreateSubAreaModal: React.FC<CreateSubAreaProps> = ({
             label="SubArea Code"
             name="code"
             id="subAreaCode"
-            placeholder="Enter subarea code (e.g., reports)"
+            placeholder="e.g., reports"
+            defaultValue={generatedCode} // Use generated code as default
             required
             error={formState.errors?.code?.[0]}
           />

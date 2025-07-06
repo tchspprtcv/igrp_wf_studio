@@ -3,21 +3,21 @@
 import React, { useState, useEffect } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { addProcessToAction } from '@/app/actions'; // Ajustar caminho
-import { WorkflowEngineSDK } from '@igrp/wf-engine'; // Para buscar a config para os selects
+// import { WorkflowEngineSDK } from '@igrp/wf-engine'; // Não é mais usado para config aqui
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { generateNextCode } from '@/lib/utils'; // Import the generator
 
 interface CreateProcessProps {
   workspaceCode: string;
   onClose: () => void;
-  // Ajustar onCreated para passar todos os identificadores necessários para navegação
   onCreated: (appCode: string, areaCode: string, subAreaCode: string | undefined, newProcessCode: string) => void;
   initialArea?: string | null;
   initialSubArea?: string | null;
-  // Passar a lista de áreas do workspace para evitar busca no cliente
   availableAreas: { code: string, title: string, subareas: { code: string, title: string }[] }[];
+  existingProcessCodes: string[]; // Prop to pass existing codes for the selected parent (area or subarea)
 }
 
 const initialState: { message: string; success: boolean; errors?: any; newProcessCode?: string } = {
@@ -40,12 +40,26 @@ const CreateProcessModal: React.FC<CreateProcessProps> = ({
   onCreated,
   initialArea,
   initialSubArea,
-  availableAreas // Recebe as áreas
+  availableAreas,
+  existingProcessCodes
 }) => {
   const [formState, formAction] = useFormState(addProcessToAction, initialState);
 
   const [selectedAreaCode, setSelectedAreaCode] = useState(initialArea || '');
   const [selectedSubAreaCode, setSelectedSubAreaCode] = useState(initialSubArea || '');
+  const [generatedCode, setGeneratedCode] = useState('');
+
+  useEffect(() => {
+    // Determine parent code for process code generation
+    const parentCodeForProcess = selectedSubAreaCode || selectedAreaCode;
+    if (parentCodeForProcess) {
+      const nextCode = generateNextCode('process', workspaceCode, parentCodeForProcess, existingProcessCodes);
+      setGeneratedCode(nextCode);
+    } else {
+      setGeneratedCode(''); // Clear if no parent is selected
+    }
+  }, [workspaceCode, selectedAreaCode, selectedSubAreaCode, existingProcessCodes]);
+
 
   useEffect(() => {
     if (formState.success && formState.newProcessCode) {
@@ -128,9 +142,10 @@ const CreateProcessModal: React.FC<CreateProcessProps> = ({
             label="Process Code"
             name="code"
             id="processCode"
-            placeholder="Enter process code (e.g., P.area.1)"
+            placeholder="e.g., P.01 or SUB.01"
+            defaultValue={generatedCode} // Use generated code as default
             required
-            disabled={!selectedAreaCode} // Desabilitar se nenhuma área estiver selecionada
+            disabled={!selectedAreaCode} // Desabilitar se nenhuma área estiver selecionada (ou no parent if no area selected)
             error={formState.errors?.code?.[0]}
           />
            {formState.errors?.code && <p className="text-red-500 text-xs">{formState.errors.code[0]}</p>}
