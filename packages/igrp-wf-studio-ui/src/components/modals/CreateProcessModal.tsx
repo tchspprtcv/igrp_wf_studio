@@ -62,7 +62,7 @@ const CreateProcessModal: React.FC<CreateProcessProps> = ({
 
 
   useEffect(() => {
-    if (formState.success && formState.newProcessCode) {
+    if (formState.success && 'newProcessCode' in formState && formState.newProcessCode) {
       toast.success(formState.message || "Process created successfully!");
       onCreated(workspaceCode, selectedAreaCode, selectedSubAreaCode || undefined, formState.newProcessCode);
       onClose();
@@ -117,7 +117,7 @@ const CreateProcessModal: React.FC<CreateProcessProps> = ({
                 </option>
               ))}
             </select>
-            {formState.errors?.areaCode && <p className="text-red-500 text-xs">{formState.errors.areaCode[0]}</p>}
+            {'errors' in formState && formState.errors?.areaCode && <p className="text-red-500 text-xs">{formState.errors.areaCode[0]}</p>}
           </div>
 
           {currentSelectedArea && currentSelectedArea.subareas.length > 0 && (
@@ -149,9 +149,9 @@ const CreateProcessModal: React.FC<CreateProcessProps> = ({
             defaultValue={generatedCode} // Use generated code as default
             required
             disabled={!selectedAreaCode} // Desabilitar se nenhuma área estiver selecionada (ou no parent if no area selected)
-            error={formState.errors?.code?.[0]}
+            error={'errors' in formState ? formState.errors?.code?.[0] : undefined}
           />
-           {formState.errors?.code && <p className="text-red-500 text-xs">{formState.errors.code[0]}</p>}
+           {'errors' in formState && formState.errors?.code && <p className="text-red-500 text-xs">{formState.errors.code[0]}</p>}
 
           <Input
             label="Title"
@@ -159,9 +159,9 @@ const CreateProcessModal: React.FC<CreateProcessProps> = ({
             id="processTitle"
             placeholder="Enter process title"
             required
-            error={formState.errors?.title?.[0]}
+            error={'errors' in formState ? formState.errors?.title?.[0] : undefined}
           />
-          {formState.errors?.title && <p className="text-red-500 text-xs">{formState.errors.title[0]}</p>}
+          {'errors' in formState && formState.errors?.title && <p className="text-red-500 text-xs">{formState.errors.title[0]}</p>}
 
           <div>
             <label htmlFor="processDescription" className="form-label">Description</label>
@@ -172,12 +172,12 @@ const CreateProcessModal: React.FC<CreateProcessProps> = ({
               rows={3}
               placeholder="Enter process description"
             />
-            {formState.errors?.description && <p className="text-red-500 text-xs">{formState.errors.description[0]}</p>}
+            {'errors' in formState && formState.errors?.description && <p className="text-red-500 text-xs">{formState.errors.description[0]}</p>}
           </div>
 
           {/* Status é 'active' por padrão na action */}
 
-          {formState.message && !formState.success && formState.message !== initialState.message && (
+          {'errors' in formState && formState.message && !formState.success && formState.message !== initialState.message && (
              <div className="text-red-600 text-sm bg-red-50 p-2 rounded-md">{formState.message}</div>
           )}
 

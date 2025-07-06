@@ -81,9 +81,9 @@ const CreateAreaModal: React.FC<CreateAreaProps> = ({
             placeholder="e.g., finance"
             defaultValue={generatedCode} // Use generated code as default
             required
-            error={formState.errors?.code?.[0]}
+            error={'errors' in formState ? formState.errors?.code?.[0] : undefined}
           />
-          {formState.errors?.code && <p className="text-red-500 text-xs">{formState.errors.code[0]}</p>}
+          {'errors' in formState && formState.errors?.code && <p className="text-red-500 text-xs">{formState.errors.code[0]}</p>}
 
           <Input
             label="Title"
@@ -91,9 +91,9 @@ const CreateAreaModal: React.FC<CreateAreaProps> = ({
             id="areaTitle"
             placeholder="Enter area title"
             required
-            error={formState.errors?.title?.[0]}
+            error={'errors' in formState ? formState.errors?.title?.[0] : undefined}
           />
-          {formState.errors?.title && <p className="text-red-500 text-xs">{formState.errors.title[0]}</p>}
+          {'errors' in formState && formState.errors?.title && <p className="text-red-500 text-xs">{formState.errors.title[0]}</p>}
 
           <div>
             <label htmlFor="areaDescription" className="form-label">Description</label>
@@ -104,7 +104,7 @@ const CreateAreaModal: React.FC<CreateAreaProps> = ({
               rows={3}
               placeholder="Enter area description"
             />
-            {formState.errors?.description && <p className="text-red-500 text-xs">{formState.errors.description[0]}</p>}
+            {'errors' in formState && formState.errors?.description && <p className="text-red-500 text-xs">{formState.errors.description[0]}</p>}
           </div>
 
           {/* Status é definido como 'active' por padrão na action */}

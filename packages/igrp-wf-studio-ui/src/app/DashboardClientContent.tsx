@@ -3,12 +3,11 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation"; // Para revalidação ou navegação programática
-import type { AppOptions, ProjectConfig } from '@igrp/wf-engine';
+import type { AppOptions } from '@igrp/wf-engine';
 import { Workflow, Layers, Folder, Clock, Search, Download, Trash2 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import Button from "@/components/ui/Button";
 import CreateWorkspaceModal from "@/components/modals/CreateWorkspaceModal"; // Caminho atualizado
-import PageHeader from "@/components/layout/PageHeader";
 import JSZip from 'jszip';
 import { toast } from 'react-hot-toast';
 import { deleteWorkspaceAction, getWorkspaceExportDataAction } from "./actions"; // Importar as Server Actions

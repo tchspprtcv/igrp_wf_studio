@@ -94,9 +94,9 @@ const CreateSubAreaModal: React.FC<CreateSubAreaProps> = ({
             placeholder="e.g., reports"
             defaultValue={generatedCode} // Use generated code as default
             required
-            error={formState.errors?.code?.[0]}
+            error={'errors' in formState ? formState.errors?.code?.[0] : undefined}
           />
-          {formState.errors?.code && <p className="text-red-500 text-xs">{formState.errors.code[0]}</p>}
+          {'errors' in formState && formState.errors?.code && <p className="text-red-500 text-xs">{formState.errors.code[0]}</p>}
 
           <Input
             label="Title"
@@ -104,9 +104,9 @@ const CreateSubAreaModal: React.FC<CreateSubAreaProps> = ({
             id="subAreaTitle"
             placeholder="Enter subarea title"
             required
-            error={formState.errors?.title?.[0]}
+            error={'errors' in formState ? formState.errors?.title?.[0] : undefined}
           />
-          {formState.errors?.title && <p className="text-red-500 text-xs">{formState.errors.title[0]}</p>}
+          {'errors' in formState && formState.errors?.title && <p className="text-red-500 text-xs">{formState.errors.title[0]}</p>}
 
           <div>
             <label htmlFor="subAreaDescription" className="form-label">Description</label>
@@ -117,12 +117,12 @@ const CreateSubAreaModal: React.FC<CreateSubAreaProps> = ({
               rows={3}
               placeholder="Enter subarea description"
             />
-             {formState.errors?.description && <p className="text-red-500 text-xs">{formState.errors.description[0]}</p>}
+             {'errors' in formState && formState.errors?.description && <p className="text-red-500 text-xs">{formState.errors.description[0]}</p>}
           </div>
 
           {/* Status é 'active' por padrão na action */}
 
-          {formState.message && !formState.success && formState.message !== initialState.message && (
+          {'errors' in formState && formState.message && !formState.success && formState.message !== initialState.message && (
              <div className="text-red-600 text-sm bg-red-50 p-2 rounded-md">{formState.message}</div>
           )}
 

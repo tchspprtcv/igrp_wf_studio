@@ -103,9 +103,9 @@ const EditAreaModal: React.FC<EditAreaModalProps> = ({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter area title"
               required
-              error={formState.errors?.title?.[0]}
+              error={'errors' in formState && typeof formState.errors === 'object' && formState.errors !== null && 'title' in formState.errors && Array.isArray(formState.errors.title) ? formState.errors.title[0] : undefined}
             />
-            {formState.errors?.title && <p className="text-red-500 text-xs">{formState.errors.title[0]}</p>}
+            {'errors' in formState && typeof formState.errors === 'object' && formState.errors !== null && 'title' in formState.errors && Array.isArray(formState.errors.title) && formState.errors.title.length > 0 && <p className="text-red-500 text-xs">{formState.errors.title[0]}</p>}
           </div>
 
           <div>
@@ -119,7 +119,7 @@ const EditAreaModal: React.FC<EditAreaModalProps> = ({
               rows={3}
               placeholder="Enter area description"
             />
-            {formState.errors?.description && <p className="text-red-500 text-xs">{formState.errors.description[0]}</p>}
+            {'errors' in formState && typeof formState.errors === 'object' && formState.errors !== null && 'description' in formState.errors && Array.isArray(formState.errors.description) && formState.errors.description.length > 0 && <p className="text-red-500 text-xs">{formState.errors.description[0]}</p>}
           </div>
 
           <div>
@@ -135,7 +135,7 @@ const EditAreaModal: React.FC<EditAreaModalProps> = ({
               <option value="inactive">Inactive</option>
               <option value="draft">Draft</option>
             </select>
-            {formState.errors?.status && <p className="text-red-500 text-xs">{formState.errors.status[0]}</p>}
+            {'errors' in formState && typeof formState.errors === 'object' && formState.errors !== null && 'status' in formState.errors && Array.isArray(formState.errors.status) && formState.errors.status.length > 0 && <p className="text-red-500 text-xs">{formState.errors.status[0]}</p>}
           </div>
 
           {formState.message && !formState.success && formState.message !== initialState.message && (
