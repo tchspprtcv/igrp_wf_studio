@@ -1,7 +1,7 @@
 import { WorkflowEngineSDK, ProjectConfig, FileOperationResult, AppOptions } from '@igrp/wf-engine';
-import { getBaseWorkspacePath } from '../config/workspace'; // Função do Passo 2
-import nodePath from 'node:path'; // Movido para o topo
-import fs from 'node:fs/promises';   // Movido para o topo
+// import { getBaseWorkspacePath } from '../config/workspace'; // REMOVIDO - ARQUIVO NÃO EXISTE MAIS
+import nodePath from 'node:path';
+import fs from 'node:fs/promises';
 
 import * as catalog from '../catalog/workspaceCatalog'; // Importar o gerenciador de catálogo
 
