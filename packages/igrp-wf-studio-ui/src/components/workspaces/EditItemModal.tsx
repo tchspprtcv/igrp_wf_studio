@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { updateWorkspaceItemAction } from '@/app/actions'; // Ajustar caminho
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
+import { Button } from '@/components/ui/button';
+import { FormInput } from '@/components/ui/form-input';
 import { X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -30,8 +30,8 @@ const initialState: { message: string; success: boolean; errors?: any } = {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" isLoading={pending}>
-      Save Changes
+    <Button type="submit" disabled={pending}>
+      {pending ? 'Saving...' : 'Save Changes'}
     </Button>
   );
 }
@@ -108,15 +108,15 @@ const EditItemModal: React.FC<EditItemModalProps> = ({
               For now, 'code' is treated as a fixed identifier for the update.
           */}
 
-          <Input
+          <FormInput
             label="Title"
             name="title"
-            id="editItemTitle"
+            id="item-title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Enter title"
             required
-            error={'errors' in formState && typeof formState.errors === 'object' && formState.errors !== null && 'title' in formState.errors && Array.isArray(formState.errors.title) ? formState.errors.title[0] : undefined}
+            error={'errors' in formState && typeof formState.errors === 'object' && formState.errors !== null && 'title' in formState.errors && Array.isArray(formState.errors.title) && formState.errors.title.length > 0 ? formState.errors.title[0] : undefined}
           />
           {'errors' in formState && typeof formState.errors === 'object' && formState.errors !== null && 'title' in formState.errors && Array.isArray(formState.errors.title) && formState.errors.title.length > 0 && <p className="text-red-500 text-xs">{formState.errors.title[0]}</p>}
 

@@ -19,9 +19,10 @@ interface BpmnModelerProps {
   xml?: string;
   onChange?: (xml: string) => void;
   onLoad?: (modeler: BpmnJS) => void;
+  appCode?: string; // Added appCode prop for form editor
 }
 
-const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange, onLoad }) => {
+const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange, onLoad, appCode = 'default' }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   // Remover a referência direta ao painel de propriedades DOM
   // const propertiesPanelRef = useRef<HTMLDivElement>(null);
@@ -179,6 +180,7 @@ const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, onChange, onLoad }) => {
           modeler={modelerRef.current}
           selectedElement={selectedElement}
           isVisible={!isPanelCollapsed}
+          appCode={appCode} // Pass the appCode prop
           className={cn(
             "w-96 h-full bg-gray-50 border-l border-gray-300 shadow-lg overflow-y-auto",
             "transition-opacity duration-300",

@@ -21,7 +21,7 @@ import {
   ChevronsRight,
   ChevronsLeft
 } from "lucide-react";
-import Button from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 // As importações de páginas de modais podem precisar de ajuste de caminho se as páginas forem movidas
 // ou se os modais forem extraídos para componentes dedicados.
 // Por agora, mantendo os caminhos originais relativos a 'src'.
@@ -611,19 +611,17 @@ const Sidebar: React.FC<SidebarProps> = ({
             )}
             <Button
               variant="ghost"
-              // Icon-only button if collapsed desktop, else normal size
               size={isCollapsed && !isMobileOpen ? "sm" : "sm"}
               onClick={() => {
                 setShowCreateApp(true);
                 if (isMobileOpen) onCloseMobile(); // Close mobile if opening modal
               }}
-              // Icon size slightly larger if collapsed desktop
-              icon={<Folder className={cn("h-4 w-4", isCollapsed && !isMobileOpen && "h-5 w-5")} />}
               title="New Workspace"
+              className="inline-flex items-center"
             >
-              {/* Show 'New' text only if not collapsed desktop AND not mobile (sr-only for accessibility) */}
+              <Folder className={cn("h-4 w-4 mr-1", isCollapsed && !isMobileOpen && "h-5 w-5")} />
               {!(isCollapsed && !isMobileOpen) && (
-                 <span className="sr-only sm:not-sr-only sm:ml-1">New</span>
+                 <span className="sr-only sm:not-sr-only">New</span>
               )}
             </Button>
           </div>
@@ -680,6 +678,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       {showCreateArea && selectedApp && (
         <CreateArea
           workspaceCode={selectedApp}
+          existingAreaCodes={workspaces.find(w => w.code === selectedApp)?.areas.map(a => a.code) || []}
           onClose={() => {
             setShowCreateArea(false);
             setSelectedApp(null);
@@ -692,6 +691,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         <CreateSubArea
           workspaceCode={selectedApp}
           areaCode={selectedArea}
+          existingSubAreaCodes={workspaces.find(w => w.code === selectedApp)?.areas
+            .find(a => a.code === selectedArea)?.subareas?.map(sa => sa.code) || []}
           onClose={() => {
             setShowCreateSubArea(false);
             setSelectedApp(null);
@@ -706,6 +707,16 @@ const Sidebar: React.FC<SidebarProps> = ({
           workspaceCode={selectedApp}
           initialArea={selectedArea}
           initialSubArea={selectedSubArea}
+          availableAreas={workspaces.find(w => w.code === selectedApp)?.areas.map(area => ({
+            code: area.code,
+            title: area.title,
+            subareas: area.subareas?.map(subarea => ({
+              code: subarea.code,
+              title: subarea.title
+            })) || []
+          })) || []}
+          existingProcessCodes={workspaces.find(w => w.code === selectedApp)?.areas
+            .flatMap(a => a.processes?.map(p => p.code) || []) || []}
           onClose={() => {
             setShowCreateProcess(false);
             setSelectedApp(null);
@@ -723,6 +734,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       {showEditWorkspace && editingWorkspaceCode && (
         <EditWorkspace
           workspaceCode={editingWorkspaceCode}
+          currentTitle={workspaces.find(w => w.code === editingWorkspaceCode)?.title || ''}
+          currentDescription={workspaces.find(w => w.code === editingWorkspaceCode)?.description || ''}
           onClose={() => {
             setShowEditWorkspace(false);
             setEditingWorkspaceCode(null);
@@ -740,12 +753,15 @@ const Sidebar: React.FC<SidebarProps> = ({
         <EditArea
           isOpen={showEditArea}
           appCode={editingArea.appCode}
-          area={editingArea.area as Required<SidebarArea>} // Usar SidebarArea
+          currentCode={editingArea.area.code}
+          currentTitle={editingArea.area.title}
+          currentDescription={editingArea.area.description || ''}
+          currentStatus={editingArea.area.status || 'active'}
           onClose={() => {
             setShowEditArea(false);
             setEditingArea(null);
           }}
-          onSave={() => {
+          onUpdated={() => { // Changed from onSave to onUpdated to match interface
             loadWorkspaces(); // Refresh list after save
             setShowEditArea(false);
             setEditingArea(null);
@@ -759,12 +775,15 @@ const Sidebar: React.FC<SidebarProps> = ({
           isOpen={showEditSubArea}
           appCode={editingSubArea.appCode}
           areaCode={editingSubArea.areaCode}
-          subArea={editingSubArea?.subArea as SidebarSubArea} // Usar SidebarSubArea
+          currentCode={editingSubArea.subArea.code}
+          currentTitle={editingSubArea.subArea.title}
+          currentDescription={editingSubArea.subArea.description || ''}
+          currentStatus={editingSubArea.subArea.status || 'active'}
           onClose={() => {
             setShowEditSubArea(false);
             setEditingSubArea(null);
           }}
-          onSave={() => {
+          onUpdated={() => { // Changed from onSave to onUpdated to match interface
             loadWorkspaces(); // Refresh list after save
             setShowEditSubArea(false);
             setEditingSubArea(null);

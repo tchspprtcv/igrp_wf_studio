@@ -1,5 +1,5 @@
 import React from "react";
-import Button from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
 
 interface PageHeaderProps {
@@ -30,10 +30,11 @@ const PageHeader: React.FC<PageHeaderProps> = ({
           {actions}
           {onCreateNew && (
             <Button 
-              variant="primary"
+              variant="default"
               onClick={onCreateNew}
-              icon={<PlusIcon className="h-4 w-4" />}
+              className="inline-flex items-center"
             >
+              <PlusIcon className="h-4 w-4 mr-2" />
               {createNewLabel}
             </Button>
           )}

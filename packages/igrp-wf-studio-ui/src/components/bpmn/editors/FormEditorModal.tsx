@@ -10,8 +10,9 @@ import styled from 'styled-components';
 // EditorService removido, usaremos Server Actions
 import { loadFormAction, saveFormAction } from '@/app/actions'; // Ajustar caminho se necessário
 import { createRoot, Root } from 'react-dom/client';
-import ButtonComponent from '@/components/ui/Button'; // Renamed to avoid conflict with styled-component
+import { Button } from '@/components/ui/button'; // Using shadcn/ui button
 import { v4 as uuidv4 } from 'uuid';
+import toast from 'react-hot-toast'; // Add toast import
 
 // Form component interfaces
 interface FormComponent {
@@ -110,9 +111,7 @@ const ModalFooter = styled.div`
   gap: 8px;
 `;
 
-const Button = styled.button<{ primary?: boolean }>`
-  /* Styled-component Button removed, will use the main Button from '@/components/ui/Button' */
-`;
+// Using Button from '@/components/ui/button' instead of styled-components
 
 const CloseButton = styled.button`
   background: none;
@@ -542,6 +541,20 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ appCode, formKey, onS
   const formEditRef = useRef<HTMLDivElement>(null);
   const simpleFormBuilderRef = useRef<HTMLDivElement>(null);
   
+  // Gerar ID para novos formulários - moved up before its usage
+  const generateFormId = useCallback((formKey: string) => {
+    // Tentar extrair um nome do formKey
+    const baseName = formKey.split('/').pop()?.replace('.json', '') || '';
+    
+    // Se tiver um nome base, usá-lo com um sufixo único
+    if (baseName) {
+      return `${baseName}_${uuidv4().substring(0, 8)}`;
+    }
+    
+    // Caso contrário, gerar um ID completamente novo
+    return `form_${uuidv4().substring(0, 12)}`;
+  }, []);
+  
   // Adicionar estilos para highlight
   useEffect(() => {
     const styleElement = document.createElement('style');
@@ -553,7 +566,7 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ appCode, formKey, onS
     };
   }, []);
   
-  // Carregar definição do formulário
+  // Carregar o formulário quando o modal for aberto
   useEffect(() => {
     const loadForm = async () => {
       setIsLoading(true);
@@ -596,20 +609,6 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ appCode, formKey, onS
         setFormDefinition({ ...DEFAULT_FORM_DEFINITION, id: generateFormId(formKey || 'unknown_form'), name: 'Formulário Inválido'});
     }
   }, [appCode, formKey, generateFormId]);
-  
-  // Gerar ID para novos formulários
-  const generateFormId = useCallback((formKey: string) => {
-    // Tentar extrair um nome do formKey
-    const baseName = formKey.split('/').pop()?.replace('.json', '') || '';
-    
-    // Se tiver um nome base, usá-lo com um sufixo único
-    if (baseName) {
-      return `${baseName}_${uuidv4().substring(0, 8)}`;
-    }
-    
-    // Caso contrário, gerar um ID completamente novo
-    return `form_${uuidv4().substring(0, 12)}`;
-  }, []);
   
   // Atualizar editor JSON quando o formulário mudar
   useEffect(() => {
@@ -1821,8 +1820,12 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ appCode, formKey, onS
         </ModalBody>
         
         <ModalFooter>
-          <ButtonComponent variant="outline" onClick={onClose}>Cancelar</ButtonComponent>
-          <ButtonComponent variant="primary" onClick={handleSave}>Salvar</ButtonComponent>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave}>
+            Salvar
+          </Button>
         </ModalFooter>
       </ModalContent>
       

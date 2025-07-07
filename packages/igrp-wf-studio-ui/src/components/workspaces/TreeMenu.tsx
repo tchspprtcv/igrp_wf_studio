@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronDown, Layers, Workflow, MoreVertical, Trash2, Edit } from 'lucide-react';
 import Link from 'next/link'; // Alterado de react-router-dom
-import Button from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface TreeNode {
@@ -249,8 +249,8 @@ const TreeMenu: React.FC<TreeMenuProps> = ({
             variant="ghost"
             size="sm"
             onClick={onCreateArea}
-            icon={<Layers className="h-4 w-4" />}
           >
+            <Layers className="h-4 w-4 mr-2" />
             Add Area
           </Button>
         )}

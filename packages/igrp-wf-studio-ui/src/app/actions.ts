@@ -594,8 +594,86 @@ export async function saveFormAction(payload: { appCode: string; elementId: stri
   }
 }
 
-// TODO: Implementar loadDecisionTableAction e saveDecisionTableAction de forma similar,
-// usando, por exemplo, getDecisionTablePath(appCode, elementId) que retorna appCode/_decisions/elementId.dmn.xml
+// Helper para construir o path do arquivo de tabela de decisão
+function getDecisionTablePath(appCode: string, elementId: string): string {
+  return path.join(appCode, '_decisions', `${elementId}.dmn.xml`);
+}
+
+/**
+ * Load a decision table by its ID
+ */
+export async function loadDecisionTableAction(payload: { appCode: string; elementId: string }): Promise<{ success: boolean; data?: string; message?: string; errors?: any }> {
+  try {
+    // Validar input
+    const validatedAppCode = workspaceCodeSchema.parse(payload.appCode);
+    if (!payload.elementId) {
+      return { success: false, message: "Element ID is required" };
+    }
+
+    console.log(`Server Action: Loading decision table for app ${validatedAppCode}, element ${payload.elementId}`);
+    
+    // Construir o caminho do arquivo
+    const filePath = getDecisionTablePath(validatedAppCode, payload.elementId);
+    
+    // Tentar ler o conteúdo do arquivo
+    try {
+      const content = await studioMgr.readStudioFile(validatedAppCode, filePath);
+      if (content === null) {
+        return { success: false, message: `Decision table not found: ${payload.elementId}` };
+      }
+      return { success: true, data: content };
+    } catch (error: any) {
+      console.error("Error reading decision table:", error);
+      return { success: false, message: error.message || "Failed to read decision table" };
+    }
+  } catch (error) {
+    console.error("Error in loadDecisionTableAction:", error);
+    if (error instanceof z.ZodError) {
+      return { success: false, message: "Invalid input: " + error.errors.map(e => e.message).join(', ') };
+    }
+    return { success: false, message: "An unexpected error occurred." };
+  }
+}
+
+/**
+ * Save a decision table
+ */
+export async function saveDecisionTableAction(payload: { appCode: string; elementId: string; dmnXml: string }): Promise<{ success: boolean; message?: string; errors?: any }> {
+  try {
+    // Validar input
+    const validatedAppCode = workspaceCodeSchema.parse(payload.appCode);
+    if (!payload.elementId) {
+      return { success: false, message: "Element ID is required" };
+    }
+    if (!payload.dmnXml) {
+      return { success: false, message: "DMN XML content is required" };
+    }
+
+    console.log(`Server Action: Saving decision table for app ${validatedAppCode}, element ${payload.elementId}`);
+    
+    // Construir o caminho do arquivo
+    const filePath = getDecisionTablePath(validatedAppCode, payload.elementId);
+    
+    // Garantir que o diretório exista
+    const dirPath = path.dirname(filePath);
+    await studioMgr.ensureStudioDir(validatedAppCode, dirPath);
+    
+    // Salvar o conteúdo no arquivo
+    const result = await studioMgr.writeStudioFile(validatedAppCode, filePath, payload.dmnXml);
+    
+    if (result.success) {
+      return { success: true, message: "Decision table saved successfully" };
+    } else {
+      return { success: false, message: result.message || "Failed to save decision table" };
+    }
+  } catch (error) {
+    console.error("Error in saveDecisionTableAction:", error);
+    if (error instanceof z.ZodError) {
+      return { success: false, message: "Invalid input: " + error.errors.map(e => e.message).join(', ') };
+    }
+    return { success: false, message: "An unexpected error occurred." };
+  }
+}
 
 
 export async function createWorkspaceAction(

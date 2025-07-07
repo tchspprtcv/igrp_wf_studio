@@ -129,6 +129,7 @@ export interface BpmnPropertiesPanelProps {
   selectedElement: any;
   isVisible?: boolean;
   className?: string;
+  appCode?: string; // Added appCode prop for form editor
 }
 
 /**
@@ -141,7 +142,8 @@ const BpmnPropertiesPanel: React.FC<BpmnPropertiesPanelProps> = ({
   modeler, 
   selectedElement,
   isVisible = true,
-  className = ''
+  className = '',
+  appCode = 'default' // Default value to prevent errors
 }) => {
   const [properties, setProperties] = useState<any>({});
   const [elementType, setElementType] = useState<string>('');
@@ -488,6 +490,7 @@ const BpmnPropertiesPanel: React.FC<BpmnPropertiesPanelProps> = ({
       const { openFormEditorModal } = module;
       
       openFormEditorModal({
+        appCode, // Add the appCode prop
         formKey: properties.formKey,
         onSave: (formKey: string) => {
           // Atualizar formKey se mudou

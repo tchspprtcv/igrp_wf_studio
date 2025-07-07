@@ -12,9 +12,11 @@ import 'dmn-js/dist/assets/dmn-js-drd.css';
 import 'dmn-js/dist/assets/dmn-js-decision-table.css';
 import 'dmn-js/dist/assets/dmn-js-literal-expression.css';
 import 'dmn-js/dist/assets/dmn-font/css/dmn.css';
-import EditorService from '../../../services/EditorService';
+// Replace EditorService with server actions
+import { loadDecisionTableAction, saveDecisionTableAction } from '@/app/actions';
 import { createRoot } from 'react-dom/client';
 import { v4 as uuidv4 } from 'uuid';
+import { toast } from 'react-hot-toast';
 
 // Estilos para o modal - inspirados no demo.bpmn.io
 const ModalOverlay = styled.div`
@@ -356,17 +358,29 @@ const DecisionEditorModal: React.FC<DecisionEditorModalProps> = ({ decisionTable
       setLoadError(null);
       
       try {
-        // Tentar carregar a tabela de decisão
-        const xml = await EditorService.loadDecisionTable(decisionTableKey);
+        // Extrair appCode e elementId do decisionTableKey (formato esperado: "appCode:elementId")
+        const [appCode, elementId] = decisionTableKey.split(':');
+        
+        if (!appCode || !elementId) {
+          throw new Error('Formato de chave de tabela de decisão inválido');
+        }
+        
+        // Tentar carregar a tabela de decisão usando server action
+        const result = await loadDecisionTableAction({ appCode, elementId });
+        
+        if (!result.success || !result.data) {
+          throw new Error(result.message || 'Falha ao carregar tabela de decisão');
+        }
         
         // Verificar se o retorno é uma string XML válida
-        if (typeof xml !== 'string' || !xml.includes('<?xml')) {
+        if (typeof result.data !== 'string' || !result.data.includes('<?xml')) {
           throw new Error('Formato de tabela de decisão inválido');
         }
         
-        setDmnXml(xml);
-      } catch (error) {
+        setDmnXml(result.data);
+      } catch (error: any) {
         console.error('Erro ao carregar tabela de decisão:', error);
+        toast.error(error.message || 'Erro ao carregar tabela de decisão');
         
         // Criar uma nova tabela de decisão
         setDmnXml(DEFAULT_DMN_XML);
@@ -405,7 +419,7 @@ const DecisionEditorModal: React.FC<DecisionEditorModalProps> = ({ decisionTable
     dmnModelerRef.current = modeler;
     
     // Importar XML
-    modeler.importXML(dmnXml, (err: Error) => {
+    modeler.importXML(dmnXml, (err: Error | null, warnings?: Array<any>) => {
       if (err) {
         console.error('Erro ao importar XML:', err);
         setLoadError(`Erro ao importar XML: ${err.message}`);
@@ -417,7 +431,7 @@ const DecisionEditorModal: React.FC<DecisionEditorModalProps> = ({ decisionTable
       const decisionTableView = views.find((view: any) => view.type === 'decisionTable');
       
       if (decisionTableView) {
-        modeler.open(decisionTableView, (err: Error) => {
+        modeler.open(decisionTableView, (err: Error | null) => {
           if (err) {
             console.error('Erro ao abrir tabela de decisão:', err);
           } else {
@@ -506,14 +520,37 @@ const DecisionEditorModal: React.FC<DecisionEditorModalProps> = ({ decisionTable
         }
       }
       
-      // Salvar tabela de decisão no backend ou localStorage
-      const savedDecisionTableKey = await EditorService.saveDecisionTable(decisionTableKey, updatedDmnXml);
-      
-      // Notificar componente pai
-      onSave(savedDecisionTableKey);
-      
-      // Fechar modal
-      onClose();
+      try {
+        // Extrair appCode e elementId do decisionTableKey (formato esperado: "appCode:elementId")
+        const [appCode, elementId] = decisionTableKey.split(':');
+        
+        if (!appCode || !elementId) {
+          throw new Error('Formato de chave de tabela de decisão inválido');
+        }
+        
+        // Salvar tabela de decisão usando server action
+        const result = await saveDecisionTableAction({ 
+          appCode, 
+          elementId, 
+          dmnXml: updatedDmnXml 
+        });
+        
+        if (!result.success) {
+          throw new Error(result.message || 'Falha ao salvar tabela de decisão');
+        }
+        
+        // Mostrar mensagem de sucesso
+        toast.success('Tabela de decisão salva com sucesso!');
+        
+        // Notificar componente pai
+        onSave(decisionTableKey);
+        
+        // Fechar modal
+        onClose();
+      } catch (error: any) {
+        console.error('Erro ao salvar tabela de decisão:', error);
+        toast.error(error.message || 'Erro ao salvar tabela de decisão');
+      }
     } catch (error) {
       console.error('Erro ao salvar tabela de decisão:', error);
       alert('Erro ao salvar tabela de decisão. Verifique o console para mais detalhes.');
@@ -528,7 +565,7 @@ const DecisionEditorModal: React.FC<DecisionEditorModalProps> = ({ decisionTable
     const targetView = views.find((v: any) => v.type === view);
     
     if (targetView) {
-      dmnModelerRef.current.open(targetView, (err: Error) => {
+      dmnModelerRef.current.open(targetView, (err: Error | null) => {
         if (err) {
           console.error(`Erro ao abrir visualização ${view}:`, err);
         } else {

@@ -7,7 +7,7 @@ import { openDecisionEditorModal } from './DecisionEditorModal';
 
 // Substituir o componente ActivitiFormKeyProperty existente
 const ActivitiFormKeyProperty = (props: any) => {
-  const { element, getValue, setValue, translate } = props;
+  const { element, getValue, setValue, translate, appCode = 'default' } = props;
   
   const handleEditForm = () => {
     // Obter formKey atual ou gerar um padrão
@@ -15,6 +15,7 @@ const ActivitiFormKeyProperty = (props: any) => {
     
     // Abrir o editor de formulário
     openFormEditorModal({
+      appCode, // Add the appCode prop
       formKey,
       onSave: (updatedFormKey) => {
         setValue(updatedFormKey);
@@ -32,7 +33,7 @@ const ActivitiFormKeyProperty = (props: any) => {
 
 // Adicionar componente para DecisionTable
 const ActivitiDecisionTableProperty = (props: any) => {
-  const { element, getValue, setValue, translate } = props;
+  const { element, getValue, setValue, translate, appCode = 'default' } = props;
   
   const handleEditDecision = () => {
     // Obter decisionTable atual ou gerar um padrão
@@ -40,7 +41,7 @@ const ActivitiDecisionTableProperty = (props: any) => {
     
     // Abrir o editor de tabela de decisão
     openDecisionEditorModal({
-      decisionTable,
+      decisionTableKey: decisionTable, // Changed property name to match the interface
       onSave: (updatedDecisionTable) => {
         setValue(updatedDecisionTable);
       }
