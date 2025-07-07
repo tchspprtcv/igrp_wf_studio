@@ -99,8 +99,16 @@ export default async function DashboardPage() {
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset" className="hidden lg:block" />
-      <SidebarInset>
+      <AppSidebar variant="inset" className="hidden lg:block" /> {/* This is the 'peer' */}
+      <SidebarInset
+        className="lg:peer-data-[state=expanded]:pl-[var(--sidebar-width)] lg:peer-data-[state=collapsed]:pl-[4rem]"
+        // Explanation for collapsed state pl-[4rem]:
+        // var(--sidebar-width-icon) is 3rem (from ui/sidebar.tsx).
+        // AppSidebar with variant="inset" and collapsible="icon", when collapsed, has its width calculated as
+        // `calc(var(--sidebar-width-icon) + theme(spacing.4))`.
+        // theme(spacing.4) is 1rem. So, 3rem + 1rem = 4rem.
+        // This padding ensures the SidebarInset content clears this 4rem wide collapsed sidebar.
+      >
         <SiteHeader />
         <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 @container/main">
           <div className="flex items-center">
