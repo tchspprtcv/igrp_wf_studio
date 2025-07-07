@@ -7,8 +7,8 @@
 export * from './types';
 
 // Export core functionality
-export { WorkflowWorkspaceManager } from './core/workflowWorkspace.js';
-export { ProcessManager } from './core/processManager.js';
+export { WorkflowWorkspaceManager } from './core/workflowWorkspace';
+export { ProcessManager } from './core/processManager';
 
 // Export utility functions
 export { 
@@ -16,17 +16,17 @@ export {
   writeFile, 
   readFile, 
   fileExists 
-} from './utils/fileSystem.js';
+} from './utils/fileSystem';
 
 export { 
   generateAppOptionsTemplate, 
   generateEmptyBpmnTemplate,
   generateProjectConfigTemplate 
-} from './core/templates.js';
+} from './core/templates';
 
 // Import required classes
-import { WorkflowWorkspaceManager } from './core/workflowWorkspace.js';
-import { ProcessManager } from './core/processManager.js';
+import { WorkflowWorkspaceManager } from './core/workflowWorkspace';
+import { ProcessManager } from './core/processManager';
 import { appLogger as logger } from './utils/logger';
 
 /**

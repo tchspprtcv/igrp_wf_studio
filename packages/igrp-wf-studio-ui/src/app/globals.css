@@ -4,114 +4,104 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%; /* Light mode background */
-    --foreground: 210 40% 98%; /* Light mode foreground (text on dark primary) */
-    /* Slate theme variables from shadcn/ui (light mode) */
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem; /* Default radius for New York style */ --sidebar-background: 0 0% 98%; --sidebar-foreground: 240 5.3% 26.1%; --sidebar-primary: 240 5.9% 10%; --sidebar-primary-foreground: 0 0% 98%; --sidebar-accent: 240 4.8% 95.9%; --sidebar-accent-foreground: 240 5.9% 10%; --sidebar-border: 220 13% 91%; --sidebar-ring: 217.2 91.2% 59.8%;
+    --primary-50: 236 253 245;
+    --primary-100: 209 250 229;
+    --primary-200: 167 243 208;
+    --primary-300: 110 231 183;
+    --primary-400: 52 211 153;
+    --primary-500: 16 185 129;
+    --primary-600: 5 150 105;
+    --primary-700: 4 120 87;
+    --primary-800: 6 95 70;
+    --primary-900: 6 78 59;
+    --primary-950: 2 44 34;
+    --accent-50: 245 243 255;
+    --accent-100: 237 233 254;
+    --accent-200: 221 214 254;
+    --accent-300: 196 181 253;
+    --accent-400: 167 139 250;
+    --accent-500: 139 92 246;
+    --accent-600: 124 58 237;
+    --accent-700: 109 40 217;
+    --accent-800: 91 33 182;
+    --accent-900: 76 29 149;
+    --accent-950: 46 16 101;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%; /* Dark mode background */
-    --foreground: 210 40% 98%; /* Dark mode foreground (text) */
-    /* Slate theme variables from shadcn/ui (dark mode) */
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --primary-50: 2 44 34;
+    --primary-100: 6 78 59;
+    --primary-200: 6 95 70;
+    --primary-300: 4 120 87;
+    --primary-400: 5 150 105;
+    --primary-500: 16 185 129;
+    --primary-600: 52 211 153;
+    --primary-700: 110 231 183;
+    --primary-800: 167 243 208;
+    --primary-900: 209 250 229;
+    --primary-950: 236 253 245;
+    --accent-50: 46 16 101;
+    --accent-100: 76 29 149;
+    --accent-200: 91 33 182;
+    --accent-300: 109 40 217;
+    --accent-400: 124 58 237;
+    --accent-500: 139 92 246;
+    --accent-600: 167 139 250;
+    --accent-700: 196 181 253;
+    --accent-800: 221 214 254;
+    --accent-900: 237 233 254;
+    --accent-950: 245 243 255;
   }
 
   * {
-    @apply border-gray-200;
+    @apply border-gray-200 dark:border-gray-700;
   }
 
-  html, body, #__next { /* Alterado de #root para #__next, que é o id padrão do Next.js */
-    @apply h-full;
+  #__next {
+    @apply flex flex-col min-h-screen;
   }
 
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    @apply bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100;
   }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md 
-    transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+    @apply px-4 py-2 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2;
   }
-  
+
   .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-500;
+    @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
   }
-  
+
   .btn-secondary {
-    @apply bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 
-    focus-visible:ring-primary-500 shadow-sm;
+    @apply bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500;
   }
-  
+
   .btn-accent {
-    @apply bg-accent-500 text-white hover:bg-accent-600 focus-visible:ring-accent-400;
+    @apply bg-accent-600 text-white hover:bg-accent-700 focus:ring-accent-500;
   }
-  
+
   .btn-danger {
-    @apply bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500;
+    @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
   }
-  
+
   .input-field {
-    @apply form-input block w-full rounded-md border-gray-300 shadow-sm 
-    focus-visible:border-primary-500 focus-visible:ring-primary-500 sm:text-sm;
+    @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm;
   }
-  
+
   .form-label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
+    @apply block text-sm font-medium text-gray-700;
   }
-  
+
   .card {
-    @apply bg-white shadow rounded-lg p-6;
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow p-6;
   }
 }
 
-/* BPMN Properties Panel Customization */
 .bpp-properties-panel {
-  @apply bg-white font-sans text-sm;
+  @apply bg-white dark:bg-gray-800 shadow-md rounded-md p-4;
 }
 
 .bpp-properties-panel .bpp-field {
@@ -129,114 +119,103 @@
 .bpp-properties-panel input[type="text"],
 .bpp-properties-panel input[type="number"],
 .bpp-properties-panel textarea {
-  @apply form-input block w-full rounded-md border-gray-300 shadow-sm 
-  focus-visible:border-primary-500 focus-visible:ring-primary-500 sm:text-sm;
+  @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm;
 }
 
 .bpp-properties-panel select {
-  @apply form-select block w-full rounded-md border-gray-300 shadow-sm 
-  focus-visible:border-primary-500 focus-visible:ring-primary-500 sm:text-sm pr-10;
+  @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm pr-10;
 }
 
 .bpp-properties-panel input[type="checkbox"] {
-  @apply form-checkbox h-4 w-4 rounded border-gray-300 text-primary-600 
-  focus-visible:ring-primary-500 focus-visible:ring-offset-0;
+  @apply h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 focus:ring-offset-0;
 }
 
 .bpp-properties-panel button {
-  @apply inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm 
-  leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 
-  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary-500;
+  @apply inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500;
 }
 
 .bpp-properties-panel button[data-action="clear"] {
-  @apply absolute inset-y-0 right-0 px-3 py-0 border-0 shadow-none 
-  text-gray-400 hover:text-gray-500;
+  @apply text-gray-700 bg-white hover:bg-gray-50 border border-gray-300;
 }
 
 .bpp-properties-panel [data-entry] {
-  @apply mb-4 last:mb-0;
+  @apply mb-4;
 }
 
 .bpp-properties-panel .bpp-divider {
-  @apply my-4 border-t border-gray-200;
+  @apply border-t border-gray-200 my-4;
 }
 
 .bpp-properties-panel .bpp-error {
-  @apply mt-1 text-sm text-red-600;
+  @apply text-sm text-red-600 mt-1;
 }
 
-/* BPMN Diagram Customization */
 .djs-palette {
-  @apply bg-white border border-gray-200 rounded-lg shadow-md;
+  @apply bg-white dark:bg-gray-800 shadow-md rounded-md p-2;
 }
 
 .djs-palette .entry {
-  @apply text-gray-700 hover:text-primary-600;
+  @apply cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded;
 }
 
 .djs-context-pad {
-  @apply bg-white border border-gray-200 rounded-lg shadow-md;
+  @apply bg-white dark:bg-gray-800 shadow-md rounded-md p-1;
 }
 
 .djs-context-pad .entry {
-  @apply bg-white text-gray-700 border border-gray-200 rounded-md 
-  hover:bg-gray-50 hover:text-primary-600;
+  @apply cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded;
 }
 
 .djs-overlay-context-pad {
-  @apply bg-white border border-gray-200 rounded-lg shadow-lg;
+  @apply bg-white dark:bg-gray-800 shadow-md rounded-md p-1;
 }
 
 .djs-overlay-context-pad .entry {
-  @apply text-gray-700 hover:text-primary-600;
+  @apply cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded;
 }
 
-/* Diagram canvas */
 .djs-container {
-  @apply bg-gray-50;
+  @apply bg-gray-50 dark:bg-gray-900;
 }
 
 .djs-shape {
-  @apply fill-white stroke-gray-300;
+  @apply fill-white dark:fill-gray-800 stroke-gray-800 dark:stroke-gray-200;
 }
 
 .djs-connection {
-  @apply stroke-gray-400;
+  @apply stroke-gray-800 dark:stroke-gray-200;
 }
 
 .djs-connection.selected {
-  @apply stroke-primary-500;
+  @apply stroke-primary-600 dark:stroke-primary-400;
 }
 
 .djs-shape.selected {
-  @apply stroke-primary-500;
+  @apply stroke-primary-600 dark:stroke-primary-400;
 }
 
-/* Scrollbars */
 ::-webkit-scrollbar {
   @apply w-2 h-2;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-gray-100;
+  @apply bg-gray-100 dark:bg-gray-800;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full;
+  @apply bg-gray-300 dark:bg-gray-600 rounded;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400;
+  @apply bg-gray-400 dark:bg-gray-500;
 }
-
-
 
 @layer base {
   * {
-    @apply border-border;
+    @apply box-border;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply m-0 p-0;
   }
 }

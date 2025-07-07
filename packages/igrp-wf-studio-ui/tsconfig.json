@@ -17,7 +17,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "igrp-wf-engine": ["../igrp-wf-engine/src"] // Mantendo o alias para o engine
+      "@igrp/wf-engine": ["../igrp-wf-engine/src"] // Corrigido o alias para o engine
     },
     "plugins": [
       {

@@ -128,7 +128,7 @@ module.exports = {
 		},
 		fontFamily: {
 			sans: [
-				'Inter', ...require(, tailwindcss/defaultTheme').fontFamily.sans'
+				'Inter', ...require('tailwindcss/defaultTheme').fontFamily.sans
 			]
 		},
 		boxShadow: {
