@@ -1,5 +1,14 @@
 import { Metadata, ResolvingMetadata } from 'next';
-import { ProjectConfig, Process } from '@igrp/wf-engine'; // Tipos
+import { ProjectConfig } from '@igrp/wf-engine'; // Apenas o tipo ProjectConfig existe no módulo
+
+// Define a local Process interface since it's not exported from @igrp/wf-engine
+interface Process {
+  id?: string;
+  code: string;
+  title: string;
+  description?: string;
+  status?: string;
+}
 import ProcessEditorClient from "./ProcessEditorClient";
 import { notFound } from 'next/navigation';
 import { unstable_cache as nextCache } from 'next/cache';
@@ -26,7 +35,7 @@ const getProjectConfigCachedForProcessPage = nextCache( // Renomeado para evitar
     return await studioMgr.loadStudioWorkspaceConfig(appCode); // Nova Lógica
   },
   ['project-config-for-process-editor'], // Chave de cache única
-  { tags: ['projects', (appCode: string) => `project-${appCode}`] } // Tags para revalidação
+  { tags: ['projects'] } // Tags para revalidação - usando apenas strings estáticas
 );
 
 const getProcessDefinitionCachedForEditorPage = nextCache( // Renomeado para evitar conflitos
@@ -36,7 +45,7 @@ const getProcessDefinitionCachedForEditorPage = nextCache( // Renomeado para evi
     return await studioMgr.readStudioProcessDefinition(params.appCode, params.areaCode, params.processCode, params.subAreaCode); // Nova Lógica
   },
   ['process-definition-editor'], // Chave de cache única
-  { tags: ['processes', (params: {appCode: string, processCode: string}) => `process-${params.appCode}-${params.processCode}`] }
+  { tags: ['processes'] } // Tags para revalidação - usando apenas strings estáticas
 );
 
 

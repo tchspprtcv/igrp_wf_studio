@@ -4,9 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { updateWorkspaceItemAction } from '@/app/actions';
 // import Modal from '@/components/ui/Modal'; // Supondo que Modal é um componente genérico
-import Input from '@/components/ui/Input';
-import Button from '@/components/ui/Button';
-// import Label from '@/components/ui/Label'; // Usar htmlFor em label padrão
+import { Button } from '@/components/ui/button';
+import { FormInput } from '@/components/ui/form-input'; // Usar htmlFor em label padrão
 // import Select from '@/components/ui/Select'; // Usar select padrão
 import { toast } from 'react-hot-toast';
 import { X } from 'lucide-react'; // Para o botão de fechar do modal, se não for genérico
@@ -32,8 +31,8 @@ const initialState: { message: string; success: boolean; errors?: any } = {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" isLoading={pending}>
-      Save Changes
+    <Button type="submit" disabled={pending}>
+      {pending ? 'Saving...' : 'Save Changes'}
     </Button>
   );
 }
@@ -95,17 +94,16 @@ const EditAreaModal: React.FC<EditAreaModalProps> = ({
           {/* newCode não é editável aqui, então não é enviado ou é igual a itemCode */}
 
           <div>
-            <label htmlFor="area-title" className="form-label">Title</label>
-            <Input
-              id="area-title"
+            <FormInput
+              id="areaTitle"
               name="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter area title"
               required
-              error={'errors' in formState && typeof formState.errors === 'object' && formState.errors !== null && 'title' in formState.errors && Array.isArray(formState.errors.title) ? formState.errors.title[0] : undefined}
+              error={'errors' in formState && typeof formState.errors === 'object' && formState.errors !== null && 'title' in formState.errors && Array.isArray(formState.errors.title) && formState.errors.title.length > 0 ? formState.errors.title[0] : undefined}
+              label="Title"
             />
-            {'errors' in formState && typeof formState.errors === 'object' && formState.errors !== null && 'title' in formState.errors && Array.isArray(formState.errors.title) && formState.errors.title.length > 0 && <p className="text-red-500 text-xs">{formState.errors.title[0]}</p>}
           </div>
 
           <div>

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { AppOptions, ProjectConfig } from '@igrp/wf-engine'; // SDK não é instanciado aqui diretamente para busca inicial
 import { FolderOpen, Search, Download, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Button from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import CreateWorkspaceModal from "@/components/modals/CreateWorkspaceModal"; // Caminho atualizado
 import { deleteWorkspaceAction, getWorkspaceExportDataAction } from "@/app/actions";
 import JSZip from 'jszip';
@@ -65,7 +65,7 @@ export default function WorkspaceListClientContent({ initialWorkspaces }: Worksp
       return;
     }
     setExportingWorkspaceCode(appCode);
-    toast.info(`Fetching data for ${appCode} export...`);
+    toast(`Fetching data for ${appCode} export...`); // Changed from toast.info to toast
 
     try {
       const result = await getWorkspaceExportDataAction(appCode);
@@ -76,7 +76,7 @@ export default function WorkspaceListClientContent({ initialWorkspaces }: Worksp
       }
       const { projectConfig, processes } = result.data;
 
-      toast.info(`Generating ZIP for ${appCode}...`);
+      toast(`Generating ZIP for ${appCode}...`); // Changed from toast.info to toast
       const zip = new JSZip();
       zip.file(`${appCode}/project-config.json`, JSON.stringify(projectConfig, null, 2));
       for (const processFile of processes) {
@@ -172,17 +172,17 @@ export default function WorkspaceListClientContent({ initialWorkspaces }: Worksp
                       <Button
                         variant="ghost" size="sm"
                         onClick={() => handleExport(app.code)}
-                        icon={<Download className="h-4 w-4" />}
                         disabled={exportingWorkspaceCode === app.code}
                       >
+                        <Download className="h-4 w-4 mr-2" />
                         {exportingWorkspaceCode === app.code ? 'Exporting...' : 'Export'}
                       </Button>
                       <Button
                         variant="ghost" size="sm"
                         onClick={() => handleDelete(app.code)}
-                        icon={<Trash2 className="h-4 w-4" />}
                         className="text-red-600 hover:text-red-700"
                       >
+                        <Trash2 className="h-4 w-4 mr-2" />
                         Delete
                       </Button>
                       <Link
