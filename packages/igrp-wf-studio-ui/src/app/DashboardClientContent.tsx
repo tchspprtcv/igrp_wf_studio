@@ -2,18 +2,37 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation"; // Para revalidação ou navegação programática
+import { useRouter } from "next/navigation";
 import type { AppOptions } from '@igrp/wf-engine';
-import { Workflow, Layers, Folder, Clock, Search, Download, Trash2 } from "lucide-react";
+import { Folder, Search, Download, Trash2, Eye, Terminal } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import CreateWorkspaceModal from "@/components/modals/CreateWorkspaceModal"; // Caminho atualizado
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import CreateWorkspaceModal from "@/components/modals/CreateWorkspaceModal";
 import JSZip from 'jszip';
 import { toast } from 'react-hot-toast';
-import { deleteWorkspaceAction, getWorkspaceExportDataAction } from "./actions"; // Importar as Server Actions
+import { deleteWorkspaceAction, getWorkspaceExportDataAction } from "./actions";
 
 interface DashboardClientContentProps {
-  initialWorkspaces: AppOptions[]; // AppOptions é o tipo retornado por listWorkspaces
+  initialWorkspaces: AppOptions[];
   initialError?: string | null;
 }
 
@@ -25,7 +44,6 @@ export default function DashboardClientContent({ initialWorkspaces, initialError
   const [error, setError] = useState<string | null>(initialError || null);
   const [exportingWorkspaceCode, setExportingWorkspaceCode] = useState<string | null>(null);
 
-  // Se initialWorkspaces mudar (ex: após router.refresh()), atualize o estado.
   useEffect(() => {
     setWorkspaces(initialWorkspaces);
   }, [initialWorkspaces]);
@@ -42,16 +60,16 @@ export default function DashboardClientContent({ initialWorkspaces, initialError
       const result = await deleteWorkspaceAction(code);
       if (result.success) {
         toast.success(result.message || `Workspace '${code}' deleted successfully.`);
-        // router.refresh(); // revalidatePath na action deve ser suficiente
-                         // mas router.refresh() pode ser usado se a revalidação não for imediata.
-                         // Por ora, vamos confiar no revalidatePath.
+        // Assuming revalidatePath in action is sufficient.
+        // Consider router.refresh() if updates are not immediate.
       } else {
         toast.error(result.message || 'Failed to delete workspace');
         setError(result.message);
       }
     } catch (err) {
-      toast.error(`Error: ${(err as Error).message}`);
-      setError((err as Error).message); // Pode ser um erro de rede ou da action não ter sido pega pelo try/catch interno dela
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      toast.error(`Error: ${errorMessage}`);
+      setError(errorMessage);
     }
   };
 
@@ -61,7 +79,7 @@ export default function DashboardClientContent({ initialWorkspaces, initialError
       return;
     }
     setExportingWorkspaceCode(appCode);
-    toast.success(`Fetching data for ${appCode} export...`);
+    toast.info(`Fetching data for ${appCode} export...`); // Changed to info for better UX
 
     try {
       const result = await getWorkspaceExportDataAction(appCode);
@@ -74,14 +92,11 @@ export default function DashboardClientContent({ initialWorkspaces, initialError
 
       const { projectConfig, processes } = result.data;
 
-      toast.success(`Generating ZIP for ${appCode}...`);
+      toast.info(`Generating ZIP for ${appCode}...`); // Changed to info
       const zip = new JSZip();
-      // Adiciona o project-config.json na raiz da pasta do appCode dentro do ZIP
       zip.file(`${appCode}/project-config.json`, JSON.stringify(projectConfig, null, 2));
 
-      // Adiciona cada arquivo de processo no seu respectivo caminho dentro da pasta do appCode
       for (const processFile of processes) {
-        // processFile.path já é relativo à raiz do workspace (ex: area/processo.bpmn)
         zip.file(`${appCode}/${processFile.path}`, processFile.content);
       }
 
@@ -97,45 +112,43 @@ export default function DashboardClientContent({ initialWorkspaces, initialError
       toast.success(`Workspace '${appCode}' exported successfully.`);
 
     } catch (err) {
-      toast.error(`Failed to export workspace ${appCode}: ${(err as Error).message}`);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      toast.error(`Failed to export workspace ${appCode}: ${errorMessage}`);
       console.error("Export error:", err);
     } finally {
       setExportingWorkspaceCode(null);
     }
   };
 
-  const getStatusBadgeClass = (status?: string) => {
+  const getStatusBadgeVariant = (status?: string): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
-      case "active": return "bg-green-100 text-green-800";
-      case "inactive": return "bg-gray-100 text-gray-800";
-      case "draft": return "bg-yellow-100 text-yellow-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "active": return "default"; // Or a success-like variant if defined in theme
+      case "inactive": return "secondary";
+      case "draft": return "outline"; // Or a warning-like variant
+      default: return "secondary";
     }
   };
 
   const filteredWorkspaces = workspaces.filter(app =>
     (app.title?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-    (app.description?.toLowerCase() || '').includes(searchQuery.toLowerCase())
+    (app.description?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+    (app.code?.toLowerCase() || '').includes(searchQuery.toLowerCase())
   );
 
   const handleWorkspaceCreated = () => {
     setShowCreateModal(false);
-    // Revalida os dados da página para buscar a nova lista de workspaces
     router.refresh();
   };
 
   return (
     <>
-      {/* Botão "New Workspace" e barra de pesquisa */}
-      <div className="mt-6 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div className="relative w-full sm:max-w-md">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
-          </div>
-          <input
-            type="text"
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+        <div className="relative w-full sm:max-w-sm">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
             placeholder="Search workspaces..."
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+            className="w-full pl-8"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -145,96 +158,116 @@ export default function DashboardClientContent({ initialWorkspaces, initialError
         </Button>
       </div>
 
-      {error && !initialError && ( // Mostrar erro apenas se não for o erro inicial já mostrado pelo Server Component
-        <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
-          <p className="text-sm text-red-600">{error}</p>
-        </div>
+      {error && !initialError && (
+         <Alert variant="destructive" className="mb-4">
+           <Terminal className="h-4 w-4" />
+           <AlertTitle>Error</AlertTitle>
+           <AlertDescription>{error}</AlertDescription>
+         </Alert>
       )}
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        <ul className="divide-y divide-gray-200">
-          {filteredWorkspaces.length > 0 ? (
-            filteredWorkspaces.map((app) => (
-              <li key={app.id || app.code} className="animate-slide-in">
-                <div className="px-4 py-4 sm:px-6 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="sm:flex sm:items-center sm:justify-between w-full">
-                      <div className="sm:flex sm:items-center">
-                        <div className="flex-shrink-0 mr-4 bg-primary-100 p-2 rounded-lg">
-                          <Folder className="h-6 w-6 text-primary-600" />
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-medium text-primary-600">
-                            <Link href={`/workspaces/${app.code}`} className="hover:underline">
-                              {app.title || app.code}
-                            </Link>
-                          </h3>
-                          <p className="mt-1 text-sm text-gray-500">
-                            {app.description}
-                          </p>
-                          {app.updated_at && (
-                            <div className="mt-2 flex items-center text-xs text-gray-500">
-                              <span>Updated {formatDate(app.updated_at)}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="mt-4 sm:mt-0 flex items-center space-x-2">
-                        <span className={cn(
-                          "px-2.5 py-0.5 rounded-full text-xs font-medium",
-                          getStatusBadgeClass(app.status)
-                        )}>
-                          {app.status ? app.status.charAt(0).toUpperCase() + app.status.slice(1) : 'N/A'}
-                        </span>
+      <Card>
+        <CardHeader>
+          <CardTitle>Workspaces</CardTitle>
+          <CardDescription>Manage your workflow workspaces.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0 sm:p-6"> {/* Remove padding for CardContent on xs, apply on sm+ to allow table wrapper to use full width */}
+          <div className="overflow-x-auto"> {/* Wrapper for table to allow horizontal scrolling on small screens */}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead className="hidden sm:table-cell">Code</TableHead>
+                <TableHead className="hidden md:table-cell">Description</TableHead>
+                <TableHead className="hidden lg:table-cell">Last Updated</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredWorkspaces.length > 0 ? (
+                filteredWorkspaces.map((app) => (
+                  <TableRow key={app.id || app.code}>
+                    <TableCell>
+                      <Link href={`/workspaces/${app.code}`} className="font-medium text-primary hover:underline">
+                        {app.title || app.code}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">{app.code}</TableCell>
+                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground truncate max-w-xs">
+                      {app.description}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+                      {app.updated_at ? formatDate(app.updated_at) : 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusBadgeVariant(app.status)}>
+                        {app.status ? app.status.charAt(0).toUpperCase() + app.status.slice(1) : 'N/A'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end space-x-1">
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
                           onClick={() => handleExport(app.code)}
                           disabled={exportingWorkspaceCode === app.code}
-                          className="inline-flex items-center gap-2"
+                          title="Export Workspace"
                         >
                           <Download className="h-4 w-4" />
-                          {exportingWorkspaceCode === app.code ? 'Exporting...' : 'Export'}
+                          <span className="sr-only">Export</span>
                         </Button>
                         <Button
                           variant="ghost"
-                          size="sm"
+                          size="icon"
+                          asChild
+                          title="View Workspace"
+                        >
+                          <Link href={`/workspaces/${app.code}`}>
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">View</span>
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleDelete(app.code)}
-                          className="text-red-600 hover:text-red-700 inline-flex items-center gap-2"
+                          className="text-destructive hover:text-destructive/90"
+                          title="Delete Workspace"
                         >
                           <Trash2 className="h-4 w-4" />
-                          Delete
+                          <span className="sr-only">Delete</span>
                         </Button>
-                        <Link
-                          href={`/workspaces/${app.code}`}
-                          className="text-sm font-medium text-primary-600 hover:text-primary-800 transition-colors px-2 py-1 rounded-md hover:bg-primary-50"
-                        >
-                          View
-                        </Link>
                       </div>
-                    </div>
-                  </div>
-                </div>
-              </li>
-            ))
-          ) : (
-            <li className="py-12">
-              <div className="text-center">
-                <Folder className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No workspaces found</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  {searchQuery ? "Try adjusting your search." : "Create a new workflow workspace to get started."}
-                </p>
-              </div>
-            </li>
-          )}
-        </ul>
-      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center">
+                    <Folder className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
+                    <p className="font-medium">No workspaces found.</p>
+                    <p className="text-sm text-muted-foreground">
+                      {searchQuery ? "Try adjusting your search terms." : "Create a new workspace to get started."}
+                    </p>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+          </div>
+        </CardContent>
+        {filteredWorkspaces.length > 0 && (
+            <CardFooter className="text-xs text-muted-foreground">
+                Showing {filteredWorkspaces.length} of {workspaces.length} workspaces.
+            </CardFooter>
+        )}
+      </Card>
 
       {showCreateModal && (
         <CreateWorkspaceModal
           onClose={() => setShowCreateModal(false)}
-          onCreated={handleWorkspaceCreated} // router.refresh() será chamado aqui
+          onCreated={handleWorkspaceCreated}
         />
       )}
     </>
