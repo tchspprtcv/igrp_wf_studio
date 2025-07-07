@@ -1,7 +1,19 @@
-import path from 'node:path';
-import os from 'node:os';
-import fs from 'node:fs/promises';
+// Mark this file as server-only to prevent it from being imported in client components
+import 'server-only';
 import { WorkspaceCatalogEntry } from '../types/workspace';
+
+// Use dynamic imports for Node.js modules
+let path: typeof import('path');
+let os: typeof import('os');
+let fs: typeof import('fs/promises');
+
+// Initialize Node.js modules
+if (typeof window === 'undefined') {
+  // We're on the server
+  path = require('path');
+  os = require('os');
+  fs = require('fs/promises');
+}
 
 const CATALOG_DIR_NAME = '.igrp_wf_studio';
 const CATALOG_FILE_NAME = 'workspaces_catalog.json';

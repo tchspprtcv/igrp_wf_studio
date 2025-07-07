@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { updateWorkspaceItemAction } from '@/app/actions';
 // import Modal from '@/components/ui/Modal';
-import Input from '@/components/ui/Input';
-import Button from '@/components/ui/Button';
+import { FormInput } from '@/components/ui/form-input';
+import { Button } from '@/components/ui/button';
 import { toast } from 'react-hot-toast';
 import { X } from 'lucide-react';
 
@@ -29,8 +29,8 @@ const initialState: { message: string; success: boolean; errors?: any } = {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" isLoading={pending}>
-      Save Changes
+    <Button type="submit" disabled={pending}>
+      {pending ? 'Saving...' : 'Save Changes'}
     </Button>
   );
 }
@@ -91,15 +91,15 @@ const EditSubAreaModal: React.FC<EditSubAreaModalProps> = ({
           <input type="hidden" name="parentCode" value={areaCode} /> {/* parentCode é areaCode */}
 
           <div>
-            <label htmlFor="subarea-title" className="form-label">Title</label>
-            <Input
-              id="subarea-title"
+            <FormInput
+              id="subAreaTitle"
               name="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter subarea title"
               required
-              error={'errors' in formState && typeof formState.errors === 'object' && formState.errors !== null && 'title' in formState.errors && Array.isArray(formState.errors.title) ? formState.errors.title[0] : undefined}
+              error={'errors' in formState && typeof formState.errors === 'object' && formState.errors !== null && 'title' in formState.errors && Array.isArray(formState.errors.title) && formState.errors.title.length > 0 ? formState.errors.title[0] : undefined}
+              label="Title"
             />
             {'errors' in formState && typeof formState.errors === 'object' && formState.errors !== null && 'title' in formState.errors && Array.isArray(formState.errors.title) && formState.errors.title.length > 0 && <p className="text-red-500 text-xs">{formState.errors.title[0]}</p>}
           </div>
@@ -132,6 +132,7 @@ const EditSubAreaModal: React.FC<EditSubAreaModalProps> = ({
               <option value="draft">Draft</option>
             </select>
             {'errors' in formState && typeof formState.errors === 'object' && formState.errors !== null && 'status' in formState.errors && Array.isArray(formState.errors.status) && formState.errors.status.length > 0 && <p className="text-red-500 text-xs">{formState.errors.status[0]}</p>}
+
           </div>
 
           {formState.message && !formState.success && formState.message !== initialState.message && (

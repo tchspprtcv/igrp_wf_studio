@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"; // Para revalidação ou navegaçã
 import type { AppOptions } from '@igrp/wf-engine';
 import { Workflow, Layers, Folder, Clock, Search, Download, Trash2 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
-import Button from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import CreateWorkspaceModal from "@/components/modals/CreateWorkspaceModal"; // Caminho atualizado
 import JSZip from 'jszip';
 import { toast } from 'react-hot-toast';
@@ -190,18 +190,19 @@ export default function DashboardClientContent({ initialWorkspaces, initialError
                           variant="ghost"
                           size="sm"
                           onClick={() => handleExport(app.code)}
-                          icon={<Download className="h-4 w-4" />}
                           disabled={exportingWorkspaceCode === app.code}
+                          className="inline-flex items-center gap-2"
                         >
+                          <Download className="h-4 w-4" />
                           {exportingWorkspaceCode === app.code ? 'Exporting...' : 'Export'}
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete(app.code)}
-                          icon={<Trash2 className="h-4 w-4" />}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-600 hover:text-red-700 inline-flex items-center gap-2"
                         >
+                          <Trash2 className="h-4 w-4" />
                           Delete
                         </Button>
                         <Link

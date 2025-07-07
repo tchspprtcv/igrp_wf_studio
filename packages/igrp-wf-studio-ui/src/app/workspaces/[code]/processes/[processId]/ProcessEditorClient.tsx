@@ -5,11 +5,19 @@ import { useRouter } from 'next/navigation'; // Para o botão "Back"
 // SDK não é usado diretamente aqui para busca inicial, mas pode ser para algumas operações client-side se necessário
 // import { WorkflowEngineSDK } from '@igrp/wf-engine';
 import BpmnModelerComponent from '@/components/bpmn/BpmnModeler';
-import { Save, Play, Download, ArrowLeft, FileText, Image as ImageIcon } from 'lucide-react';
-import Button from '@/components/ui/Button';
+import { Save, Play, ArrowLeft, FileText, Image as ImageIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
-import { Process } from '@igrp/wf-engine'; // Tipo Process do SDK
+
+// Define a local Process interface since it's not exported from @igrp/wf-engine
+interface Process {
+  id?: string;
+  code: string;
+  title: string;
+  description?: string;
+  status?: string;
+}
 
 // Server Actions (a serem criadas/usadas)
 import { saveProcessAction, deployProcessAction } from '@/app/actions';
@@ -74,7 +82,9 @@ const ProcessEditorClient: React.FC<ProcessEditorClientProps> = ({ initialProces
 
   const handleExportBpmn = () => {
     if (!bpmnXml) {
-        toast.warn("No BPMN content to export.");
+        toast("No BPMN content to export.", {
+          icon: '⚠️',
+        });
         return;
     }
     const blob = new Blob([bpmnXml], { type: 'text/xml' });
@@ -91,7 +101,9 @@ const ProcessEditorClient: React.FC<ProcessEditorClientProps> = ({ initialProces
 
   const handleExportSvg = async () => {
     if (!modelerRef.current) {
-        toast.warn("BPMN Modeler not loaded.");
+        toast("BPMN Modeler not loaded.", {
+          icon: '⚠️',
+        });
         return;
     }
     try {
@@ -118,7 +130,9 @@ const ProcessEditorClient: React.FC<ProcessEditorClientProps> = ({ initialProces
         return;
     }
     setDeploying(true);
-    toast.info("Deploying process...");
+    toast("Deploying process...", {
+      icon: 'ℹ️',
+    });
     try {
       // Chamar a Server Action para deploy
       const result = await deployProcessAction({
@@ -160,9 +174,9 @@ const ProcessEditorClient: React.FC<ProcessEditorClientProps> = ({ initialProces
                     variant="ghost"
                     size="sm"
                     onClick={() => router.back()}
-                    icon={<ArrowLeft className="h-4 w-4" />}
                     className="mr-4"
                   >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
                     Back
                   </Button>
                   <div>
@@ -176,16 +190,28 @@ const ProcessEditorClient: React.FC<ProcessEditorClientProps> = ({ initialProces
                 </div>
               </div>
               <div className="flex items-center space-x-3 flex-shrink-0">
-                <Button variant="secondary" size="sm" onClick={handleExportBpmn} icon={<FileText className="h-4 w-4" />}>
+                <Button variant="secondary" size="sm" onClick={handleExportBpmn}>
+                  <FileText className="h-4 w-4" />
                   Export BPMN
                 </Button>
-                <Button variant="secondary" size="sm" onClick={handleExportSvg} icon={<ImageIcon className="h-4 w-4" />}>
+                <Button variant="secondary" size="sm" onClick={handleExportSvg}>
+                  <ImageIcon className="h-4 w-4" />
                   Export SVG
                 </Button>
-                <Button onClick={handleSave} icon={<Save className="h-4 w-4" />} isLoading={saving}>
+                <Button onClick={handleSave} disabled={saving}>
+                  {saving ? (
+                    <span className="inline-block animate-spin mr-2">⟳</span>
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
                   Save
                 </Button>
-                <Button variant="primary" onClick={handleDeploy} icon={<Play className="h-4 w-4" />} isLoading={deploying}>
+                <Button variant="default" onClick={handleDeploy} disabled={deploying}>
+                  {deploying ? (
+                    <span className="inline-block animate-spin mr-2">⟳</span>
+                  ) : (
+                    <Play className="h-4 w-4 mr-2" />
+                  )}
                   Deploy
                 </Button>
               </div>
@@ -213,6 +239,7 @@ const ProcessEditorClient: React.FC<ProcessEditorClientProps> = ({ initialProces
           xml={bpmnXml}
           onChange={handleXmlChange}
           onLoad={handleModelerLoad}
+          appCode={initialProcessDetails.appCode}
         />
       </div>
     </div>

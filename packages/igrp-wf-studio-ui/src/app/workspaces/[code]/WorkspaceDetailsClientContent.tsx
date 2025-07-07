@@ -3,12 +3,18 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ProjectConfig, ProcessDefinition } from '@igrp/wf-engine';
+
+// Extended interface to include additional properties used in the UI
+interface ExtendedProjectConfig extends ProjectConfig {
+  description?: string;
+  appCode?: string;
+}
 import TreeMenu from '@/components/workspaces/TreeMenu';
 import CreateAreaModal from '@/components/modals/CreateAreaModal';
 import CreateSubAreaModal from '@/components/modals/CreateSubAreaModal';
 import CreateProcessModal from '@/components/modals/CreateProcessModal'; // Caminho atualizado
 import EditItemModal from '@/components/workspaces/EditItemModal';
-import Button  from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { toast } from 'react-hot-toast';
 import { Archive } from 'lucide-react';
 import JSZip from 'jszip';
@@ -24,13 +30,13 @@ import PageHeader from '@/components/layout/PageHeader';
 import type { EditItemFormData } from '@/types'; // Importar tipo
 
 interface WorkspaceDetailsClientProps {
-  initialConfig: ProjectConfig & { appCode?: string }; // appCode foi adicionado no server component
+  initialConfig: ExtendedProjectConfig;
   workspaceCode: string;
 }
 
 const WorkspaceDetailsClientContent: React.FC<WorkspaceDetailsClientProps> = ({ initialConfig, workspaceCode }) => {
   const router = useRouter();
-  const [config, setConfig] = useState<ProjectConfig | null>(initialConfig);
+  const [config, setConfig] = useState<ExtendedProjectConfig | null>(initialConfig);
   const [error, setError] = useState<string | null>(null); // Para erros de cliente/ações
 
   // Estados dos Modais
@@ -220,8 +226,9 @@ const WorkspaceDetailsClientContent: React.FC<WorkspaceDetailsClientProps> = ({ 
             variant="secondary"
             onClick={handleExportWorkspaceZip}
             disabled={exportingZip || !config}
-            icon={<Archive className="mr-2 h-4 w-4" />}
+            className="inline-flex items-center gap-2"
           >
+            <Archive className="h-4 w-4" />
             {exportingZip ? 'Exporting...' : 'Export Workspace (ZIP)'}
           </Button>
         }

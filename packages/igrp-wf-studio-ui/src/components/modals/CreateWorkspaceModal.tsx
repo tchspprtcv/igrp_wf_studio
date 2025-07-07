@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { createWorkspaceAction } from '@/app/actions'; // Ajustar caminho se necessário
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input'; // Supondo que Input é um componente simples
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation'; // Para navegação opcional pós-criação
@@ -22,7 +23,10 @@ const initialState: { message: string; success: boolean; errors?: any, workspace
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" isLoading={pending}>
+    <Button type="submit" disabled={pending}>
+      {pending ? (
+        <span className="inline-block animate-spin mr-2">⟳</span>
+      ) : null}
       Create Workspace
     </Button>
   );
@@ -63,51 +67,56 @@ const CreateWorkspace: React.FC<CreateWorkspaceProps> = ({ onClose, onCreated })
         </div>
 
         <form action={formAction} className="p-4 space-y-4">
-          <Input
-            label="Code"
-            name="code" // Adicionar name para FormData
-            id="code"
-            placeholder="Enter workspace code (e.g., my-project)"
-            required
-            defaultValue={code} // Pode ser controlado ou não
-            onChange={(e) => setCode(e.target.value)}
-            error={formState.errors?.code?.[0]}
-          />
-          {formState.errors?.code && <p className="text-red-500 text-xs">{formState.errors.code[0]}</p>}
+          <div className="space-y-2">
+            <Label htmlFor="code">Code</Label>
+            <Input
+              name="code"
+              id="code"
+              placeholder="Enter workspace code (e.g., my-project)"
+              required
+              defaultValue={code}
+              onChange={(e) => setCode(e.target.value)}
+              className={formState.errors?.code ? "border-red-500" : ""}
+            />
+            {formState.errors?.code && <p className="text-red-500 text-xs">{formState.errors.code[0]}</p>}
+          </div>
 
 
-          <Input
-            label="Title"
-            name="title" // Adicionar name
-            id="title"
-            placeholder="Enter workspace title"
-            required
-            error={formState.errors?.title?.[0]}
-          />
-          {formState.errors?.title && <p className="text-red-500 text-xs">{formState.errors.title[0]}</p>}
+          <div className="space-y-2">
+            <Label htmlFor="title">Title</Label>
+            <Input
+              name="title"
+              id="title"
+              placeholder="Enter workspace title"
+              required
+              className={formState.errors?.title ? "border-red-500" : ""}
+            />
+            {formState.errors?.title && <p className="text-red-500 text-xs">{formState.errors.title[0]}</p>}
+          </div>
 
-          <div>
-            <label htmlFor="description" className="form-label">Description</label>
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
             <textarea
-              name="description" // Adicionar name
+              name="description"
               id="description"
-              className="input-field"
+              className={`w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${formState.errors?.description ? "border-red-500" : ""}`}
               rows={3}
               placeholder="Enter workspace description"
-              // error={formState.errors?.description?.[0]} // Se Input não suportar, exibir manualmente
             />
             {formState.errors?.description && <p className="text-red-500 text-xs">{formState.errors.description[0]}</p>}
           </div>
 
-          <Input
-            label="Diretório Base do Workspace (Caminho Absoluto)"
-            name="basePath"
-            id="basePath"
-            placeholder="Ex: /utilizadores/nome/meus_workspaces/este_workspace ou C:\\Workspaces\\este_workspace"
-            required
-            error={formState.errors?.basePath?.[0]}
-          />
-          {formState.errors?.basePath && <p className="text-red-500 text-xs">{formState.errors.basePath[0]}</p>}
+          <div className="space-y-2">
+            <Label htmlFor="basePath">Diretório Base do Workspace (Caminho Absoluto)</Label>
+            <Input
+              name="basePath"
+              id="basePath"
+              placeholder="Ex: /utilizadores/nome/meus_workspaces/este_workspace ou C:\\Workspaces\\este_workspace"
+              required
+              className={formState.errors?.basePath ? "border-red-500" : ""}
+            />
+            {formState.errors?.basePath && <p className="text-red-500 text-xs">{formState.errors.basePath[0]}</p>}
+          </div>
 
 
           {/* O campo status foi removido do formulário pois a action define como 'active' por padrão */}

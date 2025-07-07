@@ -10,7 +10,9 @@ import styled from 'styled-components';
 // EditorService removido, usaremos Server Actions
 import { loadFormAction, saveFormAction } from '@/app/actions'; // Ajustar caminho se necessário
 import { createRoot, Root } from 'react-dom/client';
+import { Button } from '@/components/ui/button'; // Using shadcn/ui button
 import { v4 as uuidv4 } from 'uuid';
+import toast from 'react-hot-toast'; // Add toast import
 
 // Form component interfaces
 interface FormComponent {
@@ -109,19 +111,7 @@ const ModalFooter = styled.div`
   gap: 8px;
 `;
 
-const Button = styled.button<{ primary?: boolean }>`
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: pointer;
-  border: 1px solid ${props => props.primary ? '#2196f3' : '#ddd'};
-  background-color: ${props => props.primary ? '#2196f3' : 'white'};
-  color: ${props => props.primary ? 'white' : '#333'};
-  
-  &:hover {
-    background-color: ${props => props.primary ? '#1976d2' : '#f5f5f5'};
-  }
-`;
+// Using Button from '@/components/ui/button' instead of styled-components
 
 const CloseButton = styled.button`
   background: none;
@@ -551,6 +541,20 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ appCode, formKey, onS
   const formEditRef = useRef<HTMLDivElement>(null);
   const simpleFormBuilderRef = useRef<HTMLDivElement>(null);
   
+  // Gerar ID para novos formulários - moved up before its usage
+  const generateFormId = useCallback((formKey: string) => {
+    // Tentar extrair um nome do formKey
+    const baseName = formKey.split('/').pop()?.replace('.json', '') || '';
+    
+    // Se tiver um nome base, usá-lo com um sufixo único
+    if (baseName) {
+      return `${baseName}_${uuidv4().substring(0, 8)}`;
+    }
+    
+    // Caso contrário, gerar um ID completamente novo
+    return `form_${uuidv4().substring(0, 12)}`;
+  }, []);
+  
   // Adicionar estilos para highlight
   useEffect(() => {
     const styleElement = document.createElement('style');
@@ -562,7 +566,7 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ appCode, formKey, onS
     };
   }, []);
   
-  // Carregar definição do formulário
+  // Carregar o formulário quando o modal for aberto
   useEffect(() => {
     const loadForm = async () => {
       setIsLoading(true);
@@ -605,20 +609,6 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ appCode, formKey, onS
         setFormDefinition({ ...DEFAULT_FORM_DEFINITION, id: generateFormId(formKey || 'unknown_form'), name: 'Formulário Inválido'});
     }
   }, [appCode, formKey, generateFormId]);
-  
-  // Gerar ID para novos formulários
-  const generateFormId = useCallback((formKey: string) => {
-    // Tentar extrair um nome do formKey
-    const baseName = formKey.split('/').pop()?.replace('.json', '') || '';
-    
-    // Se tiver um nome base, usá-lo com um sufixo único
-    if (baseName) {
-      return `${baseName}_${uuidv4().substring(0, 8)}`;
-    }
-    
-    // Caso contrário, gerar um ID completamente novo
-    return `form_${uuidv4().substring(0, 12)}`;
-  }, []);
   
   // Atualizar editor JSON quando o formulário mudar
   useEffect(() => {
@@ -711,7 +701,7 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ appCode, formKey, onS
               case 'button':
                 html = `
                   <div class="formio-component formio-component-button" style="margin-bottom: 15px;">
-                    <button class="btn btn-primary">${component.label || 'Button'}</button>
+                    <button class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">${component.label || 'Button'}</button>
                   </div>
                 `;
                 break;
@@ -798,11 +788,7 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ appCode, formKey, onS
                 transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
               }
               
-              .btn-primary {
-                color: #fff;
-                background-color: #0d6efd;
-                border-color: #0d6efd;
-              }
+              /* .btn-primary removed as it's now using Tailwind classes directly in the preview string */
               
               .row {
                 display: flex;
@@ -1834,8 +1820,12 @@ const FormEditorModal: React.FC<FormEditorModalProps> = ({ appCode, formKey, onS
         </ModalBody>
         
         <ModalFooter>
-          <Button onClick={onClose}>Cancelar</Button>
-          <Button primary onClick={handleSave}>Salvar</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave}>
+            Salvar
+          </Button>
         </ModalFooter>
       </ModalContent>
       

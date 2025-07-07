@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { addSubAreaToAction } from '@/app/actions'; // Ajustar caminho
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
+import { Button } from '@/components/ui/button';
+import { FormInput } from '@/components/ui/form-input';
 import { X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { generateNextCode } from '@/lib/utils'; // Import the generator
@@ -25,8 +25,8 @@ const initialState: { message: string; success: boolean; errors?: any } = {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" isLoading={pending}>
-      Create SubArea
+    <Button type="submit" disabled={pending}>
+      {pending ? 'Creating...' : 'Create Sub-Area'}
     </Button>
   );
 }
@@ -87,7 +87,7 @@ const CreateSubAreaModal: React.FC<CreateSubAreaProps> = ({
             <p className="font-medium">{areaCode}</p>
           </div>
 
-          <Input
+          <FormInput
             label="SubArea Code"
             name="code"
             id="subAreaCode"
@@ -96,9 +96,8 @@ const CreateSubAreaModal: React.FC<CreateSubAreaProps> = ({
             required
             error={'errors' in formState ? formState.errors?.code?.[0] : undefined}
           />
-          {'errors' in formState && formState.errors?.code && <p className="text-red-500 text-xs">{formState.errors.code[0]}</p>}
 
-          <Input
+          <FormInput
             label="Title"
             name="title"
             id="subAreaTitle"
@@ -106,7 +105,6 @@ const CreateSubAreaModal: React.FC<CreateSubAreaProps> = ({
             required
             error={'errors' in formState ? formState.errors?.title?.[0] : undefined}
           />
-          {'errors' in formState && formState.errors?.title && <p className="text-red-500 text-xs">{formState.errors.title[0]}</p>}
 
           <div>
             <label htmlFor="subAreaDescription" className="form-label">Description</label>

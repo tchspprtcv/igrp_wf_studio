@@ -1,5 +1,10 @@
 import { Metadata, ResolvingMetadata } from 'next';
 import { ProjectConfig } from '@igrp/wf-engine'; // Apenas o tipo é necessário
+
+// Extended interface to include additional properties used in the UI
+interface ExtendedProjectConfig extends ProjectConfig {
+  description?: string;
+}
 import PageHeader from "@/components/layout/PageHeader";
 import WorkspaceDetailsClientContent from "./WorkspaceDetailsClientContent";
 import { unstable_cache as nextCache } from 'next/cache';
@@ -13,7 +18,7 @@ type Props = {
 
 // Função cacheada para carregar configuração de projeto individualmente, usando studioMgr
 const getProjectConfigCached = nextCache(
-  async (appCode: string): Promise<ProjectConfig | null> => { // Definir tipo de retorno explicitamente
+  async (appCode: string): Promise<ExtendedProjectConfig | null> => { // Usando o tipo estendido
     console.log(`[WorkspaceDetailsPage] Cache Miss: getProjectConfigCached para ${appCode} usando studioMgr`);
     const config = await studioMgr.loadStudioWorkspaceConfig(appCode); // Nova lógica
     if (config) {
@@ -24,8 +29,8 @@ const getProjectConfigCached = nextCache(
     return config;
   },
   ['project-config-details-v3'], // Chave de cache (pode ser versionada ou mais específica)
-  // Tags para revalidação. Pode-se adicionar uma tag dinâmica por appCode se necessário.
-  { tags: ['projects', (appCode: string) => `project-${appCode}`] }
+  // Tags para revalidação. Usando apenas strings estáticas para compatibilidade.
+  { tags: ['projects'] } // Removida a tag dinâmica que causava erro de tipo
 );
 
 export async function generateMetadata(
@@ -48,7 +53,7 @@ export async function generateMetadata(
 // A função getWorkspaceDetails pode ser simplificada ou até mesmo eliminada,
 // pois a lógica principal de busca e tratamento de erro pode estar em getProjectConfigCached
 // ou diretamente no componente da página.
-async function getWorkspaceDetails(workspaceCode: string): Promise<{ config: ProjectConfig | null; error: string | null }> {
+async function getWorkspaceDetails(workspaceCode: string): Promise<{ config: ExtendedProjectConfig | null; error: string | null }> {
   try {
     const config = await getProjectConfigCached(workspaceCode);
     if (!config) {

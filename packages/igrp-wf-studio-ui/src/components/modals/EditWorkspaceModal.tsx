@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { updateWorkspaceOptionsAction } from '@/app/actions';
 import Modal from '@/components/ui/Modal'; // Supondo que Modal é um componente genérico
-import Input from '@/components/ui/Input';
-import Button from '@/components/ui/Button';
+import { FormInput } from '@/components/ui/form-input';
+import { Button } from '@/components/ui/button';
 import { toast } from 'react-hot-toast';
 import { AppOptions, WorkflowEngineSDK } from '@igrp/wf-engine';
 
@@ -25,8 +25,8 @@ const initialState: { message: string; success: boolean; errors?: any } = {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" isLoading={pending}>
-      Save Changes
+    <Button type="submit" disabled={pending}>
+      {pending ? 'Saving...' : 'Save Changes'}
     </Button>
   );
 }
@@ -75,17 +75,16 @@ const EditWorkspaceModal: React.FC<EditWorkspaceModalProps> = ({
         <form action={formAction} className="p-4 space-y-4">
           <input type="hidden" name="workspaceCode" value={workspaceCode} />
 
-          <Input
-            label="Workspace Title"
+          <FormInput
+            id="workspace-title"
             name="title"
-            id="workspaceTitle"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Enter workspace title"
             required
-            error={'errors' in formState ? formState.errors?.title?.[0] : undefined}
+            error={'errors' in formState && typeof formState.errors === 'object' && formState.errors !== null && 'title' in formState.errors && Array.isArray(formState.errors.title) && formState.errors.title.length > 0 ? formState.errors.title[0] : undefined}
+            label="Title"
           />
-          {'errors' in formState && formState.errors?.title && <p className="text-red-500 text-xs">{formState.errors.title[0]}</p>}
 
           <div>
             <label htmlFor="workspaceDescription" className="form-label">Description</label>
