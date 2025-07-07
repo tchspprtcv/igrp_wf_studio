@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { addAreaToAction } from '@/app/actions'; // Ajustar caminho
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
+import { Button } from '@/components/ui/button';
+import { FormInput } from '@/components/ui/form-input';
 import { X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { generateNextCode } from '@/lib/utils'; // Import the generator
@@ -24,8 +24,8 @@ const initialState: { message: string; success: boolean; errors?: any } = {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" isLoading={pending}>
-      Create Area
+    <Button type="submit" disabled={pending}>
+      {pending ? 'Creating...' : 'Create Area'}
     </Button>
   );
 }
@@ -74,7 +74,7 @@ const CreateAreaModal: React.FC<CreateAreaProps> = ({
           {/* Campo oculto para workspaceCode */}
           <input type="hidden" name="appCode" value={workspaceCode} />
 
-          <Input
+          <FormInput
             label="Area Code"
             name="code"
             id="areaCode"
@@ -83,9 +83,8 @@ const CreateAreaModal: React.FC<CreateAreaProps> = ({
             required
             error={'errors' in formState ? formState.errors?.code?.[0] : undefined}
           />
-          {'errors' in formState && formState.errors?.code && <p className="text-red-500 text-xs">{formState.errors.code[0]}</p>}
 
-          <Input
+          <FormInput
             label="Title"
             name="title"
             id="areaTitle"
@@ -93,7 +92,6 @@ const CreateAreaModal: React.FC<CreateAreaProps> = ({
             required
             error={'errors' in formState ? formState.errors?.title?.[0] : undefined}
           />
-          {'errors' in formState && formState.errors?.title && <p className="text-red-500 text-xs">{formState.errors.title[0]}</p>}
 
           <div>
             <label htmlFor="areaDescription" className="form-label">Description</label>

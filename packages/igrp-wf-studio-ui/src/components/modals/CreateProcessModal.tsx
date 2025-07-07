@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { addProcessToAction } from '@/app/actions'; // Ajustar caminho
 // import { WorkflowEngineSDK } from '@igrp/wf-engine'; // Não é mais usado para config aqui
-import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
+import { Button } from '@/components/ui/button';
+import { FormInput } from '@/components/ui/form-input';
 import { X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { generateNextCode } from '@/lib/utils'; // Import the generator
@@ -28,8 +28,8 @@ const initialState: { message: string; success: boolean; errors?: any; newProces
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" isLoading={pending}>
-      Create Process
+    <Button type="submit" disabled={pending}>
+      {pending ? 'Creating...' : 'Create Process'}
     </Button>
   );
 }
@@ -141,7 +141,7 @@ const CreateProcessModal: React.FC<CreateProcessProps> = ({
             </div>
           )}
 
-          <Input
+          <FormInput
             label="Process Code"
             name="code"
             id="processCode"
@@ -151,9 +151,9 @@ const CreateProcessModal: React.FC<CreateProcessProps> = ({
             disabled={!selectedAreaCode} // Desabilitar se nenhuma área estiver selecionada (ou no parent if no area selected)
             error={'errors' in formState ? formState.errors?.code?.[0] : undefined}
           />
-           {'errors' in formState && formState.errors?.code && <p className="text-red-500 text-xs">{formState.errors.code[0]}</p>}
+ 
 
-          <Input
+          <FormInput
             label="Title"
             name="title"
             id="processTitle"
@@ -161,7 +161,7 @@ const CreateProcessModal: React.FC<CreateProcessProps> = ({
             required
             error={'errors' in formState ? formState.errors?.title?.[0] : undefined}
           />
-          {'errors' in formState && formState.errors?.title && <p className="text-red-500 text-xs">{formState.errors.title[0]}</p>}
+
 
           <div>
             <label htmlFor="processDescription" className="form-label">Description</label>

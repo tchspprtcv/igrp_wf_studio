@@ -1,3 +1,5 @@
+// Mark this file as server-only to prevent it from being imported in client components
+import 'server-only';
 import * as workspaceManager from '@/igrpwfstudio/utils/workspaceManager'; // Ajustado o path se necessário
 import { FileOperationResult } from '@igrp/wf-engine';
 

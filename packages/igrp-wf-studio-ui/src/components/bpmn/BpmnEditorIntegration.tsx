@@ -6,7 +6,6 @@ import { openFormEditorModal } from './editors/FormEditorModal';
 import { openDecisionEditorModal } from './editors/DecisionEditorModal';
 import FormEditorLink from './editors/FormEditorLink';
 import DecisionTableLink from './editors/DecisionTableLink';
-import EditorService from '../../services/EditorService';
 
 /**
  * Componente para propriedade formKey com editor de formulários
@@ -19,9 +18,13 @@ export const ActivitiFormKeyProperty = (props: any) => {
       // Obter formKey atual ou gerar um padrão
       const formKey = getValue() || `forms/${element.businessObject.$parent?.id || 'process'}/${element.id}-form.json`;
       
+      // Extrair appCode do formKey (formato esperado: "appCode:path/to/form.json")
+      const [appCode, formPath] = formKey.split(':');
+      
       // Abrir o editor de formulário
       openFormEditorModal({
-        formKey,
+        appCode: appCode || 'default', // Usar um valor padrão se não houver appCode
+        formKey: formPath || formKey, // Usar o caminho extraído ou o formKey completo
         onSave: async (updatedFormKey) => {
           // Atualizar o valor no elemento BPMN
           setValue(updatedFormKey);
@@ -49,14 +52,14 @@ export const ActivitiDecisionTableProperty = (props: any) => {
   const handleEditDecision = async () => {
     try {
       // Obter decisionTable atual ou gerar um padrão
-      const decisionTable = getValue() || `decisions/${element.businessObject.$parent?.id || 'process'}/${element.id}.dmn`;
+      const decisionTableKey = getValue() || `decisions/${element.businessObject.$parent?.id || 'process'}/${element.id}.dmn`;
       
       // Abrir o editor de tabela de decisão
       openDecisionEditorModal({
-        decisionTable,
-        onSave: async (updatedDecisionTable) => {
+        decisionTableKey,
+        onSave: async (updatedDecisionTableKey) => {
           // Atualizar o valor no elemento BPMN
-          setValue(updatedDecisionTable);
+          setValue(updatedDecisionTableKey);
         }
       });
     } catch (error) {

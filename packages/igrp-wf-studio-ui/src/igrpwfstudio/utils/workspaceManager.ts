@@ -1,7 +1,20 @@
 import { WorkflowEngineSDK, ProjectConfig, FileOperationResult, AppOptions } from '@igrp/wf-engine';
-import nodePath from 'node:path';
-import fs from 'node:fs/promises';
+// Mark this file as server-only to prevent it from being imported in client components
+import 'server-only';
+
+// Use dynamic imports for Node.js modules
+let nodePath: typeof import('path');
+let fs: typeof import('fs/promises');
+
+// Import catalog normally since it will also be marked as server-only
 import * as catalog from '../catalog/workspaceCatalog';
+
+// Initialize Node.js modules
+if (typeof window === 'undefined') {
+  // We're on the server
+  nodePath = require('path');
+  fs = require('fs/promises');
+}
 
 export function getSdkWithSpecificBasePath(specificBasePath: string): WorkflowEngineSDK {
   if (!specificBasePath || typeof specificBasePath !== 'string' || specificBasePath.trim() === '') {
@@ -16,7 +29,7 @@ export async function createStudioWorkspace(
   title: string,
   description?: string,
   status: 'active' | 'inactive' | 'draft' = 'active',
-  explicitBasePath: string
+  explicitBasePath: string | '' = ''
 ): Promise<FileOperationResult> {
   const resolvedBasePath = nodePath.resolve(explicitBasePath);
   const sdk = getSdkWithSpecificBasePath(resolvedBasePath);
@@ -154,7 +167,12 @@ export async function readStudioProcessDefinition(
     return null;
   }
   const sdk = getSdkWithSpecificBasePath(parentBasePath);
-  return sdk.processes.readProcessDefinition(workspaceCode, areaCode, processCode, subAreaCode);
+  const processDefinition = await sdk.processes.readProcessDefinition(workspaceCode, areaCode, processCode, subAreaCode);
+  if (!processDefinition) return null;
+  return {
+    bpmnXml: processDefinition.bpmnXml,
+    fileName: `${processCode}.bpmn` // Constructing fileName from processCode
+  };
 }
 
 export async function addStudioSubArea(

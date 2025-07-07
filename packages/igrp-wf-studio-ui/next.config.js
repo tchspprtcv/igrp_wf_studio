@@ -17,7 +17,7 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     // Handle Node.js built-in modules
     if (!isServer) {
-      // Don't resolve 'fs', 'path', etc. on the client-side
+      // Usar shims para módulos Node.js no lado do cliente
       config.resolve.fallback = {
         fs: false,
         path: false,

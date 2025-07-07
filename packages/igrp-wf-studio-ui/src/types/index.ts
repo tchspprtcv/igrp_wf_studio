@@ -58,6 +58,7 @@ export interface SidebarArea {
 export interface SidebarWorkspace {
   code: string;
   title: string;
+  description?: string; // Added description property as optional
   areas: SidebarArea[];
 }
 
