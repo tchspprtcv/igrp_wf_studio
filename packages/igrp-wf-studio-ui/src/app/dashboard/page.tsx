@@ -80,6 +80,10 @@ const getDashboardDataCached = nextCache(
 
 export default async function DashboardPage() {
   const { workspaces, stats, error } = await getDashboardDataCached();
+  
+  // Definindo a largura do sidebar como constante para uso consistente
+  const sidebarWidth = "calc(var(--spacing) * 72)";
+  const collapsedSidebarWidth = "4rem";
   // console.log('[DashboardPage] Data from getDashboardDataCached:', { workspacesCount: workspaces?.length, stats, error }); // Optional: keep for debugging if needed
 
   // The workspaceColumns definition is no longer needed here as DashboardClientContent handles its own table structure.
@@ -99,17 +103,18 @@ export default async function DashboardPage() {
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset" className="hidden lg:block" /> {/* This is the 'peer' */}
-      <SidebarInset
-        className="lg:peer-data-[state=expanded]:pl-[var(--sidebar-width)] lg:peer-data-[state=collapsed]:pl-[4rem]"
-        // Explanation for collapsed state pl-[4rem]:
-        // var(--sidebar-width-icon) is 3rem (from ui/sidebar.tsx).
-        // AppSidebar with variant="inset" and collapsible="icon", when collapsed, has its width calculated as
-        // `calc(var(--sidebar-width-icon) + theme(spacing.4))`.
-        // theme(spacing.4) is 1rem. So, 3rem + 1rem = 4rem.
-        // This padding ensures the SidebarInset content clears this 4rem wide collapsed sidebar.
+      {/* Fixed position sidebar com z-index maior para ficar acima de todos os conteúdos */}
+      {/*<AppSidebar 
+        variant="inset" 
+        className="hidden lg:block fixed h-full z-30" 
+      />*/}
+      
+      {/* Container de conteúdo principal com padding-left fixo e garantido */}
+      <div className="w-full" style={{ paddingLeft: sidebarWidth }}>
+        <SidebarInset
+          className="w-full transition-all duration-200 z-0 overflow-auto"
       >
-        <SiteHeader />
+        {/*<SiteHeader />*/}
         <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 @container/main">
           <div className="flex items-center">
             <h1 className="text-lg font-semibold md:text-2xl">Dashboard</h1>
@@ -131,16 +136,19 @@ export default async function DashboardPage() {
               On larger screens (lg and up), they will be side-by-side using lg:grid-cols-3.
               The gap utilities are applied here for spacing between chart and list, and if they stack.
           */}
-          <div className="grid grid-cols-1 gap-4 md:gap-6 lg:gap-8 lg:grid-cols-3">
-            <div className="lg:col-span-2"> {/* Chart takes up 2/3 on larger screens */}
+          <div className="grid grid-cols-1 gap-4 md:gap-6 lg:gap-8">
+            {/* Chart takes up 2/3 on larger screens */}
+            {/*<div className="lg:col-span-2"> 
               <ChartAreaInteractive />
-            </div>
-            <div className="lg:col-span-1"> {/* Workspaces list takes 1/3 on larger screens */}
+            </div>*/}
+            {/* Workspaces list takes 1/3 on larger screens */}
+            <div> 
               <DashboardClientContent initialWorkspaces={workspaces || []} initialError={error} />
             </div>
           </div>
         </main>
       </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 }

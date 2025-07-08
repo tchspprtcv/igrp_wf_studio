@@ -204,8 +204,24 @@ export function AppSidebar({ className, variant }: { className?: string, variant
   };
 
   // --- Toggle Expand/Collapse for Tree Nodes ---
-  const toggleApp = (code: string) => setExpandedApps(prev => new Set(prev.has(code) ? [...prev].filter(c => c !== code) : [...prev, code]));
-  const toggleArea = (code: string) => setExpandedAreas(prev => new Set(prev.has(code) ? [...prev].filter(c => c !== code) : [...prev, code]));
+  const toggleApp = (code: string) => setExpandedApps(prev => {
+    const newSet = new Set(Array.from(prev));
+    if (prev.has(code)) {
+      newSet.delete(code);
+    } else {
+      newSet.add(code);
+    }
+    return newSet;
+  });
+  const toggleArea = (code: string) => setExpandedAreas(prev => {
+    const newSet = new Set(Array.from(prev));
+    if (prev.has(code)) {
+      newSet.delete(code);
+    } else {
+      newSet.add(code);
+    }
+    return newSet;
+  });
 
   // --- Context Menu ---
   const toggleContextMenu = (menuId: string, event: React.MouseEvent) => {
@@ -223,21 +239,21 @@ export function AppSidebar({ className, variant }: { className?: string, variant
     return (
       <div className="context-menu-container relative ml-auto"> {/* Ensure this class is targeted by handleClickOutside */}
         <SidebarMenuButton
-            variant="ghost"
-            size="icon"
+            variant="default"
+            size="default"
             className="h-7 w-7 data-[active=true]:bg-transparent" // Smaller, ghost for icon
             onClick={(e) => toggleContextMenu(menuId, e)}
             tooltip={isCollapsed ? "Actions" : undefined}
         >
-            <MoreVertical className="h-4 w-4" />
+            <MoreVertical className="h-4 w-4 flex-shrink-0" />
         </SidebarMenuButton>
         {activeContextMenu === menuId && (
-          <div className="absolute right-0 mt-1 w-48 rounded-md shadow-lg bg-card text-card-foreground ring-1 ring-border z-50">
+          <div className="absolute right-0 mt-1 w-48 rounded-md shadow-lg bg-card text-card-foreground ring-1 ring-border z-60" style={{ maxWidth: 'calc(100vw - 20px)' }}>
             <div className="py-1" role="menu">
               {actions.map((action, index) => (
                 <button
                   key={index}
-                  onClick={(e) => {  action.onClick(e); setActiveContextMenu(null); }}
+                  onClick={(e) => { e.stopPropagation(); action.onClick(e); setActiveContextMenu(null); }}
                   className={cn("w-full text-left px-3 py-1.5 text-sm flex items-center hover:bg-muted", action.className)}
                   role="menuitem"
                 >
@@ -270,7 +286,7 @@ export function AppSidebar({ className, variant }: { className?: string, variant
                     className="justify-start flex-grow"
                     onClick={isMobile ? () => setOpenMobile(false) : undefined}
                 >
-                    <ProcessIcon className="h-4 w-4" />
+                    <ProcessIcon className="h-4 w-4 flex-shrink-0" />
                     {!isCollapsed && <span className="ml-2 truncate">{process.title}</span>}
                 </SidebarMenuButton>
             </Link>
@@ -296,8 +312,8 @@ export function AppSidebar({ className, variant }: { className?: string, variant
                 tooltip={isCollapsed ? subarea.title : undefined}
                 className="justify-start flex-grow"
             >
-                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                <Layers className="h-4 w-4 ml-1" /> {/* Adjusted margin for chevron */}
+                {isExpanded ? <ChevronDown className="h-4 w-4 flex-shrink-0" /> : <ChevronRight className="h-4 w-4 flex-shrink-0" />}
+                <Layers className="h-4 w-4 ml-1 flex-shrink-0" /> {/* Adjusted margin for chevron */}
                 {!isCollapsed && <span className="ml-2 truncate">{subarea.title}</span>}
             </SidebarMenuButton>
              {!isCollapsed && renderActionMenu(menuId, [
@@ -328,8 +344,8 @@ export function AppSidebar({ className, variant }: { className?: string, variant
                 tooltip={isCollapsed ? area.title : undefined}
                 className="justify-start flex-grow"
             >
-                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                <Layers className="h-4 w-4 ml-1" />
+                {isExpanded ? <ChevronDown className="h-4 w-4 flex-shrink-0" /> : <ChevronRight className="h-4 w-4 flex-shrink-0" />}
+                <Layers className="h-4 w-4 ml-1 flex-shrink-0" />
                 {!isCollapsed && <span className="ml-2 truncate">{area.title}</span>}
             </SidebarMenuButton>
             {!isCollapsed && renderActionMenu(menuId, [
@@ -361,8 +377,8 @@ export function AppSidebar({ className, variant }: { className?: string, variant
                 tooltip={isCollapsed ? workspace.title : undefined}
                 className="justify-start flex-grow font-medium" // Make workspace title slightly more prominent
             >
-                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                <Folder className="h-4 w-4 ml-1" />
+                {isExpanded ? <ChevronDown className="h-4 w-4 flex-shrink-0" /> : <ChevronRight className="h-4 w-4 flex-shrink-0" />}
+                <Folder className="h-4 w-4 ml-1 flex-shrink-0" />
                 {!isCollapsed && <span className="ml-2 truncate">{workspace.title}</span>}
             </SidebarMenuButton>
             {!isCollapsed && renderActionMenu(menuId, [
@@ -392,8 +408,8 @@ export function AppSidebar({ className, variant }: { className?: string, variant
     >
       <SidebarHeader className="p-4">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <ProcessIcon className="h-7 w-7 text-primary" /> {/* Using ProcessIcon as main logo temporarily */}
-          {!isCollapsed && <span className="font-semibold text-lg">IGRP WF</span>}
+          <ProcessIcon className="h-7 w-7 text-primary flex-shrink-0" /> {/* Using ProcessIcon as main logo temporarily */}
+          {!isCollapsed && <span className="font-semibold text-lg truncate">IGRP WF Studio</span>}
         </Link>
       </SidebarHeader>
 
@@ -412,8 +428,8 @@ export function AppSidebar({ className, variant }: { className?: string, variant
                       className="justify-start"
                       onClick={isMobile ? () => setOpenMobile(false) : undefined}
                     >
-                      <item.icon className="h-5 w-5" />
-                      {!isCollapsed && <span className="ml-2">{item.label}</span>}
+                      <item.icon className="h-5 w-5 flex-shrink-0" />
+                      {!isCollapsed && <span className="ml-2 truncate">{item.label}</span>}
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>
@@ -426,36 +442,57 @@ export function AppSidebar({ className, variant }: { className?: string, variant
             <SidebarGroupLabel className={isCollapsed ? 'sr-only' : ''}>
               Workspaces
             </SidebarGroupLabel>
-            {!isCollapsed && (
-                <SidebarGroupAction onClick={() => {setShowCreateWorkspace(true); if(isMobile) setOpenMobile(false);}} title="New Workspace">
-                    <PlusCircle className="h-5 w-5" />
-                </SidebarGroupAction>
-            )}
-             {isCollapsed && ( // Show a dedicated Add button when collapsed
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton onClick={() => {setShowCreateWorkspace(true); if(isMobile) setOpenMobile(false);}} tooltip="New Workspace" className="justify-center">
-                            <PlusCircle className="h-5 w-5" />
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            )}
+            <div className="flex justify-between items-center">
+                {!isCollapsed && (
+                    <SidebarGroupAction onClick={() => {setShowCreateWorkspace(true); if(isMobile) setOpenMobile(false);}} title="New Workspace">
+                        <PlusCircle className="h-5 w-5 flex-shrink-0" />
+                    </SidebarGroupAction>
+                )}
+                {isCollapsed && ( // Show a dedicated Add button when collapsed
+                    <SidebarMenuButton onClick={() => {setShowCreateWorkspace(true); if(isMobile) setOpenMobile(false);}} tooltip="New Workspace" className="justify-center h-7 w-7">
+                        <PlusCircle className="h-5 w-5 flex-shrink-0" />
+                    </SidebarMenuButton>
+                )}
+            </div>
             {loading ? (
-              <div className="flex justify-center items-center p-4">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <div className="flex flex-col justify-center items-center p-4 gap-2">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground flex-shrink-0" />
+                {!isCollapsed && <span className="text-xs text-muted-foreground">Loading workspaces...</span>}
               </div>
             ) : error ? (
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <span className="px-2 py-1 text-xs text-destructive">{error}</span>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            ): workspaces.length > 0 ? (
+                <div className="p-2 flex flex-col gap-2">
+                    <span className="text-xs text-destructive">{error}</span>
+                    {!isCollapsed && (
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full justify-center" 
+                            onClick={loadWorkspaces}
+                        >
+                            <Loader2 className={cn("mr-2 h-4 w-4 flex-shrink-0", loading && "animate-spin")} />
+                            Try Again
+                        </Button>
+                    )}
+                </div>
+            ) : workspaces.length > 0 ? (
               <SidebarMenu>
                 {workspaces.map((ws) => renderWorkspace(ws))}
               </SidebarMenu>
             ) : (
-              !isCollapsed && <p className="p-2 text-xs text-muted-foreground">No workspaces yet.</p>
+              !isCollapsed ? (
+                <div className="p-2 flex flex-col gap-2">
+                  <p className="text-xs text-muted-foreground">No workspaces yet.</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-center" 
+                    onClick={() => {setShowCreateWorkspace(true); if(isMobile) setOpenMobile(false);}}
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4 flex-shrink-0" />
+                    Create Workspace
+                  </Button>
+                </div>
+              ) : null
             )}
           </SidebarGroup>
 
@@ -472,8 +509,8 @@ export function AppSidebar({ className, variant }: { className?: string, variant
                       className="justify-start"
                       onClick={isMobile ? () => setOpenMobile(false) : undefined}
                     >
-                      <item.icon className="h-5 w-5" />
-                      {!isCollapsed && <span className="ml-2">{item.label}</span>}
+                      <item.icon className="h-5 w-5 flex-shrink-0" />
+                      {!isCollapsed && <span className="ml-2 truncate">{item.label}</span>}
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>
@@ -487,8 +524,8 @@ export function AppSidebar({ className, variant }: { className?: string, variant
       <SidebarFooter className="p-4 mt-auto border-t">
         { isCollapsed ? (
             <Link href="/dashboard/settings" passHref legacyBehavior>
-                 <Button variant="ghost" size="icon" className="w-full" title="Settings" onClick={isMobile ? () => setOpenMobile(false) : undefined}>
-                    <Settings className="h-5 w-5" />
+                 <Button variant="ghost" size="icon" className="w-full flex justify-center" title="Settings" onClick={isMobile ? () => setOpenMobile(false) : undefined}>
+                    <Settings className="h-5 w-5 flex-shrink-0" />
                 </Button>
             </Link>
         ) : (
@@ -496,8 +533,8 @@ export function AppSidebar({ className, variant }: { className?: string, variant
                 {/* Simplified footer, user info can be in SiteHeader */}
                 <Link href="/dashboard/settings" passHref legacyBehavior>
                     <Button variant="outline" size="sm" className="w-full justify-start" onClick={isMobile ? () => setOpenMobile(false) : undefined}>
-                        <Settings className="mr-2 h-4 w-4" />
-                        Settings
+                        <Settings className="mr-2 h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">Settings</span>
                     </Button>
                 </Link>
             </div>
