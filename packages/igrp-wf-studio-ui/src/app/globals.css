@@ -4,104 +4,83 @@
 
 @layer base {
   :root {
-    --primary-50: 236 253 245;
-    --primary-100: 209 250 229;
-    --primary-200: 167 243 208;
-    --primary-300: 110 231 183;
-    --primary-400: 52 211 153;
-    --primary-500: 16 185 129;
-    --primary-600: 5 150 105;
-    --primary-700: 4 120 87;
-    --primary-800: 6 95 70;
-    --primary-900: 6 78 59;
-    --primary-950: 2 44 34;
-    --accent-50: 245 243 255;
-    --accent-100: 237 233 254;
-    --accent-200: 221 214 254;
-    --accent-300: 196 181 253;
-    --accent-400: 167 139 250;
-    --accent-500: 139 92 246;
-    --accent-600: 124 58 237;
-    --accent-700: 109 40 217;
-    --accent-800: 91 33 182;
-    --accent-900: 76 29 149;
-    --accent-950: 46 16 101;
+    --background: 0 0% 100%;
+    --foreground: 224 71.4% 4.1%; /* Zinc 950 */
+
+    --muted: 220 14.3% 95.9%; /* Zinc 100 */
+    --muted-foreground: 220 8.9% 46.1%; /* Zinc 500 */
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71.4% 4.1%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 224 71.4% 4.1%;
+
+    --border: 220 13% 91%; /* Zinc 200 */
+    --input: 220 13% 91%; /* Zinc 200 */
+
+    --primary: 220.9 39.3% 11%; /* Zinc 900 */
+    --primary-foreground: 210 20% 98%; /* Zinc 50 */
+
+    /* Usando Azul como primário - exemplo do ShadCN. Ajustar conforme a identidade visual do IGRP. */
+    /* --primary: 222.2 47.4% 11.2%; */
+    /* --primary-foreground: 210 40% 98%; */
+
+    --secondary: 220 14.3% 95.9%; /* Zinc 100 */
+    --secondary-foreground: 220.9 39.3% 11%; /* Zinc 900 */
+
+    --accent: 220 14.3% 95.9%; /* Zinc 100 */
+    --accent-foreground: 220.9 39.3% 11%; /* Zinc 900 */
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%; /* Zinc 50 */
+
+    --ring: 220 13% 91%; /* Zinc 200 */
+
+    --radius: 0.5rem;
   }
 
   .dark {
-    --primary-50: 2 44 34;
-    --primary-100: 6 78 59;
-    --primary-200: 6 95 70;
-    --primary-300: 4 120 87;
-    --primary-400: 5 150 105;
-    --primary-500: 16 185 129;
-    --primary-600: 52 211 153;
-    --primary-700: 110 231 183;
-    --primary-800: 167 243 208;
-    --primary-900: 209 250 229;
-    --primary-950: 236 253 245;
-    --accent-50: 46 16 101;
-    --accent-100: 76 29 149;
-    --accent-200: 91 33 182;
-    --accent-300: 109 40 217;
-    --accent-400: 124 58 237;
-    --accent-500: 139 92 246;
-    --accent-600: 167 139 250;
-    --accent-700: 196 181 253;
-    --accent-800: 221 214 254;
-    --accent-900: 237 233 254;
-    --accent-950: 245 243 255;
-  }
+    --background: 224 71.4% 4.1%; /* Zinc 950 */
+    --foreground: 210 20% 98%; /* Zinc 50 */
 
-  * {
-    @apply border-gray-200 dark:border-gray-700;
-  }
+    --muted: 215 27.9% 16.9%; /* Zinc 800 */
+    --muted-foreground: 217.9 10.6% 64.9%; /* Zinc 400 */
 
-  #__next {
-    @apply flex flex-col min-h-screen;
-  }
+    --popover: 224 71.4% 4.1%;
+    --popover-foreground: 210 20% 98%;
 
-  body {
-    @apply bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100;
+    --card: 224 71.4% 4.1%;
+    --card-foreground: 210 20% 98%;
+
+    --border: 215 27.9% 16.9%; /* Zinc 800 */
+    --input: 215 27.9% 16.9%; /* Zinc 800 */
+
+    --primary: 210 20% 98%; /* Zinc 50 */
+    --primary-foreground: 220.9 39.3% 11%; /* Zinc 900 */
+
+    /* --primary: 210 40% 98%; */
+    /* --primary-foreground: 222.2 47.4% 11.2%; */
+
+    --secondary: 215 27.9% 16.9%; /* Zinc 800 */
+    --secondary-foreground: 210 20% 98%; /* Zinc 50 */
+
+    --accent: 215 27.9% 16.9%; /* Zinc 800 */
+    --accent-foreground: 210 20% 98%; /* Zinc 50 */
+
+    --destructive: 0 62.8% 30.6%; /* Red 700 dark */
+    --destructive-foreground: 0 0% 98%; /* Zinc 50 */
+
+    --ring: 215 27.9% 16.9%; /* Zinc 800 */
   }
 }
 
-@layer components {
-  .btn {
-    @apply px-4 py-2 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2;
-  }
+/* Removidas classes customizadas .btn, .input-field, .form-label, .card
+   pois os componentes ShadCN devem ser usados em seu lugar. */
 
-  .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
-  }
-
-  .btn-secondary {
-    @apply bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500;
-  }
-
-  .btn-accent {
-    @apply bg-accent-600 text-white hover:bg-accent-700 focus:ring-accent-500;
-  }
-
-  .btn-danger {
-    @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
-  }
-
-  .input-field {
-    @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm;
-  }
-
-  .form-label {
-    @apply block text-sm font-medium text-gray-700;
-  }
-
-  .card {
-    @apply bg-white dark:bg-gray-800 rounded-lg shadow p-6;
-  }
-}
-
+/* Estilos para BPMN editor e Diagram JS - tentar usar variáveis de tema */
 .bpp-properties-panel {
-  @apply bg-white dark:bg-gray-800 shadow-md rounded-md p-4;
+  @apply bg-card text-card-foreground shadow-md rounded-md p-4 border border-border;
 }
 
 .bpp-properties-panel .bpp-field {
@@ -113,29 +92,33 @@
 }
 
 .bpp-properties-panel label {
-  @apply block text-sm font-medium text-gray-700 mb-1;
+  @apply block text-sm font-medium text-muted-foreground mb-1; /* text-gray-700 -> text-muted-foreground */
 }
 
 .bpp-properties-panel input[type="text"],
 .bpp-properties-panel input[type="number"],
 .bpp-properties-panel textarea {
-  @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm;
+  @apply block w-full rounded-md border-input bg-transparent shadow-sm focus:border-primary focus:ring-primary sm:text-sm; /* Ajustado para usar var(--input) e var(--primary) */
 }
 
 .bpp-properties-panel select {
-  @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm pr-10;
+  @apply block w-full rounded-md border-input bg-transparent shadow-sm focus:border-primary focus:ring-primary sm:text-sm pr-10;
 }
 
 .bpp-properties-panel input[type="checkbox"] {
-  @apply h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 focus:ring-offset-0;
+  @apply h-4 w-4 rounded border-input text-primary focus:ring-primary focus:ring-offset-0;
 }
 
+/* Para botões dentro do painel de propriedades BPMN, idealmente seriam componentes Button do ShadCN */
+/* Se não, aplicar estilos base e primário */
 .bpp-properties-panel button {
-  @apply inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500;
+  @apply inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md
+         text-primary-foreground bg-primary hover:bg-primary/90
+         focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring;
 }
 
 .bpp-properties-panel button[data-action="clear"] {
-  @apply text-gray-700 bg-white hover:bg-gray-50 border border-gray-300;
+  @apply text-foreground bg-background hover:bg-muted border-border; /* Ajustado para tema */
 }
 
 .bpp-properties-panel [data-entry] {
@@ -143,79 +126,95 @@
 }
 
 .bpp-properties-panel .bpp-divider {
-  @apply border-t border-gray-200 my-4;
+  @apply border-t border-border my-4;
 }
 
 .bpp-properties-panel .bpp-error {
-  @apply text-sm text-red-600 mt-1;
+  @apply text-sm text-destructive mt-1;
 }
 
 .djs-palette {
-  @apply bg-white dark:bg-gray-800 shadow-md rounded-md p-2;
+  @apply bg-card text-card-foreground shadow-md rounded-md p-2 border border-border;
 }
 
 .djs-palette .entry {
-  @apply cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded;
+  @apply cursor-pointer hover:bg-muted p-1 rounded;
 }
 
 .djs-context-pad {
-  @apply bg-white dark:bg-gray-800 shadow-md rounded-md p-1;
+  @apply bg-popover text-popover-foreground shadow-md rounded-md p-1 border border-border;
 }
 
 .djs-context-pad .entry {
-  @apply cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded;
+  @apply cursor-pointer hover:bg-accent p-1 rounded;
 }
 
+/* .djs-overlay-context-pad é similar ao djs-context-pad */
 .djs-overlay-context-pad {
-  @apply bg-white dark:bg-gray-800 shadow-md rounded-md p-1;
+  @apply bg-popover text-popover-foreground shadow-md rounded-md p-1 border border-border;
 }
 
 .djs-overlay-context-pad .entry {
-  @apply cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-1 rounded;
+  @apply cursor-pointer hover:bg-accent p-1 rounded;
 }
 
 .djs-container {
-  @apply bg-gray-50 dark:bg-gray-900;
+  @apply bg-muted/50; /* Um cinza bem claro ou levemente diferente do background principal */
 }
 
 .djs-shape {
-  @apply fill-white dark:fill-gray-800 stroke-gray-800 dark:stroke-gray-200;
+  /* fill-white dark:fill-gray-800 stroke-gray-800 dark:stroke-gray-200; */
+  /* Usar fill-card e stroke-card-foreground ou similar pode ser uma opção, mas requer teste */
+  /* Por agora, manter cores que funcionem em ambos os modos ou usar SVG styling mais direto */
+  fill: hsl(var(--card));
+  stroke: hsl(var(--card-foreground));
+  stroke-width: 1px;
 }
+.djs-shape .djs-visual > :nth-child(1) {
+  fill: hsl(var(--card)) !important; /* Forçar fill para o elemento principal do shape */
+}
+
 
 .djs-connection {
-  @apply stroke-gray-800 dark:stroke-gray-200;
+  stroke: hsl(var(--foreground)); /* stroke-gray-800 dark:stroke-gray-200 */
 }
 
-.djs-connection.selected {
-  @apply stroke-primary-600 dark:stroke-primary-400;
+.djs-connection.selected,
+.djs-shape.selected .djs-outline { /* Para bpmn-js mais novo, o outline é separado */
+  stroke: hsl(var(--primary)) !important;
+}
+.djs-shape.selected .djs-visual > :nth-child(1) {
+   stroke: hsl(var(--primary)) !important;
 }
 
-.djs-shape.selected {
-  @apply stroke-primary-600 dark:stroke-primary-400;
-}
 
 ::-webkit-scrollbar {
   @apply w-2 h-2;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-gray-100 dark:bg-gray-800;
+  @apply bg-muted/50; /* bg-gray-100 dark:bg-gray-800 */
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 dark:bg-gray-600 rounded;
+  @apply bg-border rounded; /* bg-gray-300 dark:bg-gray-600 */
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400 dark:bg-gray-500;
+  @apply bg-input; /* bg-gray-400 dark:bg-gray-500 */
 }
 
 @layer base {
   * {
-    @apply box-border;
+    @apply border-border; /* Aplicar borda padrão usando a variável */
   }
 
   body {
-    @apply m-0 p-0;
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1; /* Melhora a legibilidade da fonte Inter */
+  }
+
+  #__next { /* Se #__next for o container principal da app Next.js */
+    @apply flex flex-col min-h-screen;
   }
 }

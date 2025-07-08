@@ -173,7 +173,7 @@ export default function WorkspaceListClientContent({ initialWorkspaces, initialE
           <CardTitle>All Workspaces</CardTitle>
           <CardDescription>Browse and manage all your workflow workspaces.</CardDescription>
         </CardHeader>
-        <CardContent className="p-0 sm:p-6"> {/* Padding ajustado como no Dashboard */}
+        <CardContent> {/* Removido className="p-0 sm:p-6" para usar o padding padrão do CardContent */}
           <div className="overflow-x-auto"> {/* Wrapper para scroll horizontal da tabela */}
             <Table>
               <TableHeader>

@@ -171,8 +171,8 @@ export default function DashboardClientContent({ initialWorkspaces, initialError
           <CardTitle>Workspaces</CardTitle>
           <CardDescription>Manage your workflow workspaces.</CardDescription>
         </CardHeader>
-        <CardContent className="p-0 sm:p-6"> {/* Remove padding for CardContent on xs, apply on sm+ to allow table wrapper to use full width */}
-          <div className="overflow-x-auto"> {/* Wrapper for table to allow horizontal scrolling on small screens */}
+        <CardContent> {/* Removido className="p-0 sm:p-6" para usar o padding padrão do CardContent (geralmente p-6) */}
+          <div className="overflow-x-auto"> {/* Wrapper para table para permitir scroll horizontal */}
             <Table>
               <TableHeader>
                 <TableRow>

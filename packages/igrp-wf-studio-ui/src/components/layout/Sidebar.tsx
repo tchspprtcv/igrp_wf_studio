@@ -260,15 +260,19 @@ const Sidebar: React.FC<SidebarProps> = ({
       className?: string;
     }>
   ) => (
-    <div className="menu-container relative">
-      <button
+    <div className="menu-container relative"> {/* Considerar usar <DropdownMenu> do ShadCN no futuro */}
+      <Button
+        variant="ghost"
+        size="icon" // Garante padding e tamanho consistentes para botões de ícone
         onClick={(e) => toggleMenu(menuId, e)}
-        className="p-1 rounded-md hover:bg-gray-100"
+        className="h-7 w-7 data-[state=open]:bg-muted" // Torna o botão um pouco menor e sutil. data-[state=open] para feedback visual
       >
-        <MoreVertical className="h-4 w-4 text-gray-500" />
-      </button>
+        <MoreVertical className="h-4 w-4 text-muted-foreground" />
+        <span className="sr-only">Open menu for {menuId}</span>
+      </Button>
       {activeMenu === menuId && (
-        <div className="absolute right-0 mt-1 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+        // Estilo similar ao DropdownMenuContent do ShadCN
+        <div className="absolute right-0 mt-1 w-48 rounded-md shadow-md bg-popover text-popover-foreground border border-border z-50">
           <div className="py-1" role="menu">
             {actions.map((action, index) => (
               <button
@@ -279,13 +283,17 @@ const Sidebar: React.FC<SidebarProps> = ({
                   setActiveMenu(null);
                 }}
                 className={cn(
-                  "w-full text-left px-4 py-2 text-sm flex items-center hover:bg-gray-100",
-                  action.className
+                  "w-full text-left px-3 py-1.5 text-sm flex items-center rounded-sm transition-colors", // Padding e rounded ajustados
+                  "focus:outline-none focus:bg-accent focus:text-accent-foreground",
+                  action.className ? action.className : "hover:bg-accent hover:text-accent-foreground", // Aplicar hover se não houver classe de destructive
+                  // Se action.className for 'text-destructive', o hover padrão pode ser diferente (ex: hover:bg-destructive/10)
+                  // Para simplificar, se className existir, ele controla o hover.
                 )}
                 role="menuitem"
               >
-                {action.icon}
-                <span className="ml-2">{action.label}</span>
+                {/* Clonar o ícone para adicionar classes comuns */}
+                {action.icon && React.cloneElement(action.icon as React.ReactElement, { className: "h-4 w-4 mr-2" })}
+                <span>{action.label}</span>
               </button>
             ))}
           </div>
@@ -294,55 +302,81 @@ const Sidebar: React.FC<SidebarProps> = ({
     </div>
   );
 
-  const renderProcess = (appCode: string, areaCode: string, process: SidebarProcess, isCollapsed: boolean, subareaCode?: string) => { // Usar SidebarProcess
-    // Ajustar o path do processo para a nova estrutura de rotas
+  const renderProcess = (appCode: string, areaCode: string, process: SidebarProcess, isCollapsed: boolean, subareaCode?: string) => {
     const processPath = `/workspaces/${appCode}/processes/${process.code}`;
     const isActive = pathname === processPath;
     const menuId = `process-${appCode}-${areaCode}-${subareaCode || 'root'}-${process.code}`;
 
 
     return (
-      <div key={process.code} className="flex items-center pl-12 py-1 text-sm">
+      <div key={process.code} className={cn(
+        "flex items-center py-1 text-sm group", // Adicionado 'group' para hover context
+        isCollapsed ? "pl-1 justify-center" : "pl-12" // pl-12 para indentação de processo
+      )}>
         <Link
           href={processPath}
           className={cn(
-            "flex items-center flex-1 rounded-md px-2 py-1",
+            "flex items-center flex-1 rounded-md px-2 py-1.5 transition-colors", // py-1 -> py-1.5
             isActive
-              ? "bg-primary-100 text-primary-700 font-medium"
-              : "text-gray-600 bg-blue-300 hover:bg-blue-400" // Mantido estilo original para consistência visual inicial
+              ? "bg-accent text-accent-foreground font-medium" // Estilo ativo
+              : "text-muted-foreground hover:text-foreground hover:bg-muted", // Estilo inativo/hover
+            isCollapsed ? "justify-center" : "" // Centralizar conteúdo se colapsado
           )}
+          title={isCollapsed ? process.title : undefined} // Tooltip quando colapsado
         >
-          <Workflow className="h-4 w-4 mr-2" />
-          <span className="truncate">{process.title}</span>
+          <Workflow className={cn("h-4 w-4 shrink-0", !isCollapsed && "mr-2")} />
+          {!isCollapsed && <span className="truncate">{process.title}</span>}
         </Link>
-        {!isCollapsed && renderActionMenu(menuId, [
-          {
-            label: "Edit",
-            icon: <Edit className="h-4 w-4" />,
-            onClick: () => router.push(processPath) // Alterado de navigate
-          },
-          {
-            label: "Delete",
-            icon: <Trash2 className="h-4 w-4" />,
-            onClick: () => handleDeleteProcess(appCode, areaCode, process.code, subareaCode),
-            className: "text-red-600 hover:text-red-700"
-          }
-        ])}
+        {/* Mostrar menu de ação no hover do 'group' e se não estiver colapsado */}
+        {!isCollapsed && (
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+            {renderActionMenu(menuId, [
+              {
+                label: "Edit",
+                icon: <Edit />, // Ícone sem classes, serão adicionadas pelo cloneElement
+                onClick: () => router.push(processPath)
+              },
+              {
+                label: "Delete",
+                icon: <Trash2 />,
+                onClick: () => handleDeleteProcess(appCode, areaCode, process.code, subareaCode),
+                className: "text-destructive hover:text-destructive focus:text-destructive hover:bg-destructive/10 focus:bg-destructive/10" // Classes específicas para delete
+              }
+            ])}
+          </div>
+        )}
       </div>
     );
   };
 
-  const renderSubArea = (appCode: string, areaCode: string, subarea: SidebarSubArea, isCollapsed: boolean) => { // Usar SidebarSubArea
-    const menuId = `subarea-${appCode}-${areaCode}-${subarea.code}`; // MenuId mais específico
+  const renderSubArea = (appCode: string, areaCode: string, subarea: SidebarSubArea, isCollapsed: boolean) => {
+    const menuId = `subarea-${appCode}-${areaCode}-${subarea.code}`;
+    // Subáreas não são clicáveis como um todo para navegação, apenas para expandir ou via menu de ações.
+    // O clique para expandir/colapsar subáreas (se tivessem filhos visíveis na sidebar) seria no ícone Chevron.
+    // Aqui, subáreas não têm filhos expansíveis visíveis na sidebar (processos são o nível final aqui).
+    // Então, o comportamento de clique no item de subárea é principalmente para ações via menu.
 
     return (
-      <div key={subarea.code} className="pl-8">
-        <div className="flex items-center py-1 text-sm text-gray-600 bg-blue-200 hover:bg-blue-300 rounded-md px-2">
-          <Layers className="h-4 w-4 mr-2" />
-          <span className="truncate flex-1 py-1">{subarea.title}</span>
-          {renderActionMenu(menuId, [
-            {
-              label: "Edit",
+      <div key={subarea.code} className={cn(
+        "py-1 text-sm group", // Adicionado 'group'
+        isCollapsed ? "pl-1" : "pl-8" // pl-8 para indentação de subárea
+      )}>
+        <div className={cn(
+          "flex items-center rounded-md px-2 py-1.5 transition-colors",
+           // Não há estado 'ativo' para subárea, apenas hover.
+           // Se fosse clicável para expandir, teria um <button> aqui.
+          "text-muted-foreground hover:text-foreground hover:bg-muted",
+          isCollapsed ? "justify-center" : ""
+        )}
+          title={isCollapsed ? subarea.title : undefined}
+        >
+          <Layers className={cn("h-4 w-4 shrink-0", !isCollapsed && "mr-2")} />
+          {!isCollapsed && <span className="truncate flex-1">{subarea.title}</span>}
+          {!isCollapsed && (
+            <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+              {renderActionMenu(menuId, [
+              {
+                label: "Edit",
               icon: <Edit className="h-4 w-4" />,
               onClick: () => {
                 setEditingSubArea({ appCode, areaCode, subArea: subarea });
@@ -351,7 +385,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             },
             {
               label: "Add Process",
-              icon: <Workflow className="h-4 w-4" />,
+              icon: <Workflow />,
               onClick: () => {
                 setSelectedApp(appCode);
                 setSelectedArea(areaCode);
@@ -361,81 +395,88 @@ const Sidebar: React.FC<SidebarProps> = ({
             },
             {
               label: "Delete",
-              icon: <Trash2 className="h-4 w-4" />,
+              icon: <Trash2 />,
               onClick: () => handleDeleteSubArea(appCode, areaCode, subarea.code),
-              className: "text-red-600 hover:text-red-700"
+              className: "text-destructive hover:text-destructive focus:text-destructive hover:bg-destructive/10 focus:bg-destructive/10"
             }
           ])}
+            </div>
+          )}
         </div>
-        {subarea.processes.map(process => 
+        {/* Renderizar processos da subárea */}
+        {!isCollapsed && subarea.processes.map(process =>
           renderProcess(appCode, areaCode, process, isCollapsed, subarea.code)
         )}
       </div>
     );
   };
 
-  const renderArea = (appCode: string, area: SidebarArea, isCollapsed: boolean) => { // Usar SidebarArea
+  const renderArea = (appCode: string, area: SidebarArea, isCollapsed: boolean) => {
     const isExpanded = expandedAreas.has(area.code);
-    const menuId = `area-${appCode}-${area.code}`; // MenuId mais específico
+    const menuId = `area-${appCode}-${area.code}`;
 
     return (
-      <div key={area.code}>
-        <div className={cn("flex items-center py-1", isCollapsed ? "pl-1 justify-center" : "pl-6")}>
+      <div key={area.code} className={cn("text-sm group", isCollapsed ? "pl-1" : "pl-6")}> {/* pl-6 para indentação de área */}
+        <div className={cn("flex items-center rounded-md transition-colors", isCollapsed ? "" : "px-2 py-1.5 hover:bg-muted")}>
           <button
             onClick={() => toggleArea(area.code)}
             className={cn(
-              "flex items-center flex-1 text-sm text-gray-700 hover:bg-blue-200 rounded-md py-1",
-              isCollapsed ? "px-1 justify-center bg-blue-100" : "px-2 bg-blue-100"
+              "flex items-center flex-1 text-left", // text-left para o botão
+              isCollapsed ? "justify-center px-1 py-1.5 rounded-md hover:bg-muted w-full" : "py-0" // Ajuste de padding para colapsado
             )}
             title={isCollapsed ? area.title : undefined}
           >
             {!isCollapsed && (
               isExpanded ? (
-                <ChevronDown className="h-4 w-4 mr-1 flex-shrink-0" />
+                <ChevronDown className="h-4 w-4 mr-2 shrink-0" />
               ) : (
-                <ChevronRight className="h-4 w-4 mr-1 flex-shrink-0" />
+                <ChevronRight className="h-4 w-4 mr-2 shrink-0" />
               )
             )}
-            <Layers className={cn("h-4 w-4 flex-shrink-0", !isCollapsed && "mr-2")} />
-            {!isCollapsed && <span className="truncate">{area.title}</span>}
+            <Layers className={cn("h-4 w-4 shrink-0", !isCollapsed && "mr-2")} />
+            {!isCollapsed && <span className="truncate text-foreground">{area.title}</span>}
           </button>
-          {!isCollapsed && renderActionMenu(menuId, [
-            {
-              label: "Edit",
-              icon: <Edit className="h-4 w-4" />,
-              onClick: () => {
-                setEditingArea({ appCode, area: area });
-                setShowEditArea(true);
-              }
-            },
-            {
-              label: "Add SubArea",
-              icon: <Layers className="h-4 w-4" />,
-              onClick: () => {
-                setSelectedApp(appCode);
-                setSelectedArea(area.code);
-                setShowCreateSubArea(true);
-              }
-            },
-            {
-              label: "Add Process",
-              icon: <Workflow className="h-4 w-4" />,
-              onClick: () => {
-                setSelectedApp(appCode);
-                setSelectedArea(area.code);
-                setShowCreateProcess(true);
-              }
-            },
-            {
-              label: "Delete",
-              icon: <Trash2 className="h-4 w-4" />,
-              onClick: () => handleDeleteArea(appCode, area.code),
-              className: "text-red-600 hover:text-red-700"
-            }
-          ])}
+          {!isCollapsed && (
+            <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+              {renderActionMenu(menuId, [
+                {
+                  label: "Edit",
+                  icon: <Edit />,
+                  onClick: () => {
+                    setEditingArea({ appCode, area: area });
+                    setShowEditArea(true);
+                  }
+                },
+                {
+                  label: "Add SubArea",
+                  icon: <Layers />,
+                  onClick: () => {
+                    setSelectedApp(appCode);
+                    setSelectedArea(area.code);
+                    setShowCreateSubArea(true);
+                  }
+                },
+                {
+                  label: "Add Process",
+                  icon: <Workflow />,
+                  onClick: () => {
+                    setSelectedApp(appCode);
+                    setSelectedArea(area.code);
+                    setShowCreateProcess(true); // Processo diretamente sob área
+                  }
+                },
+                {
+                  label: "Delete",
+                  icon: <Trash2 />,
+                  onClick: () => handleDeleteArea(appCode, area.code),
+                  className: "text-destructive hover:text-destructive focus:text-destructive hover:bg-destructive/10 focus:bg-destructive/10"
+                }
+              ])}
+            </div>
+          )}
         </div>
         {isExpanded && !isCollapsed && (
-          <div className="mt-1">
+          <div className="mt-1 space-y-0.5"> {/* Adicionado space-y para leve espaçamento entre filhos */}
             {area.processes?.map(process => renderProcess(appCode, area.code, process, isCollapsed, undefined))}
             {area.subareas?.map(subarea => renderSubArea(appCode, area.code, subarea, isCollapsed))}
           </div>
@@ -444,43 +485,45 @@ const Sidebar: React.FC<SidebarProps> = ({
     );
   };
 
-  const renderWorkspace = (app: SidebarWorkspace, isCollapsed: boolean) => { // Usar SidebarWorkspace
+  const renderWorkspace = (app: SidebarWorkspace, isCollapsed: boolean) => {
     const isExpanded = expandedApps.has(app.code);
     const menuId = `app-${app.code}`;
 
     return (
-      <div key={app.code} className="py-1">
-        <div className={cn("flex items-center", isCollapsed ? "justify-center" : "pl-4")}>
+      <div key={app.code} className={cn("text-sm group", isCollapsed ? "" : "pl-2")}> {/* pl-2 para workspace, um pouco menos que área */}
+        <div className={cn("flex items-center rounded-md transition-colors", isCollapsed ? "" : "px-2 py-1 hover:bg-muted")}>
           <button
             onClick={() => toggleApp(app.code)}
             className={cn(
-              "flex items-center flex-1 text-sm font-medium text-gray-800 hover:bg-blue-100 rounded-md py-1",
-              isCollapsed ? "px-1 justify-center" : "px-2"
+              "flex items-center flex-1 text-left font-medium", // font-medium para workspaces
+              isCollapsed ? "justify-center px-1 py-1.5 rounded-md hover:bg-muted w-full" : "py-0.5" // Ajuste de padding
             )}
-            title={isCollapsed ? app.title : undefined} // Show title on hover when collapsed
+            title={isCollapsed ? app.title : undefined}
           >
             {!isCollapsed && (
               isExpanded ? (
-                <ChevronDown className="h-4 w-4 mr-1 flex-shrink-0" />
+                <ChevronDown className="h-4 w-4 mr-2 shrink-0" />
               ) : (
-                <ChevronRight className="h-4 w-4 mr-1 flex-shrink-0" />
+                <ChevronRight className="h-4 w-4 mr-2 shrink-0" />
               )
             )}
-            <Folder className={cn("h-4 w-4 flex-shrink-0", !isCollapsed && "mr-2")} />
-            {!isCollapsed && <span className="truncate">{app.title}</span>}
+            <Folder className={cn("h-4 w-4 shrink-0", !isCollapsed && "mr-2")} />
+            {!isCollapsed && <span className="truncate text-foreground">{app.title}</span>}
           </button>
-          {!isCollapsed && renderActionMenu(menuId, [
-            {
-              label: "Edit",
-              icon: <Edit className="h-4 w-4" />,
-              onClick: () => {
-                setEditingWorkspaceCode(app.code); // Set the workspace to edit
-                setShowEditWorkspace(true); // Show the edit modal
-              }
-            },
-            {
-              label: "Add Area",
-              icon: <Layers className="h-4 w-4" />,
+          {!isCollapsed && (
+            <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+              {renderActionMenu(menuId, [
+                {
+                  label: "Edit",
+                  icon: <Edit />,
+                  onClick: () => {
+                    setEditingWorkspaceCode(app.code);
+                    setShowEditWorkspace(true);
+                  }
+                },
+                {
+                  label: "Add Area",
+                  icon: <Layers />,
               onClick: () => {
                 setSelectedApp(app.code);
                 setShowCreateArea(true);
@@ -488,15 +531,16 @@ const Sidebar: React.FC<SidebarProps> = ({
             },
             {
               label: "Delete",
-              icon: <Trash2 className="h-4 w-4" />,
+              icon: <Trash2 />,
               onClick: () => handleDeleteApp(app.code),
-              className: "text-red-600 hover:text-red-700"
+              className: "text-destructive hover:text-destructive focus:text-destructive hover:bg-destructive/10 focus:bg-destructive/10"
             }
           ])}
+            </div>
+          )}
         </div>
         {isExpanded && !isCollapsed && (
-          <div className="mt-1">
-            {/* Pass isCollapsed down */}
+          <div className="mt-1 space-y-0.5"> {/* Adicionado space-y para leve espaçamento entre filhos */}
             {app.areas.map(area => renderArea(app.code, area, isCollapsed))}
           </div>
         )}
@@ -512,53 +556,60 @@ const Sidebar: React.FC<SidebarProps> = ({
   // Determine root classes for the sidebar container based on its state
   // Note: Width and positioning (fixed, absolute) are now primarily handled by MainLayout
   // This component focuses on its internal layout and appearance.
+  // bg-background e border-border são aplicados pelo Panel no layout.tsx,
+  // mas podemos reafirmar ou adicionar especificidades aqui se necessário.
   const sidebarContainerClasses = cn(
-    "flex flex-col h-full bg-white border-r border-gray-200 shadow-lg",
-    // If it's mobile off-canvas, it will have specific width from MainLayout's wrapper
-    // If it's desktop, MainLayout's Panel will control its width (e.g., w-16 or w-64)
+    "flex flex-col h-full bg-background text-foreground", // Usar cores de tema
+    // shadow-lg e border-r são geralmente aplicados pelo container pai (Panel) ou aqui se for um design específico.
+    // No nosso caso, o Panel em layout.tsx já tem bg-background. A borda é pelo PanelResizeHandle.
+    // Vamos remover shadow-lg daqui para evitar duplicação, assumindo que o painel já pode ter sombra.
   );
 
   return (
     <div className={sidebarContainerClasses}>
       {/* Sidebar Header */}
       <div className={cn(
-        "flex items-center justify-between h-16 px-4 border-b border-gray-200 shrink-0",
-        // When desktop collapsed and NOT mobile, center the toggle button
+        "flex items-center justify-between h-16 px-4 border-b border-border shrink-0", // Usar border-border
         isCollapsed && !isMobileOpen && "justify-center"
       )}>
-        {/* Title/Logo Area - Shown when desktop expanded OR when in mobile off-canvas mode */}
+        {/* Title/Logo Area */}
         {(!isCollapsed || isMobileOpen) && (
           <div className="flex items-center">
-            <Workflow className="h-7 w-7 text-primary-600" />
-            <span className="ml-2 text-lg font-semibold text-gray-800 truncate">
-              {isMobileOpen ? "Menu" : "IGRP Studio"} {/* Different title for mobile */} 
+            <Workflow className="h-7 w-7 text-primary" /> {/* Usar text-primary diretamente */}
+            <span className="ml-2 text-lg font-semibold truncate"> {/* text-gray-800 removido, herdará text-foreground */}
+              {isMobileOpen ? "Menu" : "IGRP Studio"}
             </span>
           </div>
         )}
 
-        {/* Desktop Collapse/Expand Toggle Button - Only shown if NOT in mobile mode */}
+        {/* Desktop Collapse/Expand Toggle Button */}
         {!isMobileOpen && (
-          <button
+          <Button
+            variant="ghost" // Usar Button do ShadCN para consistência
+            size="icon"
             onClick={onToggleCollapse} 
             className={cn(
-              "p-1 rounded-md hover:bg-gray-200 focus:outline-none",
-              isCollapsed ? "mx-auto" : "ml-2" // Centered if collapsed, else margin left
+              // "p-1 rounded-md focus:outline-none", // Classes base do Button ghost size icon
+              // "hover:bg-muted", // hover:bg-gray-200 -> hover:bg-muted
+              isCollapsed ? "mx-auto" : "ml-2"
             )}
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {isCollapsed ? <ChevronsRight className="h-5 w-5 text-gray-600" /> : <ChevronsLeft className="h-5 w-5 text-gray-600" />}
-          </button>
+            {isCollapsed ? <ChevronsRight className="h-5 w-5" /> : <ChevronsLeft className="h-5 w-5" />} {/* text-gray-600 removido, herdará */}
+          </Button>
         )}
 
-        {/* Mobile Off-canvas Close Button - Only shown if in mobile mode */}
+        {/* Mobile Off-canvas Close Button */}
         {isMobileOpen && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onCloseMobile} 
-              className="p-1 rounded-md hover:bg-gray-200 focus:outline-none"
+              // className="p-1 rounded-md hover:bg-muted focus:outline-none" // hover:bg-gray-200 -> hover:bg-muted
               aria-label="Close sidebar"
             >
-              <X className="h-5 w-5 text-gray-600" />
-            </button>
+              <X className="h-5 w-5" /> {/* text-gray-600 removido */}
+            </Button>
         )}
       </div>
 
@@ -579,15 +630,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                 "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors",
                 isCollapsed && !isMobileOpen ? "justify-center" : "",
                 pathname === item.href
-                  ? "bg-primary-50 text-primary-600"
-                  : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  ? "bg-accent text-accent-foreground" //  bg-primary-50 text-primary-600 -> bg-accent text-accent-foreground (ou text-primary)
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted" // text-gray-700 hover:bg-gray-100 hover:text-gray-900 -> text-muted-foreground hover:text-foreground hover:bg-muted
               )}
               title={isCollapsed && !isMobileOpen ? item.name : undefined}
             >
               <item.icon
                 className={cn(
-                  "h-5 w-5",
-                  isCollapsed && !isMobileOpen ? "" : "mr-3",
+                  "h-5 w-5", // Ícones dos links de navegação principal
+                  isCollapsed && !isMobileOpen ? "" : "mr-3", // Margem apenas se expandido
                 )}
                 aria-hidden="true"
               />
@@ -597,47 +648,51 @@ const Sidebar: React.FC<SidebarProps> = ({
         </nav>
 
         {/* Dynamic Workspaces Section */}
-        <div className="pt-6">
+        <div className="pt-6"> {/* Espaçamento acima da seção de workspaces */}
           <div className={cn(
             "mb-2 flex items-center justify-between",
-            // If collapsed desktop, center the add button, else normal padding
-            isCollapsed && !isMobileOpen ? "px-0 justify-center" : "px-3" 
+            isCollapsed && !isMobileOpen ? "px-1 justify-center" : "px-2" // Ajustado padding para consistência com itens de navegação
           )}>
-            {/* Show 'Workspaces' title only if not collapsed desktop */} 
             {!(isCollapsed && !isMobileOpen) && (
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"> {/* text-gray-500 -> text-muted-foreground */}
                 Workspaces
               </span>
             )}
             <Button
               variant="ghost"
-              size={isCollapsed && !isMobileOpen ? "sm" : "sm"}
+              size={isCollapsed && !isMobileOpen ? "icon" : "sm"} // Usar 'icon' para o modo colapsado se o texto for oculto
               onClick={() => {
                 setShowCreateApp(true);
                 if (isMobileOpen) onCloseMobile(); // Close mobile if opening modal
               }}
               title="New Workspace"
-              className="inline-flex items-center"
+              className={cn(
+                "inline-flex items-center", // Manter items-center
+                // Se 'icon', o padding e tamanho são gerenciados pelo Button. Se 'sm', pode precisar de ajuste de padding se o texto 'New' estiver visível.
+                // O size="icon" já centraliza o ícone. Se size="sm" e colapsado, o ícone pode não estar centralizado se houver margem no ícone.
+              )}
             >
-              <Folder className={cn("h-4 w-4 mr-1", isCollapsed && !isMobileOpen && "h-5 w-5")} />
+              {/* Ajustar o ícone para não ter margem se o botão for 'icon' e colapsado, ou se o texto estiver oculto. */}
+              <Folder className={cn("h-4 w-4", !(isCollapsed && !isMobileOpen) && "mr-1")} />
               {!(isCollapsed && !isMobileOpen) && (
-                 <span className="sr-only sm:not-sr-only">New</span>
+                 // sr-only sm:not-sr-only é bom para acessibilidade, mas com size="icon" o texto não deveria aparecer.
+                 // Se size="sm" e colapsado, o texto "New" não deveria estar visível.
+                 // Vamos simplificar: mostrar "New" apenas se não colapsado.
+                 "New"
               )}
             </Button>
           </div>
           {loading ? (
             <div className="flex justify-center py-4">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600"></div>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div> {/* border-primary-600 -> border-primary */}
             </div>
           ) : workspaces.length > 0 ? (
             <div className="space-y-1">
-              {/* Pass isCollapsed state to renderWorkspace only if not in mobile view */}
               {workspaces.map((workspace) => renderWorkspace(workspace, isCollapsed && !isMobileOpen))}
             </div>
           ) : (
-            // Show 'No workspaces' only if not collapsed desktop
             !(isCollapsed && !isMobileOpen) && (
-              <div className="px-3 py-2 text-sm text-gray-500">
+              <div className="px-2 py-2 text-sm text-muted-foreground"> {/* px-3 -> px-2, text-gray-500 -> text-muted-foreground */}
                 No workspaces found
               </div>
             )
@@ -645,13 +700,13 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
       
-      {/* Footer / Collapse button for Desktop - Not shown in mobile off-canvas mode */}
+      {/* Footer / Collapse button for Desktop */}
       {!isMobileOpen && (
-        <div className="flex-shrink-0 p-2 border-t border-gray-200">
+        <div className="flex-shrink-0 p-2 border-t border-border"> {/* border-gray-200 -> border-border */}
           <Button
             variant="ghost"
-            size="sm"
-            className="w-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
+            size="sm" // 'sm' para ter espaço para o texto "Collapse"
+            className="w-full flex items-center justify-center text-muted-foreground hover:text-foreground" // text-gray-600 hover:bg-gray-100 -> text-muted-foreground hover:text-foreground
             onClick={onToggleCollapse}
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >

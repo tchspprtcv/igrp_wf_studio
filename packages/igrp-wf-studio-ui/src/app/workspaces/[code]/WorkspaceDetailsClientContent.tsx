@@ -221,7 +221,8 @@ const WorkspaceDetailsClientContent: React.FC<WorkspaceDetailsClientProps> = ({ 
   // O Server Component já logou isso. Aqui, podemos mostrar uma mensagem específica.
   if (!config && !initialError) {
     return (
-      <Card className="mt-6">
+      // mt-6 removido para consistência com o gap do container pai na page.tsx
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center"><PackageX className="mr-2 h-6 w-6 text-destructive"/> Workspace Not Found</CardTitle>
         </CardHeader>
@@ -235,7 +236,8 @@ const WorkspaceDetailsClientContent: React.FC<WorkspaceDetailsClientProps> = ({ 
   // Se houve um erro inicial do servidor (e config pode ou não ser null)
   if (initialError && !config) { // Apenas mostra se o config não carregou por causa do erro
       return (
-          <Alert variant="destructive" className="mt-6">
+          // mt-6 removido do Alert também
+          <Alert variant="destructive">
               <Terminal className="h-4 w-4" />
               <AlertTitle>Error Loading Workspace Data</AlertTitle>
               <AlertDescription>{initialError}</AlertDescription>
@@ -246,7 +248,8 @@ const WorkspaceDetailsClientContent: React.FC<WorkspaceDetailsClientProps> = ({ 
   // Se config é null mesmo após a lógica acima (improvável, mas para type safety)
   if (!config) {
     return (
-      <Card className="mt-6">
+      // mt-6 removido
+      <Card>
         <CardHeader><CardTitle>Loading...</CardTitle></CardHeader>
         <CardContent><p>Workspace details are currently unavailable.</p></CardContent>
       </Card>
@@ -255,17 +258,24 @@ const WorkspaceDetailsClientContent: React.FC<WorkspaceDetailsClientProps> = ({ 
 
 
   return (
-    <>
+    // O container geral da página (em page.tsx) já tem flex flex-col gap-6.
+    // Este fragmento <> </> pode ser substituído por um div com classes de espaçamento se necessário,
+    // ou os elementos podem ter suas próprias margens/paddings.
+    // Por agora, vamos manter o fragmento e os elementos internos controlarão seu espaçamento.
+    <div className="flex flex-col gap-6"> {/* Adicionado container com gap para espaçar logicamente os blocos */}
       {/* Exibe erro do cliente, se houver */}
       {clientError && (
-        <Alert variant="destructive" className="mb-4">
+        // mb-4 removido, o gap-6 do container pai cuida disso
+        <Alert variant="destructive">
           <Terminal className="h-4 w-4" />
           <AlertTitle>Action Error</AlertTitle>
           <AlertDescription>{clientError}</AlertDescription>
         </Alert>
       )}
 
-      <div className="flex justify-end mb-4 space-x-2">
+      {/* Botões de Ação no Topo */}
+      {/* mb-4 removido, o gap-6 do container pai cuida disso. Adicionado flex-wrap. */}
+      <div className="flex flex-wrap justify-end gap-2">
         <Button
             variant="outline"
             onClick={handleOpenEditWorkspaceModal}

@@ -7,19 +7,12 @@ import type { DashboardStats } from '@/types';
 import { unstable_cache as nextCache } from 'next/cache';
 import * as studioMgr from '@/igrpwfstudio/utils/workspaceManager';
 
-// New imports from ShadCN block structure
-import { AppSidebar } from "@/components/dashboard/app-sidebar";
-import { ChartAreaInteractive } from "@/components/dashboard/chart-area-interactive";
-// import { DataTable } from "@/components/dashboard/data-table"; // DataTable is not directly used here anymore, DashboardClientContent handles its own table
+// Component imports
 import { SectionCards } from "@/components/dashboard/section-cards";
-// import { SiteHeader } from "@/components/dashboard/site-header"; // SiteHeader é parte do layout global
-import {
-  SidebarProvider,
-  SidebarInset,
-} from "@/components/ui/sidebar";
-import Breadcrumb from "@/components/ui/breadcrumb"; // Importar Breadcrumb
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // For displaying errors
-import { Terminal } from 'lucide-react'; // Icon for error alert
+import Breadcrumb from "@/components/ui/breadcrumb";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Terminal } from 'lucide-react';
+// import { ChartAreaInteractive } from "@/components/dashboard/chart-area-interactive"; // Chart não está sendo usado no momento
 
 
 // Dummy data for DataTable (workspaces) - replace with actual data later
@@ -81,76 +74,54 @@ const getDashboardDataCached = nextCache(
 
 export default async function DashboardPage() {
   const { workspaces, stats, error } = await getDashboardDataCached();
-  
-  // Definindo a largura do sidebar como constante para uso consistente
-  const sidebarWidth = "calc(var(--spacing) * 72)";
-  const collapsedSidebarWidth = "4rem";
-  // console.log('[DashboardPage] Data from getDashboardDataCached:', { workspacesCount: workspaces?.length, stats, error }); // Optional: keep for debugging if needed
 
-  // The workspaceColumns definition is no longer needed here as DashboardClientContent handles its own table structure.
-  // const workspaceColumns = [
-  //   { accessorKey: "title", header: "Title" },
-  //   { accessorKey: "code", header: "Code" },
-  //   { accessorKey: "status", header: "Status" },
-  //   // TODO: Add a column for number of processes, requires processing 'workspaces' data (this TODO can move to DashboardClientContent if still relevant)
-  // ];
-
+  // O padding do layout global já é `mx-auto px-4 py-6 sm:px-6 lg:px-8`.
+  // Não precisamos de padding adicional aqui no `main` ou wrappers internos,
+  // a menos que seja para espaçamento específico entre os elementos da página.
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 14)",
-        } as React.CSSProperties
-      }
-    >
-      {/* Fixed position sidebar com z-index maior para ficar acima de todos os conteúdos */}
-      {/*<AppSidebar 
-        variant="inset" 
-        className="hidden lg:block fixed h-full z-30" 
-      />*/}
-      
-      {/* Container de conteúdo principal com padding-left fixo e garantido */}
-      <div className="w-full" style={{ paddingLeft: sidebarWidth }}>
-        <SidebarInset
-          className="w-full transition-all duration-200 z-0 overflow-auto"
-      >
-        {/*<SiteHeader />*/}
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 @container/main">
-          <div className="flex flex-col gap-2 mb-4"> {/* Container para Título e Breadcrumb */}
-            <h1 className="text-lg font-semibold md:text-2xl">Dashboard</h1>
-            <Breadcrumb items={[{ label: 'Dashboard' }]} />
-          </div>
-
-          {error && (
-            <Alert variant="destructive">
-              <Terminal className="h-4 w-4" />
-              <AlertTitle>Error Fetching Data</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <SectionCards stats={stats} /> {/* This is the single, correct rendering of SectionCards */}
-
-          {/* Section for Chart and Workspaces List */}
-          {/* This div will manage the layout of the chart and the workspace list.
-              On smaller screens, they will stack due to grid-cols-1 (implied by default).
-              On larger screens (lg and up), they will be side-by-side using lg:grid-cols-3.
-              The gap utilities are applied here for spacing between chart and list, and if they stack.
-          */}
-          <div className="grid grid-cols-1 gap-4 md:gap-6 lg:gap-8">
-            {/* Chart takes up 2/3 on larger screens */}
-            {/*<div className="lg:col-span-2"> 
-              <ChartAreaInteractive />
-            </div>*/}
-            {/* Workspaces list takes 1/3 on larger screens */}
-            <div> 
-              <DashboardClientContent initialWorkspaces={workspaces || []} initialError={error} />
-            </div>
-          </div>
-        </main>
-      </SidebarInset>
+    // O <SidebarProvider>, <AppSidebar>, <SidebarInset> e o div com paddingLeft foram removidos
+    // pois o layout.tsx agora gerencia a sidebar global e o padding do conteúdo.
+    // O <main> do layout.tsx já tem overflow-y-auto.
+    // O padding da página é fornecido pelo container no layout.tsx.
+    // Os gaps entre elementos podem ser gerenciados por um container flex col aqui.
+    <div className="flex flex-col gap-6"> {/* Aumentado o gap para melhor espaçamento geral */}
+      {/* Container para Título e Breadcrumb */}
+      <div className="flex flex-col gap-1"> {/* Reduzido o mb-4 e o gap interno */}
+        <h1 className="text-2xl font-semibold md:text-3xl">Dashboard</h1> {/* Aumentado o tamanho da fonte */}
+        <Breadcrumb items={[{ label: 'Dashboard' }]} />
       </div>
-    </SidebarProvider>
+
+      {error && (
+        <Alert variant="destructive">
+          <Terminal className="h-4 w-4" />
+          <AlertTitle>Error Fetching Data</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* SectionCards agora usa o DashboardStats diretamente */}
+      <SectionCards stats={stats} />
+
+      {/*
+        A seção do ChartAreaInteractive está comentada no código original e não foi solicitada para ser restaurada.
+        Se fosse usada, o layout grid abaixo poderia ser ajustado.
+        Por agora, DashboardClientContent (a lista de workspaces) ocupará a largura total disponível.
+      */}
+      {/*
+      <div className="grid grid-cols-1 gap-4 md:gap-6 lg:gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <ChartAreaInteractive />
+        </div>
+        <div className="lg:col-span-1">
+          <DashboardClientContent initialWorkspaces={workspaces || []} initialError={error} />
+        </div>
+      </div>
+      */}
+
+      {/* Renderiza DashboardClientContent diretamente */}
+      <div>
+        <DashboardClientContent initialWorkspaces={workspaces || []} initialError={error} />
+      </div>
+    </div>
   );
 }

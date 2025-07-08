@@ -26,12 +26,11 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
-  const isDashboardPage = pathname.startsWith('/dashboard');
+  const pathname = usePathname(); // Pathname é usado para lógica de menu ativo na Sidebar, etc.
 
   const [isOffCanvasOpen, setIsOffCanvasOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  // const [sidebarSize, setSidebarSize] = useState(DEFAULT_EXPANDED_SIZE_PERCENT); // Não usado diretamente no <Panel size={...}>
+  const [sidebarPanelSize, setSidebarPanelSize] = useState(DEFAULT_EXPANDED_SIZE_PERCENT);
 
   const toggleMobileMenu = () => {
     setIsOffCanvasOpen(!isOffCanvasOpen);
@@ -46,8 +45,13 @@ export default function RootLayout({
   };
 
   const handleLayout = (sizes: number[]) => {
-    // Lógica de onLayout, se necessária
-    // console.log("Panel sizes:", sizes);
+    // sizes[0] será o tamanho do painel da sidebar
+    if (sizes.length > 0) {
+      setSidebarPanelSize(sizes[0]);
+      // Determinar se está colapsado com base no tamanho vs COLLAPSED_SIZE_PERCENT
+      // Isso pode precisar de ajuste fino dependendo de como react-resizable-panels reporta o tamanho durante o colapso
+      setIsSidebarCollapsed(sizes[0] <= COLLAPSED_SIZE_PERCENT + 1); // Adicionar uma pequena margem para comparação
+    }
   };
 
   // Efeito para adicionar metadados dinamicamente se necessário, já que export const metadata pode não funcionar em client root layout.
@@ -82,79 +86,75 @@ export default function RootLayout({
             />
           )}
 
-          {!isDashboardPage && ( /* Conditionally render global sidebar for non-dashboard pages */
-            <div className="hidden lg:flex h-screen"> {/* PanelGroup para telas grandes */}
-              <PanelGroup direction="horizontal" onLayout={handleLayout}>
-                <Panel
-                  defaultSize={DEFAULT_EXPANDED_SIZE_PERCENT}
+          {/* Sidebar para telas grandes (Desktop) - Agora é sempre renderizado */}
+          <div className="hidden lg:flex h-screen">
+            <PanelGroup direction="horizontal" onLayout={handleLayout}>
+              <Panel
+                defaultSize={DEFAULT_EXPANDED_SIZE_PERCENT}
                 minSize={COLLAPSED_SIZE_PERCENT}
-                maxSize={50}
+                maxSize={30} // Ajustado para um máximo mais razoável
                 collapsible={true}
-                collapsedSize={COLLAPSED_SIZE_PERCENT} // Explicitly set collapsed size percentage
+                collapsedSize={COLLAPSED_SIZE_PERCENT}
                 onCollapse={() => setIsSidebarCollapsed(true)}
                 onExpand={() => setIsSidebarCollapsed(false)}
                 order={1}
-                className={cn("transition-all duration-300 ease-in-out")}
-                // isCollapsed prop não existe em <Panel>, o estado é gerenciado internamente ou via onCollapse/onExpand
+                className={cn(
+                  "bg-background transition-all duration-300 ease-in-out", // Adicionado bg-background
+                  // Adicionar overflow hidden se o conteúdo da sidebar puder exceder
+                )}
+                // O estado isSidebarCollapsed é agora atualizado via onLayout e onCollapse/onExpand
               >
-                {/* REMOVIDO o sidebar antigo do ecrã */}
-                {/*<Sidebar
-                  isMobileOpen={false}
-                  onCloseMobile={closeMobileMenu}
+                <Sidebar
+                  isMobileOpen={false} // Nunca é mobile aqui
+                  onCloseMobile={closeMobileMenu} // Passar, embora não usado diretamente
                   isCollapsed={isSidebarCollapsed}
                   onToggleCollapse={toggleSidebarCollapse}
-                />*/}
+                />
               </Panel>
               <PanelResizeHandle className={cn(
-                "w-1 bg-gray-300 hover:bg-primary-500 transition-colors duration-200",
-                // Não ocultar o handle quando colapsado se quisermos permitir expansão arrastando de um handle fino.
-                // Ou, se o painel colapsa para 0 ou um tamanho muito pequeno, o handle pode ser condicionalmente renderizado/estilizado.
-                // A biblioteca react-resizable-panels pode lidar com isso automaticamente.
-                // Se isSidebarCollapsed for usado para esconder o handle, certifique-se que haja outra forma de expandir.
-                // A propriedade `collapsible` no Panel já deve cuidar da UI de colapso/expansão.
+                "w-1 bg-border hover:bg-primary transition-colors duration-200",
+                // O handle deve permanecer visível para permitir a expansão
               )} />
-              {/* IMPORTANT: The main content panel that receives {children} should be part of this PanelGroup if this sidebar is active */}
-              {/* However, for this specific fix, we are hiding this entire PanelGroup on dashboard pages. */}
-              {/* If we were to keep it, children should go into a <Panel> here. */}
-              </PanelGroup>
-            </div>
-          )}
+              <Panel order={2} className="flex-1 flex flex-col overflow-hidden"> {/* Painel de Conteúdo Principal */}
+                {/* Header para Mobile (dentro do conteúdo principal para telas pequenas, mas aqui é desktop) */}
+                {/* Se houver um header de desktop fixo, ele iria aqui ou acima do PanelGroup */}
 
-          {!isDashboardPage && ( /* Conditionally render off-canvas global sidebar for non-dashboard pages */
-            <div className={cn( // Off-canvas para telas pequenas
-              "fixed top-0 left-0 z-40 h-screen transition-transform lg:hidden",
-              isOffCanvasOpen ? "translate-x-0" : "-translate-x-full",
-            "bg-white w-64 shadow-lg border-r border-gray-200"
+                <main className="flex-1 overflow-y-auto">
+                  {/* Padding padrão para o conteúdo, pode ser ajustado por página se necessário */}
+                  <div className="mx-auto px-4 py-6 sm:px-6 lg:px-8">
+                    {children}
+                  </div>
+                </main>
+              </Panel>
+            </PanelGroup>
+          </div>
+
+          {/* Sidebar Off-canvas para telas pequenas (Mobile) */}
+          <div className={cn(
+            "fixed top-0 left-0 z-40 h-screen transition-transform lg:hidden",
+            isOffCanvasOpen ? "translate-x-0" : "-translate-x-full",
+            "bg-background w-64 shadow-lg border-r border-border" // Usar variáveis de tema
           )}>
             <Sidebar
               isMobileOpen={isOffCanvasOpen}
               onCloseMobile={closeMobileMenu}
-              isCollapsed={false}
-              onToggleCollapse={() => {}} // Não relevante para off-canvas
+              isCollapsed={false} // Off-canvas nunca está 'collapsed' no sentido de ícones apenas
+              onToggleCollapse={() => {}} // Não aplicável aqui
             />
           </div>
-          )}
 
-          {/* Main content area wrapper. Adjusted to take full width if global sidebar is hidden. */}
-          <div className={cn(
-            "flex flex-col flex-1 min-h-screen",
-            !isDashboardPage && "lg:ml-0" // This lg:ml-0 was part of the problem if PanelGroup was not correctly wrapping children.
-                                        // Now, if PanelGroup is not rendered, this div will naturally take the space.
-                                        // If PanelGroup *is* rendered (for non-dashboard), the PanelGroup itself should define content area.
-                                        // For simplicity, let's assume if global sidebar is shown, this div might need an ml.
-                                        // However, the better fix is to put children *inside* the PanelGroup's second panel.
-                                        // Given we're hiding the PanelGroup, this div should just be flex-1.
-          )}>
-            {!isDashboardPage && ( /* Conditionally render global mobile header for non-dashboard pages */
-              <div className="sticky top-0 z-10 flex items-center justify-between h-16 px-4 bg-white border-b border-gray-200 lg:hidden">
-                <button onClick={toggleMobileMenu} className="text-gray-500 hover:text-gray-700">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
-                </button>
-                <span className="text-lg font-semibold">IGRP WF Studio</span>
-              </div>
-            )}
+          {/* Conteúdo Principal para telas pequenas (Mobile) */}
+          {/* Este wrapper é para quando a sidebar desktop NÃO está visível (lg:hidden) */}
+          <div className="flex flex-col flex-1 min-h-screen lg:hidden">
+            {/* Header Mobile */}
+            <div className="sticky top-0 z-20 flex items-center justify-between h-16 px-4 bg-background border-b border-border">
+              <button onClick={toggleMobileMenu} className="text-muted-foreground hover:text-foreground">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+              </button>
+              <span className="text-lg font-semibold text-foreground">IGRP WF Studio</span>
+              {/* Placeholder para outras ações do header mobile, se houver */}
+            </div>
             <main className="flex-1 overflow-y-auto">
-              {/* O <Outlet /> do react-router-dom é substituído por {children} */}
               <div className="mx-auto px-4 py-6">
                 {children}
               </div>

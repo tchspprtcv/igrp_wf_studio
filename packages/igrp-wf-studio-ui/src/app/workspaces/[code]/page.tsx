@@ -4,11 +4,8 @@ import { ExtendedProjectConfig } from '@/types';
 import WorkspaceDetailsClientContent from "./WorkspaceDetailsClientContent";
 import { unstable_cache as nextCache } from 'next/cache';
 import * as studioMgr from '@/igrpwfstudio/utils/workspaceManager';
-import {
-  SidebarProvider,
-  SidebarInset,
-} from "@/components/ui/sidebar";
-import Breadcrumb from "@/components/ui/breadcrumb"; // Importar Breadcrumb
+// SidebarProvider e SidebarInset removidos
+import Breadcrumb from "@/components/ui/breadcrumb";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, PackageX } from 'lucide-react';
 
@@ -92,56 +89,52 @@ export default async function WorkspaceDetailPage({ params }: Props) {
   const pageTitle = config?.project || code;
   const pageSubtitle = config ? (config.description || `Details for workspace ${pageTitle}`) : (fetchError || `Manage workspace areas, sub-areas, and processes`);
 
-
+  // Layout simplificado, dependendo do layout.tsx global
   return (
-    <SidebarProvider
-      style={{ "--sidebar-width": sidebarWidth, "--header-height": "calc(var(--spacing) * 14)" } as React.CSSProperties}
-    >
-      <div className="w-full lg:pl-[var(--sidebar-width)]">
-        <SidebarInset className="w-full transition-all duration-200 z-0 overflow-auto">
-          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 @container/main">
-            <div className="flex flex-col gap-2 mb-4"> {/* Container para Título e Breadcrumb */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-lg font-semibold md:text-2xl break-all">
-                    {pageTitle}
-                  </h1>
-                  <p className="text-sm text-muted-foreground break-all">
-                    {pageSubtitle}
-                  </p>
-                </div>
-                {/* Ações como 'Exportar Workspace' estão agora em WorkspaceDetailsClientContent */}
-              </div>
-              <Breadcrumb
-                items={[
-                  { label: 'Dashboard', href: '/dashboard' },
-                  { label: 'Workspaces', href: '/workspaces' },
-                  { label: pageTitle } // pageTitle já contém o nome do workspace ou o código
-                ]}
-              />
-            </div>
-
-            {fetchError && !config && (
-              <Alert variant="destructive">
-                <Terminal className="h-4 w-4" />
-                <AlertTitle>Error Loading Workspace</AlertTitle>
-                <AlertDescription>{fetchError}</AlertDescription>
-              </Alert>
-            )}
-
-            {/* Renderiza o conteúdo do cliente mesmo se config for null inicialmente,
-                para que o cliente possa tentar carregar ou mostrar uma mensagem mais específica.
-                Ou, podemos passar um prop 'notFound' explicitamente.
-                Por ora, passamos config (que pode ser null) e o Client Content lida com isso.
-            */}
-            <WorkspaceDetailsClientContent
-              initialConfig={config}
-              workspaceCode={code}
-              initialError={fetchError} // Passar o erro para o cliente também
-            />
-          </main>
-        </SidebarInset>
+    <div className="flex flex-col gap-6"> {/* Container principal com espaçamento */}
+      {/* Bloco de Cabeçalho da Página: Título, Subtítulo, Breadcrumb */}
+      <div className="flex flex-col gap-1"> {/* Espaçamento interno menor */}
+        {/* Título e Subtítulo */}
+        {/* A div para justify-between foi removida pois os botões de ação agora estão no WorkspaceDetailsClientContent */}
+        <div>
+          <h1 className="text-2xl font-semibold md:text-3xl break-all"> {/* Consistência de título */}
+            {pageTitle}
+          </h1>
+          <p className="text-sm text-muted-foreground break-all mt-0.5"> {/* Leve ajuste de margem e tamanho */}
+            {pageSubtitle}
+          </p>
+        </div>
+        {/* Breadcrumb logo abaixo do título/subtítulo */}
+        <div className="mt-2"> {/* Espaçamento entre título/subtítulo e breadcrumb */}
+          <Breadcrumb
+            items={[
+              { label: 'Dashboard', href: '/dashboard' },
+              { label: 'Workspaces', href: '/workspaces' },
+              { label: pageTitle }
+            ]}
+          />
+        </div>
       </div>
-    </SidebarProvider>
+
+      {/* Alerta de Erro de Carregamento */}
+      {fetchError && !config && (
+        <Alert variant="destructive">
+          <Terminal className="h-4 w-4" />
+          <AlertTitle>Error Loading Workspace</AlertTitle>
+          <AlertDescription>{fetchError}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Conteúdo Principal do Cliente */}
+      {/* A lógica de "não encontrado" ou "erro" é tratada tanto aqui (para erro de fetch geral)
+          quanto dentro de WorkspaceDetailsClientContent (para estado de carregamento ou not found mais específico) */}
+      <div>
+        <WorkspaceDetailsClientContent
+          initialConfig={config}
+          workspaceCode={code}
+          initialError={fetchError}
+        />
+      </div>
+    </div>
   );
 }
