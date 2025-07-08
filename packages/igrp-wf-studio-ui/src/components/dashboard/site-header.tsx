@@ -6,7 +6,7 @@ import { NavUser } from "./nav-user"; // Assuming NavUser is in the same directo
 
 export function SiteHeader({ className }: { className?: string }) {
   return (
-    <header className={`sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 ${className}`}>
+    <header className={`sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 ${className}`}>
       <div className="container flex h-14 items-center">
         <div className="mr-4 hidden md:flex">
           {/* Optional: Logo or site name can go here */}

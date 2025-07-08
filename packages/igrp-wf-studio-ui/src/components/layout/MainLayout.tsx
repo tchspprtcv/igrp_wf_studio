@@ -82,7 +82,7 @@ const MainLayout: React.FC = () => {
       {/* Overlay for Off-canvas Sidebar */}
       {isOffCanvasOpen && (
         <div 
-          className="fixed inset-0 z-30 bg-gray-900/50 lg:hidden"
+          className="fixed inset-0 z-15 bg-gray-900/50 lg:hidden"
           onClick={closeMobileMenu} 
         />
       )}
@@ -118,7 +118,7 @@ const MainLayout: React.FC = () => {
 
       {/* Off-canvas Sidebar for smaller screens (lg and below) */}
       <div className={cn(
-        "fixed top-0 left-0 z-40 h-screen transition-transform lg:hidden",
+        "fixed top-0 left-0 z-20 h-screen transition-transform lg:hidden",
         isOffCanvasOpen ? "translate-x-0" : "-translate-x-full",
         "bg-white w-64 shadow-lg border-r border-gray-200" // Added styles for off-canvas
       )}>

@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { AppOptions, ProjectConfig } from '@igrp/wf-engine'; // Types for original data
 // import PageHeader from "@/components/layout/PageHeader"; // Original PageHeader
 // import { Folder, Layers, Workflow, Clock } from "lucide-react"; // Original Icons
-import DashboardClientContent from "../DashboardClientContent"; // Original client content - for workspace list
+import DashboardClientContent from "../DashboardClientContent"; // Client content for workspace list (now refactored with Table)
 import type { DashboardStats } from '@/types';
 import { unstable_cache as nextCache } from 'next/cache';
 import * as studioMgr from '@/igrpwfstudio/utils/workspaceManager';
@@ -10,13 +10,14 @@ import * as studioMgr from '@/igrpwfstudio/utils/workspaceManager';
 // New imports from ShadCN block structure
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { ChartAreaInteractive } from "@/components/dashboard/chart-area-interactive";
-import { DataTable } from "@/components/dashboard/data-table"; // Will be used for workspaces list
+// import { DataTable } from "@/components/dashboard/data-table"; // DataTable is not directly used here anymore, DashboardClientContent handles its own table
 import { SectionCards } from "@/components/dashboard/section-cards";
-import { SiteHeader } from "@/components/dashboard/site-header";
+// import { SiteHeader } from "@/components/dashboard/site-header"; // SiteHeader é parte do layout global
 import {
   SidebarProvider,
   SidebarInset,
 } from "@/components/ui/sidebar";
+import Breadcrumb from "@/components/ui/breadcrumb"; // Importar Breadcrumb
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // For displaying errors
 import { Terminal } from 'lucide-react'; // Icon for error alert
 
@@ -80,17 +81,19 @@ const getDashboardDataCached = nextCache(
 
 export default async function DashboardPage() {
   const { workspaces, stats, error } = await getDashboardDataCached();
-  console.log('[DashboardPage] Data from getDashboardDataCached:', { workspacesCount: workspaces?.length, stats, error });
+  
+  // Definindo a largura do sidebar como constante para uso consistente
+  const sidebarWidth = "calc(var(--spacing) * 72)";
+  const collapsedSidebarWidth = "4rem";
+  // console.log('[DashboardPage] Data from getDashboardDataCached:', { workspacesCount: workspaces?.length, stats, error }); // Optional: keep for debugging if needed
 
-  // Define columns for the DataTable (for workspaces)
-  // This can be moved to a separate file or component later
-  const workspaceColumns = [
-    { accessorKey: "title", header: "Title" },
-    { accessorKey: "code", header: "Code" },
-    { accessorKey: "status", header: "Status" },
-    // TODO: Add a column for number of processes, requires processing 'workspaces' data
-  ];
-
+  // The workspaceColumns definition is no longer needed here as DashboardClientContent handles its own table structure.
+  // const workspaceColumns = [
+  //   { accessorKey: "title", header: "Title" },
+  //   { accessorKey: "code", header: "Code" },
+  //   { accessorKey: "status", header: "Status" },
+  //   // TODO: Add a column for number of processes, requires processing 'workspaces' data (this TODO can move to DashboardClientContent if still relevant)
+  // ];
 
   return (
     <SidebarProvider
@@ -101,12 +104,22 @@ export default async function DashboardPage() {
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset" className="hidden lg:block" />
-      <SidebarInset>
-        <SiteHeader />
+      {/* Fixed position sidebar com z-index maior para ficar acima de todos os conteúdos */}
+      {/*<AppSidebar 
+        variant="inset" 
+        className="hidden lg:block fixed h-full z-30" 
+      />*/}
+      
+      {/* Container de conteúdo principal com padding-left fixo e garantido */}
+      <div className="w-full" style={{ paddingLeft: sidebarWidth }}>
+        <SidebarInset
+          className="w-full transition-all duration-200 z-0 overflow-auto"
+      >
+        {/*<SiteHeader />*/}
         <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 @container/main">
-          <div className="flex items-center">
+          <div className="flex flex-col gap-2 mb-4"> {/* Container para Título e Breadcrumb */}
             <h1 className="text-lg font-semibold md:text-2xl">Dashboard</h1>
+            <Breadcrumb items={[{ label: 'Dashboard' }]} />
           </div>
 
           {error && (
@@ -117,21 +130,27 @@ export default async function DashboardPage() {
             </Alert>
           )}
 
-          <SectionCards stats={stats} />
+          <SectionCards stats={stats} /> {/* This is the single, correct rendering of SectionCards */}
 
-          <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
-            <ChartAreaInteractive className="xl:col-span-2" />
-            {/* DataTable now for workspaces list */}
-            {/* <DataTable columns={workspaceColumns} data={workspaces} className="xl:col-span-1" /> */}
-             <div className="xl:col-span-1">
-                {/* TODO: Replace DashboardClientContent with a new DataTable for workspaces */}
-                {/* For now, rendering the old DashboardClientContent to see the list */}
-                 <h2 className="text-xl font-semibold mb-2">Workspaces</h2>
-                <DashboardClientContent initialWorkspaces={workspaces || []} initialError={error} />
-             </div>
+          {/* Section for Chart and Workspaces List */}
+          {/* This div will manage the layout of the chart and the workspace list.
+              On smaller screens, they will stack due to grid-cols-1 (implied by default).
+              On larger screens (lg and up), they will be side-by-side using lg:grid-cols-3.
+              The gap utilities are applied here for spacing between chart and list, and if they stack.
+          */}
+          <div className="grid grid-cols-1 gap-4 md:gap-6 lg:gap-8">
+            {/* Chart takes up 2/3 on larger screens */}
+            {/*<div className="lg:col-span-2"> 
+              <ChartAreaInteractive />
+            </div>*/}
+            {/* Workspaces list takes 1/3 on larger screens */}
+            <div> 
+              <DashboardClientContent initialWorkspaces={workspaces || []} initialError={error} />
+            </div>
           </div>
         </main>
       </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 }

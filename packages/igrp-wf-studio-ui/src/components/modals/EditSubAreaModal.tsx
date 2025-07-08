@@ -3,11 +3,29 @@
 import React, { useState, useEffect } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { updateWorkspaceItemAction } from '@/app/actions';
-// import Modal from '@/components/ui/Modal';
-import { FormInput } from '@/components/ui/form-input';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
-import { X } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Terminal } from 'lucide-react';
 
 interface EditSubAreaModalProps {
   isOpen: boolean;
@@ -21,9 +39,10 @@ interface EditSubAreaModalProps {
   currentStatus: 'active' | 'inactive' | 'draft';
 }
 
-const initialState: { message: string; success: boolean; errors?: any } = {
+const initialState: { message: string; success: boolean; errors?: Record<string, string[]> } = {
   message: '',
   success: false,
+  errors: {},
 };
 
 function SubmitButton() {
@@ -40,13 +59,13 @@ const EditSubAreaModal: React.FC<EditSubAreaModalProps> = ({
   onClose,
   onUpdated,
   appCode,
-  areaCode,
+  areaCode, // Este é o parentCode para a action
   currentCode,
   currentTitle,
   currentDescription,
   currentStatus
 }) => {
-  const [formState, formAction] = useFormState(updateWorkspaceItemAction, initialState);
+  const [state, formAction] = useFormState(updateWorkspaceItemAction, initialState);
 
   const [title, setTitle] = useState(currentTitle);
   const [description, setDescription] = useState(currentDescription);
@@ -61,93 +80,102 @@ const EditSubAreaModal: React.FC<EditSubAreaModalProps> = ({
   }, [isOpen, currentTitle, currentDescription, currentStatus]);
 
   useEffect(() => {
-    if (formState.success) {
-      toast.success(formState.message || "SubArea updated successfully!");
+    if (state.success) {
+      toast.success(state.message || "SubArea updated successfully!");
       onUpdated();
       onClose();
-    } else if (formState.message && !formState.success && formState.message !== initialState.message) {
-      toast.error(formState.message);
+    } else if (state.message && !state.success && state.message !== initialState.message) {
+      // Error is displayed via Alert
     }
-  }, [formState, onUpdated, onClose]);
+  }, [state, onUpdated, onClose]);
 
-  if (!isOpen) {
-    return null;
-  }
+  const handleDialogClose = () => {
+    onClose();
+  };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold">Edit SubArea: {currentCode}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form action={formAction} className="p-4 space-y-4">
+    <Dialog open={isOpen} onOpenChange={(openStatus) => { if (!openStatus) handleDialogClose(); }}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Edit SubArea: <code className="bg-muted px-1 py-0.5 rounded">{currentCode}</code></DialogTitle>
+          <DialogDescription>
+            Modifying subarea within Area <code className="bg-muted px-1 py-0.5 rounded">{areaCode}</code>. The subarea code cannot be changed.
+          </DialogDescription>
+        </DialogHeader>
+        <form action={formAction} className="space-y-4 pt-2">
           <input type="hidden" name="appCode" value={appCode} />
           <input type="hidden" name="itemType" value="subarea" />
           <input type="hidden" name="itemCode" value={currentCode} />
-          <input type="hidden" name="parentCode" value={areaCode} /> {/* parentCode é areaCode */}
+          <input type="hidden" name="parentCode" value={areaCode} />
+          {/* newCode não é editável para subáreas, então enviamos o currentCode */}
+          <input type="hidden" name="newCode" value={currentCode} />
 
-          <div>
-            <FormInput
-              id="subAreaTitle"
+
+          <div className="space-y-1">
+            <Label htmlFor="editSubAreaTitle">Title</Label>
+            <Input
+              id="editSubAreaTitle"
               name="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter subarea title"
               required
-              error={'errors' in formState && typeof formState.errors === 'object' && formState.errors !== null && 'title' in formState.errors && Array.isArray(formState.errors.title) && formState.errors.title.length > 0 ? formState.errors.title[0] : undefined}
-              label="Title"
+              aria-describedby="edit-subarea-title-error"
             />
-            {'errors' in formState && typeof formState.errors === 'object' && formState.errors !== null && 'title' in formState.errors && Array.isArray(formState.errors.title) && formState.errors.title.length > 0 && <p className="text-red-500 text-xs">{formState.errors.title[0]}</p>}
+            {state.errors?.title && (
+              <p id="edit-subarea-title-error" className="text-sm text-destructive">{state.errors.title[0]}</p>
+            )}
           </div>
 
-          <div>
-            <label htmlFor="subarea-description" className="form-label">Description</label>
-            <textarea
-              id="subarea-description"
+          <div className="space-y-1">
+            <Label htmlFor="editSubAreaDescription">Description (Optional)</Label>
+            <Textarea
+              id="editSubAreaDescription"
               name="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="input-field"
-              rows={3}
               placeholder="Enter subarea description"
+              aria-describedby="edit-subarea-description-error"
             />
-            {'errors' in formState && typeof formState.errors === 'object' && formState.errors !== null && 'description' in formState.errors && Array.isArray(formState.errors.description) && formState.errors.description.length > 0 && <p className="text-red-500 text-xs">{formState.errors.description[0]}</p>}
+            {state.errors?.description && (
+              <p id="edit-subarea-description-error" className="text-sm text-destructive">{state.errors.description[0]}</p>
+            )}
           </div>
 
-          <div>
-            <label htmlFor="subarea-status" className="form-label">Status</label>
-            <select
-              id="subarea-status"
-              name="status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value as 'active' | 'inactive' | 'draft')}
-              className="input-field"
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="draft">Draft</option>
-            </select>
-            {'errors' in formState && typeof formState.errors === 'object' && formState.errors !== null && 'status' in formState.errors && Array.isArray(formState.errors.status) && formState.errors.status.length > 0 && <p className="text-red-500 text-xs">{formState.errors.status[0]}</p>}
-
+          <div className="space-y-1">
+            <Label htmlFor="editSubAreaStatus">Status</Label>
+            <Select name="status" value={status} onValueChange={(value) => setStatus(value as 'active' | 'inactive' | 'draft')}>
+              <SelectTrigger id="editSubAreaStatus" aria-describedby="edit-subarea-status-error">
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+              </SelectContent>
+            </Select>
+            {state.errors?.status && (
+              <p id="edit-subarea-status-error" className="text-sm text-destructive">{state.errors.status[0]}</p>
+            )}
           </div>
 
-          {formState.message && !formState.success && formState.message !== initialState.message && (
-             <div className="text-red-600 text-sm bg-red-50 p-2 rounded-md">{formState.message}</div>
+          {state.message && !state.success && state.message !== initialState.message && (
+            <Alert variant="destructive">
+              <Terminal className="h-4 w-4" />
+              <AlertTitle>Update Failed</AlertTitle>
+              <AlertDescription>{state.message}</AlertDescription>
+            </Alert>
           )}
 
-          <div className="mt-6 flex justify-end space-x-2">
-            <Button variant="secondary" onClick={onClose} type="button">
-              Cancel
-            </Button>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" type="button" onClick={handleDialogClose}>Cancel</Button>
+            </DialogClose>
             <SubmitButton />
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
