@@ -2,13 +2,31 @@
 
 import React, { useState, useEffect } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
-import { addProcessToAction } from '@/app/actions'; // Ajustar caminho
-// import { WorkflowEngineSDK } from '@igrp/wf-engine'; // Não é mais usado para config aqui
+import { addProcessToAction } from '@/app/actions';
 import { Button } from '@/components/ui/button';
-import { FormInput } from '@/components/ui/form-input';
-import { X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
-import { generateNextCode } from '@/lib/utils'; // Import the generator
+import { generateNextCode } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Terminal } from 'lucide-react';
 
 interface CreateProcessProps {
   workspaceCode: string;
@@ -17,12 +35,13 @@ interface CreateProcessProps {
   initialArea?: string | null;
   initialSubArea?: string | null;
   availableAreas: { code: string, title: string, subareas: { code: string, title: string }[] }[];
-  existingProcessCodes: string[]; // Prop to pass existing codes for the selected parent (area or subarea)
+  existingProcessCodes: string[]; // Para gerar código único no contexto do pai (área ou subárea)
 }
 
-const initialState: { message: string; success: boolean; errors?: any; newProcessCode?: string } = {
+const initialState: { message: string; success: boolean; errors?: Record<string, string[]>; newProcessCode?: string } = {
   message: '',
   success: false,
+  errors: {},
 };
 
 function SubmitButton() {
@@ -43,153 +62,179 @@ const CreateProcessModal: React.FC<CreateProcessProps> = ({
   availableAreas,
   existingProcessCodes
 }) => {
-  const [formState, formAction] = useFormState(addProcessToAction, initialState);
+  const [state, formAction] = useFormState(addProcessToAction, initialState);
+  const [open, setOpen] = useState(true);
 
   const [selectedAreaCode, setSelectedAreaCode] = useState(initialArea || '');
   const [selectedSubAreaCode, setSelectedSubAreaCode] = useState(initialSubArea || '');
   const [generatedCode, setGeneratedCode] = useState('');
 
+  // Efeito para gerar código quando a área/subárea selecionada muda
   useEffect(() => {
-    // Determine parent code for process code generation
     const parentCodeForProcess = selectedSubAreaCode || selectedAreaCode;
     if (parentCodeForProcess) {
+      // Nota: existingProcessCodes deve ser atualizado dinamicamente se o usuário mudar a área/subárea
+      // e se a lista de códigos existentes depender do pai selecionado.
+      // Por simplicidade, assumimos que `existingProcessCodes` é passado corretamente para o contexto atual.
       const nextCode = generateNextCode('process', workspaceCode, parentCodeForProcess, existingProcessCodes);
       setGeneratedCode(nextCode);
     } else {
-      setGeneratedCode(''); // Clear if no parent is selected
+      setGeneratedCode('');
     }
   }, [workspaceCode, selectedAreaCode, selectedSubAreaCode, existingProcessCodes]);
 
-
   useEffect(() => {
-    if (formState.success && 'newProcessCode' in formState && formState.newProcessCode) {
-      toast.success(formState.message || "Process created successfully!");
-      onCreated(workspaceCode, selectedAreaCode, selectedSubAreaCode || undefined, formState.newProcessCode);
-      onClose();
-    } else if (formState.message && !formState.success && formState.message !== initialState.message) {
-      toast.error(formState.message);
+    if (state.success && state.newProcessCode) {
+      toast.success(state.message || "Process created successfully!");
+      onCreated(workspaceCode, selectedAreaCode, selectedSubAreaCode || undefined, state.newProcessCode);
+      handleClose();
+    } else if (state.message && !state.success && state.message !== initialState.message) {
+      // Error message is displayed via Alert component
     }
-  }, [formState, onCreated, onClose, workspaceCode, selectedAreaCode, selectedSubAreaCode]);
+  }, [state, onCreated, onClose, workspaceCode, selectedAreaCode, selectedSubAreaCode]);
 
-  const handleAreaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedAreaCode(e.target.value);
-    setSelectedSubAreaCode(''); // Reset subarea when area changes
+  const handleAreaChange = (value: string) => {
+    setSelectedAreaCode(value);
+    setSelectedSubAreaCode('');
+  };
+
+  const handleSubAreaChange = (value: string) => {
+    setSelectedSubAreaCode(value);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    onClose();
   };
 
   const currentSelectedArea = availableAreas.find(a => a.code === selectedAreaCode);
 
-  // Não há mais validação/geração de código no cliente.
-  // O `isValidating` e `isGeneratingCode` foram removidos.
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold">Create New Process</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form action={formAction} className="p-4 space-y-4">
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) handleClose(); }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Create New Process</DialogTitle>
+          <DialogDescription>
+            Define the details for your new process in Workspace <code className="bg-muted px-1 py-0.5 rounded">{workspaceCode}</code>.
+          </DialogDescription>
+        </DialogHeader>
+        <form action={formAction} className="space-y-4 pt-2">
           <input type="hidden" name="appCode" value={workspaceCode} />
-          <input type="hidden" name="areaCode" value={selectedAreaCode} />
-          {/* Ensure subAreaCode is submitted if selected, especially when dropdown might be disabled */}
-          {selectedSubAreaCode && (
-            <input type="hidden" name="subAreaCode" value={selectedSubAreaCode} />
-          )}
+          {/* Os valores selecionados de areaCode e subAreaCode serão submetidos pelos Selects */}
 
-          <div>
-            <label htmlFor="areaCode" className="form-label">Area*</label>
-            <select
+          <div className="space-y-1">
+            <Label htmlFor="processAreaCode">Area*</Label>
+            <Select
               name="areaCode"
-              id="areaCode"
               value={selectedAreaCode}
-              onChange={handleAreaChange}
-              className="input-field"
+              onValueChange={handleAreaChange}
               required
-              disabled={!!initialArea} // Desabilita se uma área inicial foi fornecida
+              disabled={!!initialArea}
             >
-              <option value="">Select an area</option>
-              {availableAreas.map(area => (
-                <option key={area.code} value={area.code}>
-                  {area.title}
-                </option>
-              ))}
-            </select>
-            {'errors' in formState && formState.errors?.areaCode && <p className="text-red-500 text-xs">{formState.errors.areaCode[0]}</p>}
+              <SelectTrigger id="processAreaCode" aria-describedby="process-area-error">
+                <SelectValue placeholder="Select an area" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableAreas.map(area => (
+                  <SelectItem key={area.code} value={area.code}>
+                    {area.title} ({area.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {state.errors?.areaCode && (
+              <p id="process-area-error" className="text-sm text-destructive">{state.errors.areaCode[0]}</p>
+            )}
           </div>
 
           {currentSelectedArea && currentSelectedArea.subareas.length > 0 && (
-            <div>
-              <label htmlFor="subAreaCode" className="form-label">SubArea (Optional)</label>
-              <select
+            <div className="space-y-1">
+              <Label htmlFor="processSubAreaCode">SubArea (Optional)</Label>
+              <Select
                 name="subAreaCode"
-                id="subAreaCode"
                 value={selectedSubAreaCode}
-                onChange={(e) => setSelectedSubAreaCode(e.target.value)}
-                className="input-field"
-                disabled={!!initialSubArea && selectedAreaCode === initialArea} // Desabilita se subárea inicial e área correspondente
+                onValueChange={handleSubAreaChange}
+                disabled={!!initialSubArea && selectedAreaCode === initialArea}
               >
-                <option value="">None</option>
-                {currentSelectedArea.subareas.map(subarea => (
-                  <option key={subarea.code} value={subarea.code}>
-                    {subarea.title}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="processSubAreaCode">
+                  <SelectValue placeholder="None (process in selected Area)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None (process in selected Area)</SelectItem>
+                  {currentSelectedArea.subareas.map(subarea => (
+                    <SelectItem key={subarea.code} value={subarea.code}>
+                      {subarea.title} ({subarea.code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {/* Erro para subAreaCode não é explicitamente tratado aqui, mas pode ser adicionado se necessário */}
             </div>
           )}
 
-          <FormInput
-            label="Process Code"
-            name="code"
-            id="processCode"
-            placeholder="e.g., P.01 or SUB.01"
-            defaultValue={generatedCode} // Use generated code as default
-            required
-            disabled={!selectedAreaCode} // Desabilitar se nenhuma área estiver selecionada (ou no parent if no area selected)
-            error={'errors' in formState ? formState.errors?.code?.[0] : undefined}
-          />
+          <div className="space-y-1">
+            <Label htmlFor="processCode">Process Code</Label>
+            <Input
+              name="code"
+              id="processCode"
+              placeholder="e.g., P.01 or SUB.01"
+              value={generatedCode} // Controlado pelo estado para refletir a geração dinâmica
+              onChange={(e) => setGeneratedCode(e.target.value)} // Permitir override manual
+              required
+              disabled={!selectedAreaCode}
+              aria-describedby="process-code-error"
+            />
+            {state.errors?.code && (
+              <p id="process-code-error" className="text-sm text-destructive">{state.errors.code[0]}</p>
+            )}
+          </div>
  
+          <div className="space-y-1">
+            <Label htmlFor="processTitle">Title</Label>
+            <Input
+              name="title"
+              id="processTitle"
+              placeholder="Enter process title"
+              required
+              aria-describedby="process-title-error"
+            />
+            {state.errors?.title && (
+              <p id="process-title-error" className="text-sm text-destructive">{state.errors.title[0]}</p>
+            )}
+          </div>
 
-          <FormInput
-            label="Title"
-            name="title"
-            id="processTitle"
-            placeholder="Enter process title"
-            required
-            error={'errors' in formState ? formState.errors?.title?.[0] : undefined}
-          />
-
-
-          <div>
-            <label htmlFor="processDescription" className="form-label">Description</label>
-            <textarea
+          <div className="space-y-1">
+            <Label htmlFor="processDescription">Description (Optional)</Label>
+            <Textarea
               name="description"
               id="processDescription"
-              className="input-field"
-              rows={3}
               placeholder="Enter process description"
+              aria-describedby="process-description-error"
             />
-            {'errors' in formState && formState.errors?.description && <p className="text-red-500 text-xs">{formState.errors.description[0]}</p>}
+            {state.errors?.description && (
+              <p id="process-description-error" className="text-sm text-destructive">{state.errors.description[0]}</p>
+            )}
           </div>
 
-          {/* Status é 'active' por padrão na action */}
+          {/* Status is handled by the action, defaults to 'active' */}
 
-          {'errors' in formState && formState.message && !formState.success && formState.message !== initialState.message && (
-             <div className="text-red-600 text-sm bg-red-50 p-2 rounded-md">{formState.message}</div>
+          {state.message && !state.success && state.message !== initialState.message && (
+            <Alert variant="destructive">
+              <Terminal className="h-4 w-4" />
+              <AlertTitle>Creation Failed</AlertTitle>
+              <AlertDescription>{state.message}</AlertDescription>
+            </Alert>
           )}
 
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button variant="secondary" onClick={onClose} type="button">
-              Cancel
-            </Button>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" onClick={handleClose} type="button">Cancel</Button>
+            </DialogClose>
             <SubmitButton />
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

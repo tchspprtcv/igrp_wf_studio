@@ -1,7 +1,20 @@
 import { Metadata, ResolvingMetadata } from 'next';
-import { ProjectConfig } from '@igrp/wf-engine'; // Apenas o tipo ProjectConfig existe no módulo
+import { ProjectConfig } from '@igrp/wf-engine';
+import ProcessEditorClient from "./ProcessEditorClient";
+import { unstable_cache as nextCache } from 'next/cache';
+import * as studioMgr from '@/igrpwfstudio/utils/workspaceManager';
+import {
+  SidebarProvider,
+  SidebarInset,
+} from "@/components/ui/sidebar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Terminal, FileX2 } from 'lucide-react'; // FileX2 para erro de processo
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft } from 'lucide-react';
 
-// Define a local Process interface since it's not exported from @igrp/wf-engine
+
+// Define a local Process interface
 interface Process {
   id?: string;
   code: string;
@@ -9,52 +22,44 @@ interface Process {
   description?: string;
   status?: string;
 }
-import ProcessEditorClient from "./ProcessEditorClient";
-import { notFound } from 'next/navigation';
-import { unstable_cache as nextCache } from 'next/cache';
-// import PageHeader from '@/components/layout/PageHeader'; // Não usado diretamente aqui
-import * as studioMgr from '@/igrpwfstudio/utils/workspaceManager'; // Nosso gerenciador
-
-// const sdk = new WorkflowEngineSDK(); // REMOVIDO
 
 type Props = {
-  params: { code: string; processId: string }; // 'code' aqui é o workspaceCode
+  params: { code: string; processId: string }; // 'code' é workspaceCode
 };
 
 interface ProcessDetailsForEditor extends Process {
   bpmnXml?: string | null;
-  appCode: string; // workspaceCode
+  appCode: string;
   areaCode: string;
   subAreaCode?: string;
 }
 
-const getProjectConfigCachedForProcessPage = nextCache( // Renomeado para evitar conflitos de chave se importado
+// Funções de cache como antes, mas com nomes únicos para esta página se necessário
+const getProjectConfigForEditor = nextCache(
   async (appCode: string): Promise<ProjectConfig | null> => {
-    console.log(`[ProcessEditorPage] Cache Miss: getProjectConfigCachedForProcessPage para ${appCode}`);
-    // return sdk.workspaces.loadProjectConfig(appCode); // Lógica Antiga
-    return await studioMgr.loadStudioWorkspaceConfig(appCode); // Nova Lógica
+    return await studioMgr.loadStudioWorkspaceConfig(appCode);
   },
-  ['project-config-for-process-editor'], // Chave de cache única
-  { tags: ['projects'] } // Tags para revalidação - usando apenas strings estáticas
+  ['project-config-for-process-editor-page-v2'],
+  { tags: ['projects', `project-${"{appCode}"}`] } // Usar template string para tag dinâmica se suportado, senão simplificar
 );
 
-const getProcessDefinitionCachedForEditorPage = nextCache( // Renomeado para evitar conflitos
+const getProcessDefinitionForEditor = nextCache(
   async (params: {appCode: string, areaCode: string, processCode: string, subAreaCode?: string}) => {
-    console.log(`[ProcessEditorPage] Cache Miss: getProcessDefinitionCachedForEditorPage para ${params.processCode} em ${params.appCode}`);
-    // return sdk.processes.readProcessDefinition(params.appCode, params.areaCode, params.processCode, params.subAreaCode); // Lógica Antiga
-    return await studioMgr.readStudioProcessDefinition(params.appCode, params.areaCode, params.processCode, params.subAreaCode); // Nova Lógica
+    return await studioMgr.readStudioProcessDefinition(params.appCode, params.areaCode, params.processCode, params.subAreaCode);
   },
-  ['process-definition-editor'], // Chave de cache única
-  { tags: ['processes'] } // Tags para revalidação - usando apenas strings estáticas
+  ['process-definition-editor-page-v2'],
+  { tags: ['processes', `process-${"{params.appCode}"}-${"{params.processCode}"}`] }
 );
-
 
 export async function generateMetadata(
   { params }: Props,
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const { code: workspaceCode, processId } = params;
-  const config = await getProjectConfigCachedForProcessPage(workspaceCode);
+  // Tentar buscar o título do processo de forma similar ao original
+  // Esta lógica pode ser simplificada se getProcessData for chamada aqui também
+  // Por ora, mantemos a lógica original de busca de título para metadata
+  const config = await getProjectConfigForEditor(workspaceCode);
   let processTitle = processId;
   if (config) {
     for (const area of config.areas || []) {
@@ -74,13 +79,9 @@ export async function generateMetadata(
 }
 
 async function getProcessData(workspaceCode: string, processId: string): Promise<ProcessDetailsForEditor | null> {
-  console.log(`[ProcessEditorPage] getProcessData para workspace: ${workspaceCode}, processo: ${processId}`);
   try {
-    const config = await getProjectConfigCachedForProcessPage(workspaceCode);
-    if (!config) {
-      console.error(`[ProcessEditorPage] Configuração do Workspace não encontrada para ${workspaceCode}`);
-      return null;
-    }
+    const config = await getProjectConfigForEditor(workspaceCode);
+    if (!config) return null;
 
     let processMeta: Process | undefined;
     let areaCodeFound: string | undefined;
@@ -96,57 +97,101 @@ async function getProcessData(workspaceCode: string, processId: string): Promise
       if (processMeta) break;
     }
 
-    if (!processMeta || !areaCodeFound) {
-      console.error(`[ProcessEditorPage] Metadados do processo não encontrados para ${processId} no workspace ${workspaceCode}`);
-      return null;
-    }
-    console.log(`[ProcessEditorPage] Metadados encontrados: Area ${areaCodeFound}, SubArea ${subAreaCodeFound}, Processo ${processMeta.title}`);
+    if (!processMeta || !areaCodeFound) return null;
 
-    const processDefinition = await getProcessDefinitionCachedForEditorPage({
+    const processDefinition = await getProcessDefinitionForEditor({
         appCode: workspaceCode,
         areaCode: areaCodeFound,
         processCode: processId,
         subAreaCode: subAreaCodeFound
     });
 
-    if (!processDefinition) {
-        console.warn(`[ProcessEditorPage] Definição BPMN não encontrada para o processo ${processId}. Um novo diagrama pode ser criado.`);
-    }
-
     return {
       ...processMeta,
-      bpmnXml: processDefinition?.bpmnXml || null, // Permite XML nulo se não encontrado (editor pode criar novo)
+      bpmnXml: processDefinition?.bpmnXml || null,
       appCode: workspaceCode,
       areaCode: areaCodeFound,
       subAreaCode: subAreaCodeFound,
     };
   } catch (err) {
-    console.error(`[ProcessEditorPage] Erro ao buscar dados para processo ${processId} no workspace ${workspaceCode}:`, err);
+    console.error(`[ProcessEditorPage] Error fetching process data for ${processId} in ${workspaceCode}:`, err);
     return null;
   }
 }
 
 export default async function ProcessEditorPage({ params }: Props) {
   const { code: workspaceCode, processId } = params;
-  console.log(`[ProcessEditorPage] Renderizando editor para workspace: ${workspaceCode}, processo: ${processId}`);
   const processDetails = await getProcessData(workspaceCode, processId);
 
+  const sidebarWidth = "calc(var(--spacing) * 72)"; // Consistente com outras páginas
+
   if (!processDetails) {
-    // Adicionar uma mensagem mais informativa aqui em vez de apenas notFound()
-    // para que o usuário saiba o que aconteceu.
-    // notFound() pode ser chamado se quisermos uma página 404 genérica.
+    // Renderiza dentro do layout do dashboard para consistência
     return (
-      <div className="p-4">
-        <h1 className="text-xl font-semibold text-red-600">Error Loading Process</h1>
-        <p>Could not load details for process '{processId}' in workspace '{workspaceCode}'.</p>
-        <p>The process may not exist or the workspace configuration is missing.</p>
-      </div>
+      <SidebarProvider style={{ "--sidebar-width": sidebarWidth, "--header-height": "calc(var(--spacing) * 14)" } as React.CSSProperties}>
+        <div className="w-full lg:pl-[var(--sidebar-width)]">
+          <SidebarInset className="w-full">
+            <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" asChild>
+                  <Link href={`/workspaces/${workspaceCode}`}>
+                    <ChevronLeft className="h-4 w-4" />
+                    <span className="sr-only">Back to Workspace</span>
+                  </Link>
+                </Button>
+                <h1 className="text-lg font-semibold md:text-2xl text-destructive">Error Loading Process</h1>
+              </div>
+              <Alert variant="destructive">
+                <FileX2 className="h-4 w-4" />
+                <AlertTitle>Process Not Found</AlertTitle>
+                <AlertDescription>
+                  Could not load details for process <code className="font-semibold">{processId}</code> in workspace <code className="font-semibold">{workspaceCode}</code>.
+                  The process may not exist, or the workspace configuration is missing/corrupted.
+                </AlertDescription>
+              </Alert>
+            </main>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
     );
   }
 
-  console.log(`[ProcessEditorPage] Passando initialProcessDetails para o cliente:`, { title: processDetails.title, hasBpmn: !!processDetails.bpmnXml });
+  const pageTitle = processDetails.title || processId;
+  const breadcrumb = `${workspaceCode} / ${processDetails.areaCode}${processDetails.subAreaCode ? ` / ${processDetails.subAreaCode}` : ''} / ${pageTitle}`;
+
 
   return (
-    <ProcessEditorClient initialProcessDetails={processDetails} />
+    <SidebarProvider style={{ "--sidebar-width": sidebarWidth, "--header-height": "calc(var(--spacing) * 14)" } as React.CSSProperties}>
+      <div className="w-full lg:pl-[var(--sidebar-width)]">
+        <SidebarInset className="w-full">
+          {/* O ProcessEditorClient ocupará toda a altura e largura disponíveis dentro do main */}
+          {/* Um header específico para o editor pode ser adicionado aqui ou dentro do ProcessEditorClient */}
+          <main className="flex flex-1 flex-col @container/main h-[calc(100vh-var(--header-height))]">
+            {/*
+              Header do Editor - pode ser movido para dentro do ProcessEditorClient
+              para ter acesso a ações como Salvar, etc. que dependem do estado do editor.
+            */}
+            <div className="flex items-center gap-4 p-4 lg:p-6 border-b">
+              <Button variant="outline" size="icon" asChild className="flex-shrink-0">
+                  <Link href={`/workspaces/${workspaceCode}`}>
+                    <ChevronLeft className="h-4 w-4" />
+                    <span className="sr-only">Back to Workspace</span>
+                  </Link>
+              </Button>
+              <div>
+                <h1 className="text-lg font-semibold md:text-2xl truncate" title={pageTitle}>{pageTitle}</h1>
+                <p className="text-xs text-muted-foreground truncate" title={breadcrumb}>{breadcrumb}</p>
+              </div>
+              {/* Botões de Salvar, etc. podem vir aqui ou dentro do ProcessEditorClient */}
+            </div>
+
+            {/* ProcessEditorClient precisa ser adaptado para não ocupar a tela inteira por si só, mas o espaço dado */}
+            <div className="flex-1 overflow-auto"> {/* Garante que o editor possa scrollar se necessário */}
+              <ProcessEditorClient initialProcessDetails={processDetails} />
+            </div>
+          </main>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 }
