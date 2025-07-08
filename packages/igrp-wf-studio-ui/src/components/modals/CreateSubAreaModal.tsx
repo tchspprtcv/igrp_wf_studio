@@ -2,31 +2,44 @@
 
 import React, { useEffect, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
-import { addSubAreaToAction } from '@/app/actions'; // Ajustar caminho
+import { addSubAreaToAction } from '@/app/actions';
 import { Button } from '@/components/ui/button';
-import { FormInput } from '@/components/ui/form-input';
-import { X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
-import { generateNextCode } from '@/lib/utils'; // Import the generator
+import { generateNextCode } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Terminal } from 'lucide-react';
 
 interface CreateSubAreaProps {
-  workspaceCode: string; // Still needed for the form action
-  areaCode: string;      // Parent code for generation
-  existingSubAreaCodes: string[]; // Prop to pass existing codes for this area
+  workspaceCode: string;
+  areaCode: string;
+  existingSubAreaCodes: string[];
   onClose: () => void;
   onCreated: () => void;
 }
 
-const initialState: { message: string; success: boolean; errors?: any } = {
+const initialState: { message: string; success: boolean; errors?: Record<string, string[]> } = {
   message: '',
   success: false,
+  errors: {},
 };
 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending}>
-      {pending ? 'Creating...' : 'Create Sub-Area'}
+      {pending ? 'Creating...' : 'Create SubArea'}
     </Button>
   );
 }
@@ -38,101 +51,118 @@ const CreateSubAreaModal: React.FC<CreateSubAreaProps> = ({
   onClose,
   onCreated
 }) => {
-  const [formState, formAction] = useFormState(addSubAreaToAction, initialState);
+  const [state, formAction] = useFormState(addSubAreaToAction, initialState);
   const [generatedCode, setGeneratedCode] = useState('');
+  const [open, setOpen] = useState(true);
 
   useEffect(() => {
-    // Generate code when the modal is opened or parentAreaCode/existingSubAreaCodes change
     if (areaCode) {
-      // projectCode (workspaceCode) is not directly used by generateNextCode for subareas,
-      // but it's good practice to ensure parentCode (areaCode) is present.
       const nextCode = generateNextCode('subarea', workspaceCode, areaCode, existingSubAreaCodes);
       setGeneratedCode(nextCode);
     }
   }, [workspaceCode, areaCode, existingSubAreaCodes]);
 
   useEffect(() => {
-    if (formState.success) {
-      toast.success(formState.message || "SubArea created successfully!");
+    if (state.success) {
+      toast.success(state.message || "SubArea created successfully!");
       onCreated();
-      onClose();
-    } else if (formState.message && !formState.success && formState.message !== initialState.message) {
-      toast.error(formState.message);
+      handleClose();
+    } else if (state.message && !state.success && state.message !== initialState.message) {
+      // Error message is displayed via Alert component
     }
-  }, [formState, onCreated, onClose]);
+  }, [state, onCreated, onClose]);
 
-  // Removida a lógica de auto-geração de código e validação de workspace/area do cliente.
-  // O usuário deve fornecer o código da subárea.
+  const handleClose = () => {
+    setOpen(false);
+    onClose();
+  };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold">Create New SubArea</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form action={formAction} className="p-4 space-y-4">
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) handleClose(); }}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Create New SubArea</DialogTitle>
+          <DialogDescription>
+            Adding a subarea to Area <code className="bg-muted px-1 py-0.5 rounded">{areaCode}</code> in Workspace <code className="bg-muted px-1 py-0.5 rounded">{workspaceCode}</code>.
+          </DialogDescription>
+        </DialogHeader>
+        <form action={formAction} className="space-y-4 pt-2">
           <input type="hidden" name="appCode" value={workspaceCode} />
           <input type="hidden" name="areaCode" value={areaCode} />
 
-          <div className="mb-2">
-            <label className="form-label text-sm text-gray-500">Workspace</label>
-            <p className="font-medium">{workspaceCode}</p>
+          {/* Context Information (Readonly) - Optional, as it's in DialogDescription */}
+          {/*
+          <div className="space-y-1">
+            <Label>Workspace</Label>
+            <p className="text-sm text-muted-foreground">{workspaceCode}</p>
           </div>
-          <div className="mb-4">
-            <label className="form-label text-sm text-gray-500">Parent Area</label>
-            <p className="font-medium">{areaCode}</p>
+          <div className="space-y-1">
+            <Label>Parent Area</Label>
+            <p className="text-sm text-muted-foreground">{areaCode}</p>
+          </div>
+          */}
+
+          <div className="space-y-1">
+            <Label htmlFor="subAreaCode">SubArea Code</Label>
+            <Input
+              name="code"
+              id="subAreaCode"
+              placeholder="e.g., reports"
+              defaultValue={generatedCode}
+              required
+              aria-describedby="subarea-code-error"
+            />
+            {state.errors?.code && (
+              <p id="subarea-code-error" className="text-sm text-destructive">{state.errors.code[0]}</p>
+            )}
           </div>
 
-          <FormInput
-            label="SubArea Code"
-            name="code"
-            id="subAreaCode"
-            placeholder="e.g., reports"
-            defaultValue={generatedCode} // Use generated code as default
-            required
-            error={'errors' in formState ? formState.errors?.code?.[0] : undefined}
-          />
+          <div className="space-y-1">
+            <Label htmlFor="subAreaTitle">Title</Label>
+            <Input
+              name="title"
+              id="subAreaTitle"
+              placeholder="Enter subarea title"
+              required
+              aria-describedby="subarea-title-error"
+            />
+            {state.errors?.title && (
+              <p id="subarea-title-error" className="text-sm text-destructive">{state.errors.title[0]}</p>
+            )}
+          </div>
 
-          <FormInput
-            label="Title"
-            name="title"
-            id="subAreaTitle"
-            placeholder="Enter subarea title"
-            required
-            error={'errors' in formState ? formState.errors?.title?.[0] : undefined}
-          />
-
-          <div>
-            <label htmlFor="subAreaDescription" className="form-label">Description</label>
-            <textarea
+          <div className="space-y-1">
+            <Label htmlFor="subAreaDescription">Description (Optional)</Label>
+            <Textarea
               name="description"
               id="subAreaDescription"
-              className="input-field"
-              rows={3}
               placeholder="Enter subarea description"
+              aria-describedby="subarea-description-error"
             />
-             {'errors' in formState && formState.errors?.description && <p className="text-red-500 text-xs">{formState.errors.description[0]}</p>}
+            {state.errors?.description && (
+              <p id="subarea-description-error" className="text-sm text-destructive">{state.errors.description[0]}</p>
+            )}
           </div>
 
-          {/* Status é 'active' por padrão na action */}
+          {/* Status is handled by the action, defaults to 'active' */}
 
-          {'errors' in formState && formState.message && !formState.success && formState.message !== initialState.message && (
-             <div className="text-red-600 text-sm bg-red-50 p-2 rounded-md">{formState.message}</div>
+          {state.message && !state.success && state.message !== initialState.message && (
+            <Alert variant="destructive">
+              <Terminal className="h-4 w-4" />
+              <AlertTitle>Creation Failed</AlertTitle>
+              <AlertDescription>{state.message}</AlertDescription>
+            </Alert>
           )}
 
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button variant="secondary" onClick={onClose} type="button">
-              Cancel
-            </Button>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" onClick={handleClose} type="button">Cancel</Button>
+            </DialogClose>
             <SubmitButton />
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

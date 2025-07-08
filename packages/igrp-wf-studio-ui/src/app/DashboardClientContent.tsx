@@ -79,7 +79,7 @@ export default function DashboardClientContent({ initialWorkspaces, initialError
       return;
     }
     setExportingWorkspaceCode(appCode);
-    toast.info(`Fetching data for ${appCode} export...`); // Changed to info for better UX
+    toast(`Fetching data for ${appCode} export...`);
 
     try {
       const result = await getWorkspaceExportDataAction(appCode);
@@ -92,7 +92,7 @@ export default function DashboardClientContent({ initialWorkspaces, initialError
 
       const { projectConfig, processes } = result.data;
 
-      toast.info(`Generating ZIP for ${appCode}...`); // Changed to info
+      toast(`Generating ZIP for ${appCode}...`);
       const zip = new JSZip();
       zip.file(`${appCode}/project-config.json`, JSON.stringify(projectConfig, null, 2));
 

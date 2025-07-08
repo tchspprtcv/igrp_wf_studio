@@ -2,23 +2,36 @@
 
 import React, { useEffect, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
-import { addAreaToAction } from '@/app/actions'; // Ajustar caminho
+import { addAreaToAction } from '@/app/actions';
 import { Button } from '@/components/ui/button';
-import { FormInput } from '@/components/ui/form-input';
-import { X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { toast } from 'react-hot-toast';
-import { generateNextCode } from '@/lib/utils'; // Import the generator
+import { generateNextCode } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Terminal } from 'lucide-react';
 
 interface CreateAreaProps {
   workspaceCode: string;
-  existingAreaCodes: string[]; // Prop to pass existing codes
+  existingAreaCodes: string[];
   onClose: () => void;
-  onCreated: () => void; // Chamado após criação bem-sucedida para refresh
+  onCreated: () => void;
 }
 
-const initialState: { message: string; success: boolean; errors?: any } = {
+const initialState: { message: string; success: boolean; errors?: Record<string, string[]> } = {
   message: '',
   success: false,
+  errors: {},
 };
 
 function SubmitButton() {
@@ -36,11 +49,11 @@ const CreateAreaModal: React.FC<CreateAreaProps> = ({
   onClose,
   onCreated
 }) => {
-  const [formState, formAction] = useFormState(addAreaToAction, initialState);
+  const [state, formAction] = useFormState(addAreaToAction, initialState);
   const [generatedCode, setGeneratedCode] = useState('');
+  const [open, setOpen] = useState(true); // Control Dialog visibility
 
   useEffect(() => {
-    // Generate code when the modal is opened or workspaceCode/existingAreaCodes change
     if (workspaceCode) {
       const nextCode = generateNextCode('area', workspaceCode, undefined, existingAreaCodes);
       setGeneratedCode(nextCode);
@@ -48,78 +61,100 @@ const CreateAreaModal: React.FC<CreateAreaProps> = ({
   }, [workspaceCode, existingAreaCodes]);
 
   useEffect(() => {
-    if (formState.success) {
-      toast.success(formState.message || "Area created successfully!");
-      onCreated(); // Para refresh da lista/árvore
-      onClose();   // Fecha o modal
-    } else if (formState.message && !formState.success && formState.message !== initialState.message) {
-      toast.error(formState.message);
+    if (state.success) {
+      toast.success(state.message || "Area created successfully!");
+      onCreated();
+      handleClose();
+    } else if (state.message && !state.success && state.message !== initialState.message) {
+      // Error message is displayed via Alert component from formState.message
     }
-  }, [formState, onCreated, onClose]);
+  }, [state, onCreated, onClose]);
 
-  // Removida a lógica de auto-geração de código do cliente.
-  // O usuário deve fornecer o código. A validação de duplicidade é feita pela action/SDK.
+  const handleClose = () => {
+    setOpen(false);
+    onClose();
+  };
+
+  // Ensure that the dialog closes when the parent requests it (e.g. clicking outside if Dialog component supports it)
+  // This effect handles external close requests.
+  // useEffect(() => {
+  //  if (!isOpenProp) setOpen(false); // Assuming a prop `isOpenProp` if controlled from outside
+  // }, [isOpenProp]);
+
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold">Create New Area</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form action={formAction} className="p-4 space-y-4">
-          {/* Campo oculto para workspaceCode */}
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) handleClose(); }}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Create New Area</DialogTitle>
+          <DialogDescription>
+            Add a new area to the workspace <code className="bg-muted px-1 py-0.5 rounded">{workspaceCode}</code>.
+          </DialogDescription>
+        </DialogHeader>
+        <form action={formAction} className="space-y-4">
           <input type="hidden" name="appCode" value={workspaceCode} />
 
-          <FormInput
-            label="Area Code"
-            name="code"
-            id="areaCode"
-            placeholder="e.g., finance"
-            defaultValue={generatedCode} // Use generated code as default
-            required
-            error={'errors' in formState ? formState.errors?.code?.[0] : undefined}
-          />
+          <div className="space-y-1">
+            <Label htmlFor="areaCode">Area Code</Label>
+            <Input
+              name="code"
+              id="areaCode"
+              placeholder="e.g., finance"
+              defaultValue={generatedCode}
+              required
+              aria-describedby="code-error"
+            />
+            {state.errors?.code && (
+              <p id="code-error" className="text-sm text-destructive">{state.errors.code[0]}</p>
+            )}
+          </div>
 
-          <FormInput
-            label="Title"
-            name="title"
-            id="areaTitle"
-            placeholder="Enter area title"
-            required
-            error={'errors' in formState ? formState.errors?.title?.[0] : undefined}
-          />
+          <div className="space-y-1">
+            <Label htmlFor="areaTitle">Title</Label>
+            <Input
+              name="title"
+              id="areaTitle"
+              placeholder="Enter area title"
+              required
+              aria-describedby="title-error"
+            />
+            {state.errors?.title && (
+              <p id="title-error" className="text-sm text-destructive">{state.errors.title[0]}</p>
+            )}
+          </div>
 
-          <div>
-            <label htmlFor="areaDescription" className="form-label">Description</label>
-            <textarea
+          <div className="space-y-1">
+            <Label htmlFor="areaDescription">Description (Optional)</Label>
+            <Textarea
               name="description"
               id="areaDescription"
-              className="input-field"
-              rows={3}
               placeholder="Enter area description"
+              aria-describedby="description-error"
             />
-            {'errors' in formState && formState.errors?.description && <p className="text-red-500 text-xs">{formState.errors.description[0]}</p>}
+            {state.errors?.description && (
+              <p id="description-error" className="text-sm text-destructive">{state.errors.description[0]}</p>
+            )}
           </div>
 
-          {/* Status é definido como 'active' por padrão na action */}
+          {/* Status is handled by the action, defaults to 'active' */}
 
-          {formState.message && !formState.success && formState.message !== initialState.message && (
-             <div className="text-red-600 text-sm bg-red-50 p-2 rounded-md">{formState.message}</div>
+          {state.message && !state.success && state.message !== initialState.message && (
+            <Alert variant="destructive">
+              <Terminal className="h-4 w-4" />
+              <AlertTitle>Creation Failed</AlertTitle>
+              <AlertDescription>{state.message}</AlertDescription>
+            </Alert>
           )}
 
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button variant="secondary" onClick={onClose} type="button">
-              Cancel
-            </Button>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" onClick={handleClose} type="button">Cancel</Button>
+            </DialogClose>
             <SubmitButton />
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

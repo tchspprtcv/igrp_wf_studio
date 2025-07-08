@@ -1,33 +1,40 @@
-"use client"; // TreeMenu é interativo
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { ChevronRight, ChevronDown, Layers, Workflow, MoreVertical, Trash2, Edit } from 'lucide-react';
-import Link from 'next/link'; // Alterado de react-router-dom
+import React, { useState } from 'react'; // useEffect não é mais necessário para activeMenu
+import { ChevronRight, ChevronDown, Layers, Workflow, MoreVertical, Trash2, Edit, PlusCircle } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+// import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"; // Para melhoria futura
 
 interface TreeNode {
-  id: string;
+  id: string; // Usado como key e para controle de expansão
   code: string;
   title: string;
-  status: string;
+  status: string; // Pode ser usado para estilização condicional
   processes?: TreeNode[];
   subareas?: TreeNode[];
 }
 
 interface TreeMenuProps {
-  appCode: string; // Adicionado para construir URLs corretas
+  appCode: string;
   areas: TreeNode[];
   onCreateArea?: () => void;
   onCreateSubArea?: (areaCode: string) => void;
   onCreateProcess?: (areaCode: string, subareaCode?: string) => void;
-  // Ajustado para incluir grandParentCode para processos em subáreas, para consistência com WorkspaceDetailsClientContent
   onEditItem?: (type: 'area' | 'subarea' | 'process', itemCode: string, parentCode?: string, grandParentCode?: string) => void;
   onDeleteItem?: (type: 'area' | 'subarea' | 'process', itemCode: string, parentCode?: string, grandParentCode?: string) => void;
 }
 
 const TreeMenu: React.FC<TreeMenuProps> = ({
-  appCode, // Receber appCode
+  appCode,
   areas,
   onCreateArea,
   onCreateSubArea,
@@ -36,228 +43,222 @@ const TreeMenu: React.FC<TreeMenuProps> = ({
   onDeleteItem
 }) => {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-  const [activeMenu, setActiveMenu] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Close menu when clicking outside
-    const handleClickOutside = (event: MouseEvent) => {
-      if (activeMenu && !(event.target as Element).closest('.menu-container')) {
-        setActiveMenu(null);
-      }
-    };
-
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [activeMenu]);
 
   const toggleNode = (nodeId: string) => {
-    const newExpanded = new Set(expandedNodes);
-    if (newExpanded.has(nodeId)) {
-      newExpanded.delete(nodeId);
-    } else {
-      newExpanded.add(nodeId);
-    }
-    setExpandedNodes(newExpanded);
+    setExpandedNodes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(nodeId)) {
+        newSet.delete(nodeId);
+      } else {
+        newSet.add(nodeId);
+      }
+      return newSet;
+    });
   };
 
-  const toggleMenu = (menuId: string, event: React.MouseEvent) => {
-    event.stopPropagation();
-    setActiveMenu(activeMenu === menuId ? null : menuId);
+  type ActionItem = {
+    label: string;
+    icon: React.ReactNode;
+    onClick: () => void; // Removido (e: React.MouseEvent) pois DropdownMenuItem não passa evento
+    className?: string;
+    isSeparator?: boolean;
   };
 
-  const renderActionMenu = (
-    menuId: string,
-    actions: Array<{
-      label: string;
-      icon: React.ReactNode;
-      onClick: (e: React.MouseEvent) => void;
-      className?: string;
-    }>
-  ) => (
-    <div className="menu-container relative">
-      <button
-        onClick={(e) => toggleMenu(menuId, e)}
-        className="p-1 rounded-md hover:bg-gray-100"
-      >
-        <MoreVertical className="h-4 w-4 text-gray-500" />
-      </button>
-      {activeMenu === menuId && (
-        <div className="absolute right-0 mt-1 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-          <div className="py-1" role="menu">
-            {actions.map((action, index) => (
-              <button
-                key={index}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  action.onClick(e);
-                  setActiveMenu(null);
-                }}
-                className={cn(
-                  "w-full text-left px-4 py-2 text-sm flex items-center hover:bg-gray-100",
-                  action.className
-                )}
-                role="menuitem"
-              >
-                {action.icon}
-                <span className="ml-2">{action.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+  const renderActionDropdown = (actions: ActionItem[]) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7 ml-auto"> {/* Botão de ícone menor */}
+          <MoreVertical className="h-4 w-4 text-muted-foreground" />
+          <span className="sr-only">Actions</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48"> {/* Alinhar à direita, largura fixa */}
+        {actions.map((action, index) =>
+          action.isSeparator ? (
+            <DropdownMenuSeparator key={`sep-${index}`} />
+          ) : (
+            <DropdownMenuItem
+              key={action.label}
+              onClick={action.onClick}
+              className={cn("flex items-center gap-2 text-sm", action.className)} // Adicionado gap e text-sm
+            >
+              {action.icon}
+              <span>{action.label}</span>
+            </DropdownMenuItem>
+          )
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 
-  const renderProcessNode = (process: TreeNode, areaCode: string, subAreaCode?: string) => { // Adicionado subAreaCode
-    const menuId = `process-${appCode}-${areaCode}${subAreaCode ? '-' + subAreaCode : ''}-${process.code}`;
-    // Construir a URL correta para o editor de processos
+  const renderProcessNode = (process: TreeNode, areaCode: string, subAreaCode?: string) => {
     const processPath = `/workspaces/${appCode}/processes/${process.code}`;
-    // Para onEditItem e onDeleteItem, precisamos passar o contexto correto
-    // Se subAreaCode existir, ele é o parentCode para a action, e areaCode é o grandParentCode
     const editParentCode = subAreaCode || areaCode;
     const editGrandParentCode = subAreaCode ? areaCode : undefined;
 
+    const actions: ActionItem[] = [
+      {
+        label: "Edit Process",
+        icon: <Edit className="h-4 w-4" />,
+        onClick: () => onEditItem?.('process', process.code, editParentCode, editGrandParentCode)
+      },
+      { isSeparator: true },
+      {
+        label: "Delete Process",
+        icon: <Trash2 className="h-4 w-4" />,
+        onClick: () => onDeleteItem?.('process', process.code, editParentCode, editGrandParentCode),
+        className: "text-destructive focus:text-destructive focus:bg-destructive/10"
+      }
+    ];
+
     return (
-      <div key={process.id} className="flex items-center py-1 pl-8">
-        <Link href={processPath} className="flex items-center flex-1 text-sm text-gray-700 hover:text-primary-600">
-          <Workflow className="h-4 w-4 text-gray-400 mr-2" />
-          <span className="truncate">{process.title}</span>
+      <div key={process.id} className="flex items-center py-1.5 pl-10 pr-2 rounded-md hover:bg-muted/50 group"> {/* Aumentado pl, adicionado pr e group */}
+        <Workflow className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+        <Link href={processPath} className="flex-1 text-sm text-foreground hover:text-primary truncate">
+          {process.title}
         </Link>
-        {renderActionMenu(menuId, [
-          {
-            label: "Edit",
-            icon: <Edit className="h-4 w-4" />,
-            onClick: () => onEditItem?.('process', process.code, editParentCode, editGrandParentCode)
-          },
-          {
-            label: "Delete",
-            icon: <Trash2 className="h-4 w-4" />,
-            onClick: () => onDeleteItem?.('process', process.code, editParentCode, editGrandParentCode),
-            className: "text-red-600 hover:text-red-700"
-          }
-        ])}
-      </div>
-    );
-  };
-
-  const renderSubArea = (subarea: TreeNode, areaCode: string) => {
-    const isExpanded = expandedNodes.has(subarea.id);
-    const menuId = `subarea-${appCode}-${areaCode}-${subarea.code}`; // MenuId mais específico
-
-    return (
-      <div key={subarea.id}>
-        <div className="flex items-center py-1 pl-4">
-          <button
-            onClick={() => toggleNode(subarea.id)}
-            className="p-1 hover:bg-gray-100 rounded"
-          >
-            {isExpanded ? (
-              <ChevronDown className="h-4 w-4 text-gray-400" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-gray-400" />
-            )}
-          </button>
-          <Layers className="h-4 w-4 text-gray-400 mr-2" />
-          <span className="text-sm text-gray-700 flex-1">{subarea.title}</span>
-          {renderActionMenu(menuId, [
-            {
-              label: "Edit",
-              icon: <Edit className="h-4 w-4" />,
-              onClick: () => onEditItem?.('subarea', subarea.code, areaCode) // parentCode é areaCode
-            },
-            {
-              label: "Add Process",
-              icon: <Workflow className="h-4 w-4" />,
-              onClick: () => onCreateProcess?.(areaCode, subarea.code)
-            },
-            {
-              label: "Delete",
-              icon: <Trash2 className="h-4 w-4" />,
-              onClick: () => onDeleteItem?.('subarea', subarea.code, areaCode), // parentCode é areaCode
-              className: "text-red-600 hover:text-red-700"
-            }
-          ])}
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity"> {/* Mostrar ações no hover do item */}
+          {renderActionDropdown(actions)}
         </div>
-        {isExpanded && subarea.processes && (
-          <div className="ml-4">
-            {subarea.processes.map(process => renderProcessNode(process, areaCode, subarea.code))} {/* Passar subarea.code */}
-          </div>
-        )}
       </div>
     );
   };
 
-  const renderArea = (area: TreeNode) => {
-    const isExpanded = expandedNodes.has(area.id);
-    const menuId = `area-${appCode}-${area.code}`; // MenuId mais específico
+  const renderSubAreaNode = (subarea: TreeNode, areaCode: string) => {
+    const isExpanded = expandedNodes.has(subarea.id);
+    const actions: ActionItem[] = [
+      {
+        label: "Edit SubArea",
+        icon: <Edit className="h-4 w-4" />,
+        onClick: () => onEditItem?.('subarea', subarea.code, areaCode)
+      },
+      {
+        label: "Add Process",
+        icon: <PlusCircle className="h-4 w-4" />, // Usar PlusCircle para "Add"
+        onClick: () => onCreateProcess?.(areaCode, subarea.code)
+      },
+      { isSeparator: true },
+      {
+        label: "Delete SubArea",
+        icon: <Trash2 className="h-4 w-4" />,
+        onClick: () => onDeleteItem?.('subarea', subarea.code, areaCode),
+        className: "text-destructive focus:text-destructive focus:bg-destructive/10"
+      }
+    ];
 
     return (
-      <div key={area.id} className="border-b border-gray-200 last:border-0">
-        <div className="flex items-center py-2">
-          <button
-            onClick={() => toggleNode(area.id)}
-            className="p-1 hover:bg-gray-100 rounded"
-          >
-            {isExpanded ? (
-              <ChevronDown className="h-4 w-4 text-gray-400" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-gray-400" />
-            )}
-          </button>
-          <Layers className="h-4 w-4 text-primary-600 mr-2" />
-          <span className="text-sm font-medium text-gray-900 flex-1">{area.title}</span>
-          {renderActionMenu(menuId, [
-            {
-              label: "Edit",
-              icon: <Edit className="h-4 w-4" />,
-              onClick: () => onEditItem?.('area', area.code) // Não tem parentCode
-            },
-            {
-              label: "Add SubArea",
-              icon: <Layers className="h-4 w-4" />,
-              onClick: () => onCreateSubArea?.(area.code)
-            },
-            {
-              label: "Add Process",
-              icon: <Workflow className="h-4 w-4" />,
-              onClick: () => onCreateProcess?.(area.code)
-            },
-            {
-              label: "Delete",
-              icon: <Trash2 className="h-4 w-4" />,
-              onClick: () => onDeleteItem?.('area', area.code),
-              className: "text-red-600 hover:text-red-700"
-            }
-          ])}
+      // Futuramente, isto poderia ser um <Collapsible>
+      <div key={subarea.id} className="ml-4 my-1">
+        <div className="flex items-center py-1.5 pl-2 pr-2 rounded-md hover:bg-muted/50 group"> {/* Adicionado pr e group */}
+          <Button variant="ghost" size="icon" onClick={() => toggleNode(subarea.id)} className="h-7 w-7 mr-1">
+            {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+          </Button>
+          <Layers className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+          <span className="text-sm text-foreground flex-1 truncate">{subarea.title}</span>
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+            {renderActionDropdown(actions)}
+          </div>
         </div>
         {isExpanded && (
-          <div className="ml-4">
-            {area.processes?.map(process => renderProcessNode(process, area.code))}
-            {area.subareas?.map(subarea => renderSubArea(subarea, area.code))}
+          <div className="mt-1"> {/* Espaçamento para filhos */}
+            {subarea.processes?.map(process => renderProcessNode(process, areaCode, subarea.code))}
+            {/* Adicionar botão para "Add Process" se não houver processos */}
+            {(!subarea.processes || subarea.processes.length === 0) && onCreateProcess && (
+                 <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground hover:text-primary mt-1 pl-10" onClick={() => onCreateProcess?.(areaCode, subarea.code)}>
+                    <PlusCircle className="h-4 w-4 mr-2 " /> Add Process
+                </Button>
+            )}
           </div>
         )}
       </div>
     );
   };
 
-  return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-        <h3 className="text-lg font-medium text-gray-900">Application Structure</h3>
-        {onCreateArea && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onCreateArea}
-          >
-            <Layers className="h-4 w-4 mr-2" />
-            Add Area
+  const renderAreaNode = (area: TreeNode) => {
+    const isExpanded = expandedNodes.has(area.id);
+    const actions: ActionItem[] = [
+      {
+        label: "Edit Area",
+        icon: <Edit className="h-4 w-4" />,
+        onClick: () => onEditItem?.('area', area.code)
+      },
+      {
+        label: "Add SubArea",
+        icon: <PlusCircle className="h-4 w-4" />, // Usar PlusCircle para "Add"
+        onClick: () => onCreateSubArea?.(area.code)
+      },
+      {
+        label: "Add Process",
+        icon: <PlusCircle className="h-4 w-4" />, // Usar PlusCircle para "Add"
+        onClick: () => onCreateProcess?.(area.code)
+      },
+      { isSeparator: true },
+      {
+        label: "Delete Area",
+        icon: <Trash2 className="h-4 w-4" />,
+        onClick: () => onDeleteItem?.('area', area.code),
+        className: "text-destructive focus:text-destructive focus:bg-destructive/10"
+      }
+    ];
+
+    return (
+      // Futuramente, isto poderia ser um <Collapsible>
+      <div key={area.id} className="border-b border-border last:border-0 py-1">
+        <div className="flex items-center py-1.5 pl-2 pr-2 rounded-md hover:bg-muted/50 group">
+          <Button variant="ghost" size="icon" onClick={() => toggleNode(area.id)} className="h-7 w-7 mr-1">
+            {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
           </Button>
+          <Layers className="h-4 w-4 text-primary mr-2 flex-shrink-0" /> {/* Ícone de área com cor primária */}
+          <span className="text-sm font-medium text-foreground flex-1 truncate">{area.title}</span>
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+            {renderActionDropdown(actions)}
+          </div>
+        </div>
+        {isExpanded && (
+          <div className="mt-1">
+            {area.subareas?.map(subarea => renderSubAreaNode(subarea, area.code))}
+            {area.processes?.map(process => renderProcessNode(process, area.code))}
+             {/* Adicionar botões para "Add SubArea / Process" se não houverem */}
+            {(!area.subareas || area.subareas.length === 0) && onCreateSubArea && (
+                 <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground hover:text-primary mt-1 pl-10" onClick={() => onCreateSubArea?.(area.code)}>
+                    <PlusCircle className="h-4 w-4 mr-2" /> Add SubArea
+                </Button>
+            )}
+            {(!area.processes || area.processes.length === 0) && (!area.subareas || area.subareas.length === 0) && onCreateProcess && (
+                 <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground hover:text-primary mt-1 pl-10" onClick={() => onCreateProcess?.(area.code)}>
+                    <PlusCircle className="h-4 w-4 mr-2" /> Add Process to Area
+                </Button>
+            )}
+          </div>
         )}
       </div>
-      <div className="p-2">
-        {areas.map(renderArea)}
-      </div>
+    );
+  };
+
+  // O Card que envolve o TreeMenu foi movido para WorkspaceDetailsClientContent.tsx
+  // O TreeMenu agora foca apenas na renderização da árvore em si.
+  return (
+    <div> {/* Div container simples, estilização principal vem do Card pai */}
+        {areas.length > 0 ? (
+            areas.map(renderAreaNode)
+        ) : (
+            <div className="text-center py-8 text-muted-foreground">
+                <Layers className="mx-auto h-12 w-12 opacity-50 mb-2" />
+                <p className="mb-2">This workspace has no areas yet.</p>
+                {onCreateArea && (
+                    <Button variant="outline" size="sm" onClick={onCreateArea}>
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        Create First Area
+                    </Button>
+                )}
+            </div>
+        )}
+         {areas.length > 0 && onCreateArea && (
+             <Button variant="outline" size="sm" onClick={onCreateArea} className="mt-4 w-full">
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Add Another Area
+            </Button>
+        )}
     </div>
   );
 };

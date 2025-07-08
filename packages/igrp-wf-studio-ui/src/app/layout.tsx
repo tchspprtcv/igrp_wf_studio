@@ -97,12 +97,13 @@ export default function RootLayout({
                 className={cn("transition-all duration-300 ease-in-out")}
                 // isCollapsed prop não existe em <Panel>, o estado é gerenciado internamente ou via onCollapse/onExpand
               >
-                <Sidebar
+                {/* REMOVIDO o sidebar antigo do ecrã */}
+                {/*<Sidebar
                   isMobileOpen={false}
                   onCloseMobile={closeMobileMenu}
                   isCollapsed={isSidebarCollapsed}
                   onToggleCollapse={toggleSidebarCollapse}
-                />
+                />*/}
               </Panel>
               <PanelResizeHandle className={cn(
                 "w-1 bg-gray-300 hover:bg-primary-500 transition-colors duration-200",
