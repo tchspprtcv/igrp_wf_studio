@@ -10,7 +10,7 @@ import { toast } from 'react-hot-toast';
 
 interface EditItemModalProps {
   isOpen: boolean; // Control visibility from parent
-  type: 'area' | 'subarea' | 'process';
+  type: 'area' | 'subarea' | 'process' | 'workspace';
   workspaceCode: string; // appCode
   itemCode: string;      // code of the item being edited
   parentCode?: string;   // areaCode if item is subarea/process

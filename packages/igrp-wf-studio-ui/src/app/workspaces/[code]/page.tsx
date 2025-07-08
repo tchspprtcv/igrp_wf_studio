@@ -1,5 +1,6 @@
 import { Metadata, ResolvingMetadata } from 'next';
 import { ProjectConfig } from '@igrp/wf-engine';
+import { ExtendedProjectConfig } from '@/types';
 import WorkspaceDetailsClientContent from "./WorkspaceDetailsClientContent";
 import { unstable_cache as nextCache } from 'next/cache';
 import * as studioMgr from '@/igrpwfstudio/utils/workspaceManager';
@@ -9,13 +10,9 @@ import {
 } from "@/components/ui/sidebar";
 import Breadcrumb from "@/components/ui/breadcrumb"; // Importar Breadcrumb
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, PackageNotFound } from 'lucide-react';
+import { Terminal, PackageX } from 'lucide-react';
 
-// Interface estendida para incluir description e appCode, como antes.
-interface ExtendedProjectConfig extends ProjectConfig {
-  description?: string;
-  appCode?: string; // Adicionado para consistência, embora params.code seja a fonte primária
-}
+// Using ExtendedProjectConfig imported from shared types file
 
 type Props = {
   params: { code: string };

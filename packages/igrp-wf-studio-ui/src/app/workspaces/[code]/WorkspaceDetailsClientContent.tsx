@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ProjectConfig } from '@igrp/wf-engine'; // ProcessDefinition não é usado diretamente aqui
+import { ProjectConfig } from '@igrp/wf-engine';
+import { ExtendedProjectConfig } from '@/types'; // ProcessDefinition não é usado diretamente aqui
 import TreeMenu from '@/components/workspaces/TreeMenu'; // Manteremos por enquanto
 import CreateAreaModal from '@/components/modals/CreateAreaModal';
 import CreateSubAreaModal from '@/components/modals/CreateSubAreaModal';
@@ -13,18 +14,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from 'react-hot-toast';
-import { Archive, Edit, Settings, Info, ListTree, PackageNotFound, Terminal } from 'lucide-react'; // Ícones
+import { Archive, Edit, Settings, Info, ListTree, PackageX, Terminal } from 'lucide-react'; // Ícones
 import JSZip from 'jszip';
 import { getWorkspaceExportDataAction, deleteWorkspaceItemAction } from '@/app/actions'; // add, update actions não são chamadas diretamente aqui, mas pelos modais
 import type { EditItemFormData } from '@/types';
 import { formatDate, cn } from '@/lib/utils'; // cn para classes condicionais
 import { Badge } from '@/components/ui/badge'; // Para status
 
-// Interface estendida como antes
-interface ExtendedProjectConfig extends ProjectConfig {
-  description?: string;
-  appCode?: string;
-}
+// Using ExtendedProjectConfig imported from shared types file
 
 interface WorkspaceDetailsClientProps {
   initialConfig: ExtendedProjectConfig | null; // Pode ser null se não encontrado
@@ -174,7 +171,7 @@ const WorkspaceDetailsClientContent: React.FC<WorkspaceDetailsClientProps> = ({ 
       return;
     }
     setExportingZip(true);
-    toast.info(`Fetching data for ${workspaceCode} export...`);
+    toast(`Fetching data for ${workspaceCode} export...`);
     try {
       const result = await getWorkspaceExportDataAction(workspaceCode);
       if (!result.success || !result.data || !result.data.projectConfig) {
@@ -183,7 +180,7 @@ const WorkspaceDetailsClientContent: React.FC<WorkspaceDetailsClientProps> = ({ 
       }
       const { projectConfig, processes } = result.data;
 
-      toast.info(`Generating ZIP for ${workspaceCode}...`);
+      toast(`Generating ZIP for ${workspaceCode}...`);
       const zip = new JSZip();
       zip.file(`${workspaceCode}/project-config.json`, JSON.stringify(projectConfig, null, 2));
       for (const processFile of processes) {
@@ -226,7 +223,7 @@ const WorkspaceDetailsClientContent: React.FC<WorkspaceDetailsClientProps> = ({ 
     return (
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle className="flex items-center"><PackageNotFound className="mr-2 h-6 w-6 text-destructive"/> Workspace Not Found</CardTitle>
+          <CardTitle className="flex items-center"><PackageX className="mr-2 h-6 w-6 text-destructive"/> Workspace Not Found</CardTitle>
         </CardHeader>
         <CardContent>
           <p>The workspace with code <code className="bg-muted px-1 py-0.5 rounded">{workspaceCode}</code> could not be found or you do not have permission to view it.</p>

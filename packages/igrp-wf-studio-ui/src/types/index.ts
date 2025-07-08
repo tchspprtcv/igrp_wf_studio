@@ -1,3 +1,5 @@
+import { ProjectConfig } from '@igrp/wf-engine';
+
 // Tipos específicos da UI que não vêm diretamente do SDK @igrp/wf-engine
 
 /**
@@ -14,7 +16,7 @@ export interface DashboardStats {
  * Informações para o modal de edição de item (Área, Subárea, Processo).
  */
 export interface EditItemFormData {
-  type: 'area' | 'subarea' | 'process';
+  type: 'area' | 'subarea' | 'process' | 'workspace';
   // Identificadores do item
   workspaceCode: string;
   itemCode: string;        // Código atual do item
@@ -70,6 +72,19 @@ export interface ProcessExportData {
 export interface WorkspaceExportData {
   projectConfig: import('@igrp/wf-engine').ProjectConfig | null; // Importando tipo do SDK
   processes: ProcessExportData[];
+}
+
+
+
+/**
+ * Extensão do ProjectConfig para incluir propriedades adicionais usadas na UI
+ */
+export interface ExtendedProjectConfig extends ProjectConfig {
+  status: 'active' | 'inactive' | 'draft';
+  updated_at: any;
+  created_at: any;
+  description?: string;
+  appCode?: string;
 }
 
 
