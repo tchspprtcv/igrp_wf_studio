@@ -43,26 +43,20 @@ export default function RootLayout({
         <div className="min-h-screen bg-background flex flex-col"> {/* Removido 'relative', ajustado para flex-col */}
           <Toaster position="top-right" toastOptions={{
             duration: 4000,
-            style: { background: '#363636', color: '#fff' }, // Manter estilo do Toaster ou ajustar para tema
+            style: { background: '#363636', color: '#fff' },
             success: { duration: 3000, style: { background: 'green', color: '#fff' } },
             error: { duration: 4000, style: { background: 'red', color: '#fff' } },
           }} />
 
-          {/*
-            Removido:
-            - Overlay do off-canvas
-            - PanelGroup da Sidebar Desktop
-            - Div da Sidebar Off-canvas Mobile
-            - Div do conteúdo principal mobile (com header mobile)
-          */}
-
-          {/* Conteúdo Principal Unificado para todas as telas */}
-          {/* O PanelGroup e a lógica de sidebar foram removidos. */}
-          {/* O conteúdo agora ocupa o espaço total disponível, centralizado por mx-auto e limitado por max-w-7xl */}
-          <main className="flex-1 overflow-y-auto">
+          <main className="flex-1 overflow-y-auto flex flex-col"> {/* Adicionado flex flex-col */}
             <div className={cn(
-              "mx-auto px-4 py-6 sm:px-6 lg:px-8", // Classes base de padding e centralização
-              !isBpmnEditorPage && "max-w-7xl"   // Aplica max-w-7xl apenas se NÃO for a página do editor BPMN
+              "mx-auto w-full", // w-full para consistência, mx-auto ainda centraliza se max-w for aplicado
+              {
+                // Estilo para páginas normais (não editor BPMN)
+                "max-w-7xl px-4 py-6 sm:px-6 lg:px-8": !isBpmnEditorPage,
+                // Estilo para editor BPMN: altura total, sem padding do layout para que o editor controle 100%
+                "flex-1 flex flex-col px-0 py-0 sm:px-0 lg:px-0": isBpmnEditorPage,
+              }
             )}>
               {children}
             </div>
