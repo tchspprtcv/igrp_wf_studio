@@ -1,12 +1,11 @@
 "use client";
 
-// import type { Metadata } from 'next'; // Metadata não é mais necessária aqui se estática ou movida
+// import type { Metadata } from 'next';
 import './globals.css';
-import React, { useEffect } from "react"; // useState e usePathname removidos
+import React, { useEffect } from "react";
+import { usePathname } from 'next/navigation'; // Reintroduzido
 import { Toaster } from 'react-hot-toast';
-// Sidebar, Panel, PanelGroup, PanelResizeHandle, usePathname removidos
-// cn pode ser necessário se houver classes condicionais restantes, mas provavelmente não.
-// import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"; // Reintroduzido
 
 
 // Removidas constantes relacionadas à Sidebar
@@ -18,11 +17,12 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Removidos todos os estados e handlers da Sidebar:
-  // pathname, isOffCanvasOpen, isSidebarCollapsed, sidebarPanelSize
-  // toggleMobileMenu, closeMobileMenu, toggleSidebarCollapse, handleLayout
+  const pathname = usePathname();
 
-  // Efeito para metadados pode permanecer se necessário para o título global
+  // Expressão regular para identificar a rota do editor BPMN: /workspaces/qualquerCoisa/processes/qualquerCoisa
+  const bpmnEditorRegex = /^\/workspaces\/[^/]+\/processes\/[^/]+$/;
+  const isBpmnEditorPage = bpmnEditorRegex.test(pathname);
+
   useEffect(() => {
     document.title = 'IGRP Workflow Studio';
     const metaDescription = document.querySelector('meta[name="description"]');
@@ -59,9 +59,11 @@ export default function RootLayout({
           {/* Conteúdo Principal Unificado para todas as telas */}
           {/* O PanelGroup e a lógica de sidebar foram removidos. */}
           {/* O conteúdo agora ocupa o espaço total disponível, centralizado por mx-auto e limitado por max-w-7xl */}
-          <main className="flex-1 overflow-y-auto"> {/* Adicionado overflow-y-auto aqui se necessário */}
-            {/* mx-auto para centralizar, max-w-7xl para limitar largura, paddings para espaçamento interno */}
-            <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <main className="flex-1 overflow-y-auto">
+            <div className={cn(
+              "mx-auto px-4 py-6 sm:px-6 lg:px-8", // Classes base de padding e centralização
+              !isBpmnEditorPage && "max-w-7xl"   // Aplica max-w-7xl apenas se NÃO for a página do editor BPMN
+            )}>
               {children}
             </div>
           </main>
