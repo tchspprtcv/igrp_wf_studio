@@ -7,8 +7,9 @@ import {
   SidebarProvider,
   SidebarInset,
 } from "@/components/ui/sidebar";
+import Breadcrumb from "@/components/ui/breadcrumb"; // Importar Breadcrumb
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, PackageNotFound } from 'lucide-react'; // PackageNotFound para erro 404
+import { Terminal, PackageNotFound } from 'lucide-react';
 
 // Interface estendida para incluir description e appCode, como antes.
 interface ExtendedProjectConfig extends ProjectConfig {
@@ -102,20 +103,28 @@ export default async function WorkspaceDetailPage({ params }: Props) {
       <div className="w-full lg:pl-[var(--sidebar-width)]">
         <SidebarInset className="w-full transition-all duration-200 z-0 overflow-auto">
           <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 @container/main">
-            <div className="flex items-center justify-between"> {/* Flex container para título e ações */}
-              <div>
-                <h1 className="text-lg font-semibold md:text-2xl break-all">
-                  {pageTitle}
-                </h1>
-                {/* Adicionando subtítulo/descrição abaixo do título principal */}
-                <p className="text-sm text-muted-foreground break-all">
-                  {pageSubtitle}
-                </p>
+            <div className="flex flex-col gap-2 mb-4"> {/* Container para Título e Breadcrumb */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-lg font-semibold md:text-2xl break-all">
+                    {pageTitle}
+                  </h1>
+                  <p className="text-sm text-muted-foreground break-all">
+                    {pageSubtitle}
+                  </p>
+                </div>
+                {/* Ações como 'Exportar Workspace' estão agora em WorkspaceDetailsClientContent */}
               </div>
-              {/* Ações como 'Exportar Workspace' serão movidas para WorkspaceDetailsClientContent ou um novo header de página */}
+              <Breadcrumb
+                items={[
+                  { label: 'Dashboard', href: '/dashboard' },
+                  { label: 'Workspaces', href: '/workspaces' },
+                  { label: pageTitle } // pageTitle já contém o nome do workspace ou o código
+                ]}
+              />
             </div>
 
-            {fetchError && !config && ( // Mostrar erro apenas se config não carregou
+            {fetchError && !config && (
               <Alert variant="destructive">
                 <Terminal className="h-4 w-4" />
                 <AlertTitle>Error Loading Workspace</AlertTitle>

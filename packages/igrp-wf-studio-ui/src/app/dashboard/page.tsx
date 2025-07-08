@@ -12,11 +12,12 @@ import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { ChartAreaInteractive } from "@/components/dashboard/chart-area-interactive";
 // import { DataTable } from "@/components/dashboard/data-table"; // DataTable is not directly used here anymore, DashboardClientContent handles its own table
 import { SectionCards } from "@/components/dashboard/section-cards";
-import { SiteHeader } from "@/components/dashboard/site-header";
+// import { SiteHeader } from "@/components/dashboard/site-header"; // SiteHeader é parte do layout global
 import {
   SidebarProvider,
   SidebarInset,
 } from "@/components/ui/sidebar";
+import Breadcrumb from "@/components/ui/breadcrumb"; // Importar Breadcrumb
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // For displaying errors
 import { Terminal } from 'lucide-react'; // Icon for error alert
 
@@ -116,8 +117,9 @@ export default async function DashboardPage() {
       >
         {/*<SiteHeader />*/}
         <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 @container/main">
-          <div className="flex items-center">
+          <div className="flex flex-col gap-2 mb-4"> {/* Container para Título e Breadcrumb */}
             <h1 className="text-lg font-semibold md:text-2xl">Dashboard</h1>
+            <Breadcrumb items={[{ label: 'Dashboard' }]} />
           </div>
 
           {error && (

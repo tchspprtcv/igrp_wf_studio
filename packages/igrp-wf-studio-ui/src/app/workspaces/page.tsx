@@ -6,10 +6,11 @@ import * as studioMgr from '@/igrpwfstudio/utils/workspaceManager';
 import {
   SidebarProvider,
   SidebarInset,
-} from "@/components/ui/sidebar"; // Importado do Dashboard
+} from "@/components/ui/sidebar";
+import Breadcrumb from "@/components/ui/breadcrumb"; // Importar Breadcrumb
 // AppSidebar e SiteHeader não são importados aqui, pois devem ser parte do layout.tsx global ou Dashboard layout wrapper
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Para erros, do Dashboard
-import { Terminal } from 'lucide-react'; // Ícone para erro, do Dashboard
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Terminal } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Workspaces - IGRP Workflow Studio', // Título atualizado
@@ -71,9 +72,9 @@ export default async function WorkspacesPage() {
             <SiteHeader />
           */}
           <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 @container/main">
-            <div className="flex items-center">
-              {/* Título da página, como no Dashboard */}
+            <div className="flex flex-col gap-2 mb-4"> {/* Container para Título e Breadcrumb */}
               <h1 className="text-lg font-semibold md:text-2xl">Workspaces</h1>
+              <Breadcrumb items={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Workspaces' }]} />
             </div>
 
             {error && (

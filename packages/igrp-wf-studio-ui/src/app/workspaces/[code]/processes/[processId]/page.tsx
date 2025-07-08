@@ -7,8 +7,9 @@ import {
   SidebarProvider,
   SidebarInset,
 } from "@/components/ui/sidebar";
+import Breadcrumb from "@/components/ui/breadcrumb"; // Importar Breadcrumb
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, FileX2 } from 'lucide-react'; // FileX2 para erro de processo
+import { Terminal, FileX2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
@@ -123,30 +124,49 @@ export default async function ProcessEditorPage({ params }: Props) {
   const { code: workspaceCode, processId } = params;
   const processDetails = await getProcessData(workspaceCode, processId);
 
-  const sidebarWidth = "calc(var(--spacing) * 72)"; // Consistente com outras páginas
+  const sidebarWidth = "calc(var(--spacing) * 72)";
+
+  // Determinar o título do workspace para o breadcrumb
+  // Idealmente, getProcessData retornaria isso, ou faríamos outra chamada cacheada para config do workspace
+  // Por simplicidade, se config não estiver em processDetails, usamos o workspaceCode
+  let workspaceLabel = workspaceCode;
+  if (processDetails?.appCode) { // appCode é o workspaceCode
+      const wsConfig = await getProjectConfigForEditor(processDetails.appCode);
+      if (wsConfig?.project) {
+        workspaceLabel = wsConfig.project;
+      }
+  }
+
 
   if (!processDetails) {
-    // Renderiza dentro do layout do dashboard para consistência
     return (
       <SidebarProvider style={{ "--sidebar-width": sidebarWidth, "--header-height": "calc(var(--spacing) * 14)" } as React.CSSProperties}>
         <div className="w-full lg:pl-[var(--sidebar-width)]">
           <SidebarInset className="w-full">
             <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mb-4">
                 <Button variant="outline" size="icon" asChild>
                   <Link href={`/workspaces/${workspaceCode}`}>
                     <ChevronLeft className="h-4 w-4" />
-                    <span className="sr-only">Back to Workspace</span>
                   </Link>
                 </Button>
-                <h1 className="text-lg font-semibold md:text-2xl text-destructive">Error Loading Process</h1>
+                <div>
+                    <h1 className="text-lg font-semibold md:text-2xl text-destructive">Error Loading Process</h1>
+                    <Breadcrumb
+                        items={[
+                            { label: 'Dashboard', href: '/dashboard' },
+                            { label: 'Workspaces', href: '/workspaces' },
+                            { label: workspaceLabel, href: `/workspaces/${workspaceCode}` },
+                            { label: 'Error' }
+                        ]}
+                    />
+                </div>
               </div>
               <Alert variant="destructive">
                 <FileX2 className="h-4 w-4" />
                 <AlertTitle>Process Not Found</AlertTitle>
                 <AlertDescription>
                   Could not load details for process <code className="font-semibold">{processId}</code> in workspace <code className="font-semibold">{workspaceCode}</code>.
-                  The process may not exist, or the workspace configuration is missing/corrupted.
                 </AlertDescription>
               </Alert>
             </main>
@@ -156,21 +176,21 @@ export default async function ProcessEditorPage({ params }: Props) {
     );
   }
 
-  const pageTitle = processDetails.title || processId;
-  const breadcrumb = `${workspaceCode} / ${processDetails.areaCode}${processDetails.subAreaCode ? ` / ${processDetails.subAreaCode}` : ''} / ${pageTitle}`;
+  const processPageTitle = processDetails.title || processId;
 
+  const breadcrumbItems = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Workspaces', href: '/workspaces' },
+    { label: workspaceLabel, href: `/workspaces/${workspaceCode}` },
+    // Poderíamos adicionar Área/Subárea aqui se tivéssemos essa informação facilmente
+    { label: processPageTitle }
+  ];
 
   return (
     <SidebarProvider style={{ "--sidebar-width": sidebarWidth, "--header-height": "calc(var(--spacing) * 14)" } as React.CSSProperties}>
       <div className="w-full lg:pl-[var(--sidebar-width)]">
         <SidebarInset className="w-full">
-          {/* O ProcessEditorClient ocupará toda a altura e largura disponíveis dentro do main */}
-          {/* Um header específico para o editor pode ser adicionado aqui ou dentro do ProcessEditorClient */}
           <main className="flex flex-1 flex-col @container/main h-[calc(100vh-var(--header-height))]">
-            {/*
-              Header do Editor - pode ser movido para dentro do ProcessEditorClient
-              para ter acesso a ações como Salvar, etc. que dependem do estado do editor.
-            */}
             <div className="flex items-center gap-4 p-4 lg:p-6 border-b">
               <Button variant="outline" size="icon" asChild className="flex-shrink-0">
                   <Link href={`/workspaces/${workspaceCode}`}>
@@ -178,15 +198,13 @@ export default async function ProcessEditorPage({ params }: Props) {
                     <span className="sr-only">Back to Workspace</span>
                   </Link>
               </Button>
-              <div>
-                <h1 className="text-lg font-semibold md:text-2xl truncate" title={pageTitle}>{pageTitle}</h1>
-                <p className="text-xs text-muted-foreground truncate" title={breadcrumb}>{breadcrumb}</p>
+              <div className="flex-1 min-w-0"> {/* Para permitir que o título e breadcrumb quebrem/trunquem */}
+                <h1 className="text-lg font-semibold md:text-2xl truncate" title={processPageTitle}>{processPageTitle}</h1>
+                <Breadcrumb items={breadcrumbItems} className="mt-1" />
               </div>
-              {/* Botões de Salvar, etc. podem vir aqui ou dentro do ProcessEditorClient */}
             </div>
 
-            {/* ProcessEditorClient precisa ser adaptado para não ocupar a tela inteira por si só, mas o espaço dado */}
-            <div className="flex-1 overflow-auto"> {/* Garante que o editor possa scrollar se necessário */}
+            <div className="flex-1 overflow-auto">
               <ProcessEditorClient initialProcessDetails={processDetails} />
             </div>
           </main>
