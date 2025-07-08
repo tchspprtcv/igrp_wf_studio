@@ -121,7 +121,8 @@ export default function RootLayout({
 
                 <main className="flex-1 overflow-y-auto">
                   {/* Padding padrão para o conteúdo, pode ser ajustado por página se necessário */}
-                  <div className="mx-auto px-4 py-6 sm:px-6 lg:px-8">
+                  {/* Adicionado max-w-7xl para centralizar o conteúdo com largura máxima */}
+                  <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
                     {children}
                   </div>
                 </main>
